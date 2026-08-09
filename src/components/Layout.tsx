@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import {
-  Stethoscope, LayoutDashboard, Users, FileText, BarChart3,
+  Stethoscope, LayoutDashboard, Users, Calendar, FileText, BarChart3,
   UserCog, LogOut, Menu, X, ChevronRight, Bell
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-type Page = 'dashboard' | 'patients' | 'invoices' | 'new-invoice' | 'reports' | 'staff';
+type Page = 'dashboard' | 'patients' | 'appointments' | 'invoices' | 'new-invoice' | 'reports' | 'staff';
 
 interface LayoutProps {
   currentPage: Page;
@@ -16,10 +16,13 @@ interface LayoutProps {
 const navItems = [
   { id: 'dashboard' as Page, label: 'Dashboard', icon: LayoutDashboard },
   { id: 'patients' as Page, label: 'Patients', icon: Users },
+  { id: 'appointments' as Page, label: 'Appointments', icon: Calendar },
   { id: 'invoices' as Page, label: 'Billing & Invoices', icon: FileText },
-  { id: 'reports' as Page, label: 'Reports', icon: BarChart3 },
+  { id: 'reports' as Page, label: 'Reports', icon: BarChart3, roles: ['admin', 'doctor'] as const },
   { id: 'staff' as Page, label: 'Staff', icon: UserCog, roles: ['admin', 'doctor'] as const },
 ];
+
+
 
 export default function Layout({ currentPage, onNavigate, children }: LayoutProps) {
   const { staff, signOut } = useAuth();

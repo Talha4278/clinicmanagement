@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Users, TrendingUp, FileText, AlertCircle, Plus, ArrowRight } from 'lucide-react';
+import { Users, TrendingUp, FileText, AlertCircle, Plus, ArrowRight, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Invoice, Patient } from '../lib/types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
   onNavigate: (page: string) => void;
@@ -16,6 +17,9 @@ interface Stats {
 }
 
 export default function Dashboard({ onNavigate }: Props) {
+  const { staff } = useAuth();
+  const isReceptionist = staff?.role === 'receptionist';
+
   const [stats, setStats] = useState<Stats>({
     totalPatients: 0,
     todayRevenue: 0,
@@ -60,7 +64,7 @@ export default function Dashboard({ onNavigate }: Props) {
     setLoading(false);
   }
 
-  const statCards = [
+  const allStatCards = [
     {
       label: 'Total Patients',
       value: stats.totalPatients.toLocaleString(),
@@ -95,6 +99,10 @@ export default function Dashboard({ onNavigate }: Props) {
     },
   ];
 
+  const statCards = isReceptionist
+    ? allStatCards.filter(card => card.label !== "Today's Revenue" && card.label !== 'Monthly Revenue')
+    : allStatCards;
+
   const statusColors: Record<string, string> = {
     paid: 'badge-paid',
     pending: 'badge-pending',
@@ -103,28 +111,37 @@ export default function Dashboard({ onNavigate }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Quick action */}
+      {/* Quick actions */}
       <div
-        className="rounded-2xl p-6 flex items-center justify-between"
+        className="rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         style={{ background: '#3c5e27' }}
       >
         <div>
-          <p className="text-white/70 text-sm">Quick Action</p>
-          <h2 className="font-display text-2xl text-white mt-1">Create a new invoice</h2>
-          <p className="text-white/60 text-sm mt-1">Bill a patient for consultation, procedures, or medicines</p>
+          <p className="text-white/70 text-sm">Quick Actions</p>
+          <h2 className="font-display text-2xl text-white mt-1">Manage Clinic Operations</h2>
+          <p className="text-white/60 text-sm mt-1">Book appointments or bill a patient for consultation & treatments</p>
         </div>
-        <button
-          onClick={() => onNavigate('new-invoice')}
-          className="flex items-center gap-2 bg-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-white/90 transition-colors flex-shrink-0"
-          style={{ color: '#3c5e27' }}
-        >
-          <Plus size={16} />
-          New Invoice
-        </button>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <button
+            onClick={() => onNavigate('appointments')}
+            className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+          >
+            <Calendar size={16} />
+            Book Appointment
+          </button>
+          <button
+            onClick={() => onNavigate('new-invoice')}
+            className="flex items-center gap-2 bg-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-white/90 transition-colors"
+            style={{ color: '#3c5e27' }}
+          >
+            <Plus size={16} />
+            New Invoice
+          </button>
+        </div>
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${isReceptionist ? 'xl:grid-cols-2' : 'xl:grid-cols-4'} gap-4`}>
         {statCards.map((card) => (
           <div key={card.label} className="bg-white rounded-2xl p-5 card-shadow">
             <div className="flex items-start justify-between">
@@ -143,44 +160,46 @@ export default function Dashboard({ onNavigate }: Props) {
       </div>
 
       {/* Recent activity */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Recent invoices */}
-        <div className="bg-white rounded-2xl card-shadow overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
-            <h3 className="font-semibold text-gray-900">Recent Invoices</h3>
-            <button
-              onClick={() => onNavigate('invoices')}
-              className="flex items-center gap-1 text-sm hover:underline"
-              style={{ color: '#4a7530' }}
-            >
-              View all <ArrowRight size={14} />
-            </button>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {loading ? (
-              <div className="px-6 py-8 text-center text-gray-400 text-sm">Loading...</div>
-            ) : recentInvoices.length === 0 ? (
-              <div className="px-6 py-8 text-center text-gray-400 text-sm">No invoices yet</div>
-            ) : (
-              recentInvoices.map((inv) => (
-                <div key={inv.id} className="flex items-center gap-4 px-6 py-3.5 table-row-hover">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {(inv.patient as any)?.name ?? '—'}
-                    </p>
-                    <p className="text-xs text-gray-400">{inv.invoice_number}</p>
+      <div className={`grid grid-cols-1 ${isReceptionist ? 'xl:grid-cols-1' : 'xl:grid-cols-2'} gap-6`}>
+        {/* Recent invoices - Hidden for Receptionists */}
+        {!isReceptionist && (
+          <div className="bg-white rounded-2xl card-shadow overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
+              <h3 className="font-semibold text-gray-900">Recent Invoices</h3>
+              <button
+                onClick={() => onNavigate('invoices')}
+                className="flex items-center gap-1 text-sm hover:underline"
+                style={{ color: '#4a7530' }}
+              >
+                View all <ArrowRight size={14} />
+              </button>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {loading ? (
+                <div className="px-6 py-8 text-center text-gray-400 text-sm">Loading...</div>
+              ) : recentInvoices.length === 0 ? (
+                <div className="px-6 py-8 text-center text-gray-400 text-sm">No invoices yet</div>
+              ) : (
+                recentInvoices.map((inv) => (
+                  <div key={inv.id} className="flex items-center gap-4 px-6 py-3.5 table-row-hover">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {(inv.patient as any)?.name ?? '—'}
+                      </p>
+                      <p className="text-xs text-gray-400">{inv.invoice_number}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-semibold text-gray-900">Rs. {Number(inv.total).toLocaleString()}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[inv.payment_status]}`}>
+                        {inv.payment_status}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-semibold text-gray-900">Rs. {Number(inv.total).toLocaleString()}</p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[inv.payment_status]}`}>
-                      {inv.payment_status}
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Recent patients */}
         <div className="bg-white rounded-2xl card-shadow overflow-hidden">
@@ -224,3 +243,4 @@ export default function Dashboard({ onNavigate }: Props) {
     </div>
   );
 }
+

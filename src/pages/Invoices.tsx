@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Search, Plus, Filter, X, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Invoice, PaymentStatus } from '../lib/types';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
   onNewInvoice: () => void;
@@ -21,6 +22,9 @@ const methodLabel: Record<string, string> = {
 };
 
 export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
+  const { staff } = useAuth();
+  const isReceptionist = staff?.role === 'receptionist';
+
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -68,23 +72,26 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl card-shadow p-4">
-          <p className="text-xs text-gray-500 mb-1">Total Collected</p>
-          <p className="text-xl font-bold text-gray-900">Rs. {totalRevenue.toLocaleString()}</p>
-          <span className="text-xs badge-paid px-2 py-0.5 rounded-full font-medium">{invoices.filter(i => i.payment_status === 'paid').length} paid</span>
-        </div>
+      <div className={`grid grid-cols-1 ${isReceptionist ? 'sm:grid-cols-2' : 'sm:grid-cols-2 md:grid-cols-3'} gap-4`}>
+        {!isReceptionist && (
+          <div className="bg-white rounded-2xl card-shadow p-4">
+            <p className="text-xs text-gray-500 mb-1">Total Collected</p>
+            <p className="text-xl font-bold text-gray-900">Rs. {totalRevenue.toLocaleString()}</p>
+            <span className="text-xs badge-paid px-2 py-0.5 rounded-full font-medium">{invoices.filter(i => i.payment_status === 'paid').length} paid</span>
+          </div>
+        )}
         <div className="bg-white rounded-2xl card-shadow p-4">
           <p className="text-xs text-gray-500 mb-1">Outstanding</p>
           <p className="text-xl font-bold text-gray-900">Rs. {pending.toLocaleString()}</p>
           <span className="text-xs badge-pending px-2 py-0.5 rounded-full font-medium">{invoices.filter(i => i.payment_status !== 'paid').length} unpaid</span>
         </div>
-        <div className="bg-white rounded-2xl card-shadow p-4 hidden md:block">
+        <div className="bg-white rounded-2xl card-shadow p-4">
           <p className="text-xs text-gray-500 mb-1">Total Invoices</p>
           <p className="text-xl font-bold text-gray-900">{invoices.length}</p>
           <span className="text-xs text-gray-400">All time</span>
         </div>
       </div>
+
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">

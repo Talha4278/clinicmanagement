@@ -4,19 +4,23 @@ import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
+import Appointments from './pages/Appointments';
 import Invoices from './pages/Invoices';
 import NewInvoice from './pages/NewInvoice';
 import InvoiceView from './pages/InvoiceView';
 import Reports from './pages/Reports';
 import Staff from './pages/Staff';
 
-type Page = 'dashboard' | 'patients' | 'invoices' | 'new-invoice' | 'reports' | 'staff';
+type Page = 'dashboard' | 'patients' | 'appointments' | 'invoices' | 'new-invoice' | 'reports' | 'staff';
 
 function AppContent() {
-  const { user, loading } = useAuth();
+  const { user, staff, loading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
+
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
   const [viewPatientId, setViewPatientId] = useState<string | null>(null);
+  const [bookPatientId, setBookPatientId] = useState<string | null>(null);
+
 
   if (loading) {
     return (
@@ -40,10 +44,15 @@ function AppContent() {
     return <LoginPage />;
   }
 
-  function navigate(p: string) {
+  function navigate(p: string, extraId?: string) {
     setPage(p as Page);
     setViewInvoiceId(null);
     setViewPatientId(null);
+    if (p === 'appointments' && extraId) {
+      setBookPatientId(extraId);
+    } else {
+      setBookPatientId(null);
+    }
   }
 
   function renderPage() {
@@ -64,6 +73,14 @@ function AppContent() {
         return (
           <Patients
             onViewPatient={(id) => setViewPatientId(id)}
+            onBookAppointment={(patientId) => navigate('appointments', patientId)}
+          />
+        );
+      case 'appointments':
+        return (
+          <Appointments
+            preselectedPatientId={bookPatientId}
+            onNewInvoiceForPatient={(patientId) => navigate('new-invoice', patientId)}
           />
         );
       case 'invoices':
@@ -83,13 +100,18 @@ function AppContent() {
           />
         );
       case 'reports':
+        if (staff?.role === 'receptionist') {
+          return <Dashboard onNavigate={navigate} />;
+        }
         return <Reports />;
+
       case 'staff':
         return <Staff />;
       default:
         return <Dashboard onNavigate={navigate} />;
     }
   }
+
 
   // Determine which sidebar item to highlight
   const layoutPage = viewInvoiceId ? 'invoices' : page;

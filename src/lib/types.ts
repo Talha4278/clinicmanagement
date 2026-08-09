@@ -4,6 +4,8 @@ export type PaymentStatus = 'paid' | 'pending' | 'partial';
 export type DiscountType = 'percentage' | 'fixed';
 export type ItemType = 'consultation' | 'lab' | 'medicine' | 'procedure';
 export type GenderType = 'male' | 'female' | 'other';
+export type AppointmentStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+
 
 export interface Staff {
   id: string;
@@ -71,3 +73,20 @@ export interface DashboardStats {
   pendingPayments: number;
   todayInvoices: number;
 }
+
+export interface Appointment {
+  id: string;
+  patient_id: string;
+  doctor_id: string | null;
+  created_by: string | null;
+  appointment_date: string;
+  appointment_time: string;
+  status: AppointmentStatus;
+  procedure: string | null;
+  notes: string | null;
+  created_at: string;
+  patient?: Patient;
+  doctor?: Staff;
+  creator?: Staff;
+}
+

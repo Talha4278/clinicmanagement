@@ -5,6 +5,7 @@ import { Patient, GenderType } from '../lib/types';
 
 interface Props {
   onViewPatient?: (id: string) => void;
+  onBookAppointment?: (id: string) => void;
 }
 
 const emptyForm = {
@@ -12,7 +13,7 @@ const emptyForm = {
   gender: '' as GenderType | '', address: '', medical_history: '', allergies: '',
 };
 
-export default function Patients({ onViewPatient }: Props) {
+export default function Patients({ onViewPatient, onBookAppointment }: Props) {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -209,9 +210,17 @@ export default function Patients({ onViewPatient }: Props) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 justify-end">
+                        {onBookAppointment && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onBookAppointment(p.id); }}
+                            className="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <Calendar size={12} /> Book Appt
+                          </button>
+                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); openEdit(p); }}
-                          className="text-xs font-medium text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                          className="text-xs font-medium text-gray-500 hover:text-gray-700 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
                         >
                           Edit
                         </button>
