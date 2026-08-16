@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Search, Plus, Filter, X, FileText } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, Plus, X, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Invoice, PaymentStatus } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';

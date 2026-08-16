@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Plus, Trash2, Search, X, AlertCircle, ChevronDown, Check } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, Trash2, Search, X, AlertCircle, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Patient, Staff, ItemType, DiscountType, PaymentMethod, PaymentStatus } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,13 +20,6 @@ const itemTypeLabels: Record<ItemType, string> = {
   lab: 'Lab Test',
   medicine: 'Medicine',
   procedure: 'Procedure',
-};
-
-const itemTypeColors: Record<ItemType, string> = {
-  consultation: 'bg-blue-50 text-blue-700',
-  lab: 'bg-purple-50 text-purple-700',
-  medicine: 'bg-green-50 text-green-700',
-  procedure: 'bg-orange-50 text-orange-700',
 };
 
 const defaultItems: LineItem[] = [

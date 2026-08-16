@@ -32,12 +32,6 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
     !item.roles || (staff?.role && (item.roles as readonly string[]).includes(staff.role))
   );
 
-  const roleColors: Record<string, string> = {
-    admin: '#3c5e27',
-    receptionist: '#1e40af',
-    doctor: '#7c3aed',
-  };
-
   function SidebarContent() {
     return (
       <>

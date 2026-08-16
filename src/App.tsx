@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import Layout from './components/Layout';
@@ -18,7 +18,7 @@ function AppContent() {
   const [page, setPage] = useState<Page>('dashboard');
 
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
-  const [viewPatientId, setViewPatientId] = useState<string | null>(null);
+  const [_viewPatientId, setViewPatientId] = useState<string | null>(null);
   const [bookPatientId, setBookPatientId] = useState<string | null>(null);
 
 

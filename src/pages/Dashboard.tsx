@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Users, TrendingUp, FileText, AlertCircle, Plus, ArrowRight, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, TrendingUp, AlertCircle, Plus, ArrowRight, Calendar } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Invoice, Patient } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';

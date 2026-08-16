@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
-  Calendar as CalendarIcon, Clock, Plus, Search, Filter, X, Check,
-  AlertCircle, ChevronRight, User, Stethoscope, FileText, CheckCircle2,
-  XCircle, UserCheck, CalendarDays, MoreVertical, Edit2
+  Calendar as CalendarIcon, Clock, Plus, Search, X,
+  AlertCircle, Stethoscope, FileText, CheckCircle2,
+  XCircle, UserCheck, CalendarDays, Edit2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Appointment, AppointmentStatus, Patient, Staff } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
+import ClockTimePicker from '../components/ClockTimePicker';
 
 interface Props {
   onNewInvoiceForPatient?: (patientId: string) => void;
@@ -37,13 +38,6 @@ const commonProcedures = [
   'Tooth Extraction',
   'Orthodontic Checkup',
   'Facial Aesthetics / Botox',
-  'Dermal Fillers',
-];
-
-const timeSlots = [
-  '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-  '12:00', '12:30', '14:00', '14:30', '15:00', '15:30',
-  '16:00', '16:30', '17:00', '17:30', '18:00', '18:30'
 ];
 
 export default function Appointments({ onNewInvoiceForPatient, preselectedPatientId }: Props) {
@@ -385,13 +379,12 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
               key={df}
               onClick={() => {
                 setDateFilter(df);
-                if (df !== 'custom') setCustomDate('');
+                setCustomDate('');
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize whitespace-nowrap transition-colors ${
-                dateFilter === df
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize whitespace-nowrap transition-colors ${dateFilter === df
                   ? 'bg-gray-900 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {df}
             </button>
@@ -405,11 +398,10 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
               setCustomDate(e.target.value);
               setDateFilter('custom');
             }}
-            className={`px-2 py-1 rounded-lg border text-xs font-medium focus:ring-2 focus:ring-green-600/20 ${
-              dateFilter === 'custom'
+            className={`px-2 py-1 rounded-lg border text-xs font-medium focus:ring-2 focus:ring-green-600/20 ${dateFilter === 'custom'
                 ? 'border-gray-900 bg-gray-900 text-white'
                 : 'border-gray-200 bg-gray-50 text-gray-700'
-            }`}
+              }`}
           />
         </div>
 
@@ -548,20 +540,18 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                     {/* Status */}
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium border ${
-                          statusColors[apt.status].bg
-                        } ${statusColors[apt.status].text} ${statusColors[apt.status].border}`}
+                        className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full font-medium border ${statusColors[apt.status].bg
+                          } ${statusColors[apt.status].text} ${statusColors[apt.status].border}`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            apt.status === 'scheduled'
+                          className={`w-1.5 h-1.5 rounded-full ${apt.status === 'scheduled'
                               ? 'bg-blue-500'
                               : apt.status === 'completed'
-                              ? 'bg-green-500'
-                              : apt.status === 'cancelled'
-                              ? 'bg-red-500'
-                              : 'bg-gray-400'
-                          }`}
+                                ? 'bg-green-500'
+                                : apt.status === 'cancelled'
+                                  ? 'bg-red-500'
+                                  : 'bg-gray-400'
+                            }`}
                         />
                         {statusLabels[apt.status]}
                       </span>
@@ -791,34 +781,10 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">
                     Appointment Time *
                   </label>
-                  <div className="flex gap-2">
-                    <select
-                      value={timeSlots.includes(appointmentTime) ? appointmentTime : 'custom'}
-                      onChange={e => {
-                        if (e.target.value !== 'custom') {
-                          setAppointmentTime(e.target.value);
-                        }
-                      }}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all bg-white"
-                    >
-                      {timeSlots.map(t => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                      <option value="custom">Custom time...</option>
-                    </select>
-
-                    {(!timeSlots.includes(appointmentTime) ||
-                      appointmentTime === 'custom') && (
-                      <input
-                        type="time"
-                        value={appointmentTime === 'custom' ? '09:00' : appointmentTime}
-                        onChange={e => setAppointmentTime(e.target.value)}
-                        className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20"
-                      />
-                    )}
-                  </div>
+                  <ClockTimePicker
+                    value={appointmentTime}
+                    onChange={setAppointmentTime}
+                  />
                 </div>
               </div>
 

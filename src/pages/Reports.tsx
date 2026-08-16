@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Users, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { TrendingUp, TrendingDown, DollarSign, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface DailyRevenue {
