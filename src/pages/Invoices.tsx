@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
 import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
+import { isDemoMode, getDemoInvoices } from '../lib/demoData';
 
 interface Props {
   onNewInvoice: () => void;
@@ -93,6 +94,11 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
 
   async function fetchInvoices() {
     setLoading(true);
+    if (isDemoMode()) {
+      setInvoices(getDemoInvoices());
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from('invoices')
       .select('*, patient:patients(name, phone), doctor:staff!invoices_doctor_id_fkey(name)')

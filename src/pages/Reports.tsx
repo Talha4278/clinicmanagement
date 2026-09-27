@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { isDemoMode, getDemoInvoices, getDemoPatients } from '../lib/demoData';
 
 interface DailyRevenue {
   date: string;
@@ -35,6 +36,55 @@ export default function Reports() {
 
   async function fetchReports() {
     setLoading(true);
+
+    if (isDemoMode()) {
+      const demoInvoices = getDemoInvoices();
+      const demoPatients = getDemoPatients();
+
+      const dayMap = new Map<string, { revenue: number; count: number }>();
+      demoInvoices.forEach(inv => {
+        const d = (inv.created_at || inv.issue_date || '').split('T')[0];
+        const existing = dayMap.get(d) ?? { revenue: 0, count: 0 };
+        if (inv.payment_status === 'paid') {
+          dayMap.set(d, { revenue: existing.revenue + Number(inv.total), count: existing.count + 1 });
+        } else {
+          dayMap.set(d, { revenue: existing.revenue, count: existing.count + 1 });
+        }
+      });
+      const dailyArr = Array.from(dayMap.entries())
+        .map(([date, v]) => ({ date, ...v }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      setDaily(dailyArr);
+      const paidSum = demoInvoices.filter(i => i.payment_status === 'paid').reduce((s, i) => s + Number(i.total), 0);
+      const pendingSum = demoInvoices.filter(i => i.payment_status !== 'paid').reduce((s, i) => s + (Number(i.total) - Number(i.paid_amount || 0)), 0);
+
+      setSummary({
+        totalRevenue: paidSum,
+        totalPending: pendingSum,
+        totalInvoices: demoInvoices.length,
+        totalPatients: demoPatients.length,
+      });
+
+      setOutstanding(
+        demoInvoices.filter(i => i.payment_status !== 'paid').map(inv => ({
+          invoice_number: inv.invoice_number,
+          patient_name: inv.patient?.name ?? '—',
+          patient_phone: inv.patient?.phone ?? '—',
+          total: Number(inv.total),
+          payment_status: inv.payment_status,
+          created_at: inv.created_at,
+        }))
+      );
+
+      setDoctorStats([
+        { doctor_name: 'Dr. Sarah Tariq', total: 106500, count: 2 },
+        { doctor_name: 'Dr. Hamza Malik', total: 18000, count: 1 },
+      ]);
+      setLoading(false);
+      return;
+    }
+
     const now = new Date();
     let startDate: Date;
     if (period === 'week') {

@@ -19,6 +19,7 @@ import {
   listenForSessionTermination,
   SESSION_UPDATED_EVENT,
 } from '../lib/sessionManager';
+import { seedDemoData } from '../lib/demoData';
 
 interface AuthContextValue {
   user: User | null;
@@ -426,6 +427,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   function signInAsDemo(role: 'admin' | 'doctor' | 'receptionist' = 'doctor') {
+    seedDemoData(true);
     const demoStaff = DEMO_STAFF_MAP[role] || DEMO_STAFF_MAP.doctor;
     localStorage.setItem('dentivista_demo_role', role);
     localStorage.removeItem('clinsyst_active_staff_session');

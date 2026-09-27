@@ -13,6 +13,7 @@ import {
 } from '../lib/types';
 import { getExaminations, saveExamination } from '../lib/clinicStorage';
 import DentalChart from '../components/DentalChart';
+import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS } from '../lib/demoData';
 
 interface Props {
   preselectedPatientId?: string | null;
@@ -56,6 +57,24 @@ export default function Examinations({
 
   async function loadData() {
     setLoading(true);
+
+    if (isDemoMode()) {
+      const exams = await getExaminations();
+      const demoPats = getDemoPatients();
+      const demoDocs = DEMO_STAFF_MEMBERS.filter((s) => s.role === 'doctor');
+      setExaminations(exams);
+      setPatients(demoPats);
+      setDoctors(demoDocs);
+      if (preselectedPatientId) {
+        const match = demoPats.find((p) => p.id === preselectedPatientId);
+        if (match) {
+          openNewExam(match);
+        }
+      }
+      setLoading(false);
+      return;
+    }
+
     const [exams, patientsRes, staffRes] = await Promise.all([
       getExaminations(),
       supabase.from('patients').select('*').order('name'),

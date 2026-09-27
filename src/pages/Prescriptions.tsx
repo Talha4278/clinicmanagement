@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { Prescription, PrescriptionItem, Patient, Staff } from '../lib/types';
 import { getPrescriptions, savePrescription, deletePrescription } from '../lib/clinicStorage';
 import PrescriptionSlip from '../components/PrescriptionSlip';
+import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS } from '../lib/demoData';
 
 interface Props {
   preselectedPatientId?: string | null;
@@ -64,6 +65,24 @@ export default function Prescriptions({
 
   async function loadData() {
     setLoading(true);
+
+    if (isDemoMode()) {
+      const rxs = await getPrescriptions();
+      const demoPats = getDemoPatients();
+      const demoDocs = DEMO_STAFF_MEMBERS.filter((s) => s.role === 'doctor');
+      setPrescriptions(rxs);
+      setPatients(demoPats);
+      setDoctors(demoDocs);
+      if (preselectedPatientId) {
+        const match = demoPats.find((p) => p.id === preselectedPatientId);
+        if (match) {
+          openAddModal(match.id);
+        }
+      }
+      setLoading(false);
+      return;
+    }
+
     const [rxs, patRes, docRes] = await Promise.all([
       getPrescriptions(),
       supabase.from('patients').select('*').order('name'),

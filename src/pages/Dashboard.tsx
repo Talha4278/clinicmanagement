@@ -7,6 +7,12 @@ import { supabase } from '../lib/supabase';
 import { Appointment, Invoice, Patient } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
+import {
+  isDemoMode,
+  getDemoPatients,
+  getDemoInvoices,
+  getDemoAppointments,
+} from '../lib/demoData';
 
 interface Props {
   onNavigate: (page: string, extraId?: string) => void;
@@ -51,6 +57,32 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
   }, []);
 
   async function fetchData() {
+    if (isDemoMode()) {
+      const demoPatients = getDemoPatients();
+      const demoInvoices = getDemoInvoices();
+      const demoAppointments = getDemoAppointments();
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const paidInvoices = demoInvoices.filter(i => i.payment_status === 'paid');
+      const todayPaid = paidInvoices.filter(i => (i.created_at || i.issue_date || '').startsWith(todayStr));
+      const pendingInvoices = demoInvoices.filter(i => i.payment_status !== 'paid');
+
+      setStats({
+        totalPatients: demoPatients.length,
+        todayRevenue: todayPaid.reduce((s, i) => s + Number(i.total), 0),
+        monthRevenue: paidInvoices.reduce((s, i) => s + Number(i.total), 0),
+        pendingAmount: pendingInvoices.reduce((s, i) => s + (Number(i.total) - Number(i.paid_amount || 0)), 0),
+        todayInvoices: demoInvoices.filter(i => (i.created_at || i.issue_date || '').startsWith(todayStr)).length,
+        upcomingAppointmentsCount: demoAppointments.filter(a => a.status === 'scheduled').length,
+      });
+
+      setRecentInvoices(demoInvoices as Invoice[]);
+      setRecentPatients(demoPatients);
+      setUpcomingAppointments(demoAppointments);
+      setLoading(false);
+      return;
+    }
+
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();

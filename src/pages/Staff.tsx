@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Staff as StaffType, StaffRole } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { checkSeatLimit } from '../lib/tenancy';
+import { isDemoMode, DEMO_STAFF_MEMBERS } from '../lib/demoData';
 
 const roleColors: Record<StaffRole, string> = {
   admin: 'bg-red-50 text-red-700',
@@ -32,6 +33,11 @@ export default function Staff() {
   useEffect(() => { fetchStaff(); }, []);
 
   async function fetchStaff() {
+    if (isDemoMode()) {
+      setStaffList(DEMO_STAFF_MEMBERS);
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase.from('staff').select('*').order('created_at');
     setStaffList(data ?? []);
     setLoading(false);

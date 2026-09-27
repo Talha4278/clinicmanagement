@@ -5,6 +5,7 @@ import { Invoice, InvoiceItem } from '../lib/types';
 import { useClinicSettings } from '../lib/clinicSettings';
 import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
+import { isDemoMode, getDemoInvoices, updateDemoInvoicePayment } from '../lib/demoData';
 
 interface Props {
   invoiceId: string;
@@ -90,6 +91,17 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
   useEffect(() => { fetchInvoice(); }, [invoiceId]);
 
   async function fetchInvoice() {
+    if (isDemoMode()) {
+      const demoInvoices = getDemoInvoices();
+      const match = demoInvoices.find((i) => i.id === invoiceId) || demoInvoices[0];
+      if (match) {
+        setInvoice(match);
+        setItems(match.items || []);
+      }
+      setLoading(false);
+      return;
+    }
+
     const [invRes, itemsRes] = await Promise.all([
       supabase
         .from('invoices')
@@ -110,6 +122,12 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
   async function markPaid() {
     if (!invoice) return;
     setUpdating(true);
+    if (isDemoMode()) {
+      updateDemoInvoicePayment(invoice.id, invoice.total);
+      setInvoice({ ...invoice, payment_status: 'paid', paid_amount: invoice.total });
+      setUpdating(false);
+      return;
+    }
     await supabase.from('invoices').update({ payment_status: 'paid' }).eq('id', invoice.id);
     setInvoice({ ...invoice, payment_status: 'paid' });
     setUpdating(false);

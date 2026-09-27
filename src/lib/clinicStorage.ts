@@ -10,6 +10,16 @@ import {
   Appointment,
   Invoice,
 } from './types';
+import {
+  isDemoMode,
+  getDemoInventory,
+  getDemoExaminations,
+  getDemoTreatments,
+  getDemoPrescriptions,
+  getDemoPatients,
+  getDemoAppointments,
+  getDemoInvoices,
+} from './demoData';
 
 // ─── INITIAL SEED DATA (EMPTY - REAL DATA ONLY) ──────────────────────
 const SEED_INVENTORY: InventoryItem[] = [];
@@ -37,6 +47,12 @@ function setLocal<T>(key: string, val: T): void {
 
 // ─── INVENTORY CRUD ──────────────────────────────────────────────────
 export async function getInventoryItems(): Promise<InventoryItem[]> {
+  if (isDemoMode()) {
+    const demo = getLocal<InventoryItem[]>('inventory', null);
+    if (demo && demo.length > 0) return demo;
+    return getDemoInventory();
+  }
+
   try {
     const { data, error } = await supabase
       .from('inventory_items')
@@ -144,6 +160,14 @@ export async function adjustInventoryStock(id: string, delta: number, _reason?: 
 
 // ─── EXAMINATIONS & DENTAL CHART CRUD ────────────────────────────────
 export async function getExaminations(patientId?: string): Promise<Examination[]> {
+  if (isDemoMode()) {
+    const demo = getLocal<Examination[]>('examinations', null) || getDemoExaminations();
+    if (patientId) {
+      return demo.filter((e) => e.patient_id === patientId);
+    }
+    return demo;
+  }
+
   try {
     let query = supabase
       .from('examinations')
@@ -245,6 +269,14 @@ export async function deleteExamination(id: string): Promise<boolean> {
 
 // ─── TREATMENTS CRUD ─────────────────────────────────────────────────
 export async function getTreatments(patientId?: string): Promise<Treatment[]> {
+  if (isDemoMode()) {
+    const demo = getLocal<Treatment[]>('treatments', null) || getDemoTreatments();
+    if (patientId) {
+      return demo.filter((t) => t.patient_id === patientId);
+    }
+    return demo;
+  }
+
   try {
     let query = supabase
       .from('treatments')
@@ -344,6 +376,14 @@ export async function deleteTreatment(id: string): Promise<boolean> {
 
 // ─── PRESCRIPTIONS CRUD ──────────────────────────────────────────────
 export async function getPrescriptions(patientId?: string): Promise<Prescription[]> {
+  if (isDemoMode()) {
+    const demo = getLocal<Prescription[]>('prescriptions', null) || getDemoPrescriptions();
+    if (patientId) {
+      return demo.filter((p) => p.patient_id === patientId);
+    }
+    return demo;
+  }
+
   try {
     let query = supabase
       .from('prescriptions')
@@ -446,6 +486,126 @@ export interface PatientDossierData {
 }
 
 export async function getPatientDossier(patientId: string): Promise<PatientDossierData | null> {
+  if (isDemoMode()) {
+    const patient = getDemoPatients().find((p) => p.id === patientId);
+    if (!patient) return null;
+
+    const appointments = getDemoAppointments().filter((a) => a.patient_id === patientId);
+    const invoices = getDemoInvoices().filter((i) => i.patient_id === patientId);
+    const examinations = await getExaminations(patientId);
+    const treatments = await getTreatments(patientId);
+    const prescriptions = await getPrescriptions(patientId);
+
+    const timeline: PatientActivityEvent[] = [];
+
+    // Appointments events
+    appointments.forEach((apt) => {
+      timeline.push({
+        id: `act-apt-${apt.id}`,
+        type: 'appointment',
+        date: apt.appointment_date + (apt.appointment_time ? `T${apt.appointment_time}` : ''),
+        title: `Appointment: ${apt.procedure || 'Clinical Visit'}`,
+        subtitle: apt.appointment_time ? `Time: ${apt.appointment_time}` : undefined,
+        details: apt.notes || undefined,
+        status: apt.status,
+        doctorName: apt.doctor?.name,
+        badgeColor:
+          apt.status === 'completed'
+            ? '#166534'
+            : apt.status === 'scheduled'
+            ? '#1d4ed8'
+            : '#dc2626',
+        rawRecord: apt,
+      });
+    });
+
+    // Examination events
+    examinations.forEach((exam) => {
+      const toothCount = Object.keys(exam.teeth_findings || {}).length;
+      timeline.push({
+        id: `act-exam-${exam.id}`,
+        type: 'examination',
+        date: exam.examination_date,
+        title: `Dental Examination (${exam.dentition_type === 'child' ? 'Pediatric' : 'Adult'})`,
+        subtitle: toothCount > 0 ? `${toothCount} teeth charted with findings` : 'Routine visual exam',
+        details: exam.clinical_notes || exam.chief_complaint || undefined,
+        doctorName: exam.doctor?.name,
+        badgeColor: '#0891b2',
+        rawRecord: exam,
+      });
+    });
+
+    // Treatment events
+    treatments.forEach((trt) => {
+      timeline.push({
+        id: `act-trt-${trt.id}`,
+        type: 'treatment',
+        date: trt.treatment_date,
+        title: `Treatment: ${trt.procedure_name}`,
+        subtitle: trt.tooth_number ? `Tooth: #${trt.tooth_number}` : undefined,
+        details: trt.notes || undefined,
+        amount: trt.cost,
+        status: trt.status,
+        doctorName: trt.doctor?.name,
+        badgeColor:
+          trt.status === 'completed'
+            ? '#166534'
+            : trt.status === 'in_progress'
+            ? '#d97706'
+            : '#4b5563',
+        rawRecord: trt,
+      });
+    });
+
+    // Prescription events
+    prescriptions.forEach((rx) => {
+      const itemCount = rx.items?.length || 0;
+      timeline.push({
+        id: `act-rx-${rx.id}`,
+        type: 'prescription',
+        date: rx.prescription_date,
+        title: `Prescription: ${rx.diagnosis || 'Clinical Regimen'}`,
+        subtitle: `${itemCount} medication${itemCount === 1 ? '' : 's'} prescribed`,
+        details: rx.notes || undefined,
+        doctorName: rx.doctor?.name,
+        badgeColor: '#7c3aed',
+        rawRecord: rx,
+      });
+    });
+
+    // Invoice events
+    invoices.forEach((inv) => {
+      timeline.push({
+        id: `act-inv-${inv.id}`,
+        type: 'invoice',
+        date: inv.created_at || inv.issue_date,
+        title: `Invoice: ${inv.invoice_number}`,
+        subtitle: `Total: Rs. ${Number(inv.total).toLocaleString()} • ${inv.payment_status.toUpperCase()}`,
+        amount: Number(inv.total),
+        status: inv.payment_status,
+        badgeColor:
+          inv.payment_status === 'paid'
+            ? '#166534'
+            : inv.payment_status === 'partial'
+            ? '#d97706'
+            : '#dc2626',
+        rawRecord: inv,
+      });
+    });
+
+    timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return {
+      patient,
+      appointments,
+      examinations,
+      treatments,
+      prescriptions,
+      invoices,
+      timeline,
+    };
+  }
+
   // 1. Fetch Patient details
   const { data: patientData } = await supabase
     .from('patients')

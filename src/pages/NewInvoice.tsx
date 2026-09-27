@@ -3,6 +3,7 @@ import { Plus, Trash2, Search, X, AlertCircle, Check } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Patient, Staff, ItemType, DiscountType, PaymentMethod, PaymentStatus } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
+import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS, saveDemoInvoice } from '../lib/demoData';
 
 interface LineItem {
   item_type: ItemType;
@@ -50,12 +51,22 @@ export default function NewInvoice({ onSuccess }: Props) {
   }, []);
 
   async function fetchDoctors() {
+    if (isDemoMode()) {
+      const docs = DEMO_STAFF_MEMBERS.filter((s) => s.role === 'doctor');
+      setDoctors(docs);
+      if (staff?.role === 'doctor') setSelectedDoctor(staff.id);
+      return;
+    }
     const { data } = await supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true);
     setDoctors(data ?? []);
     if (staff?.role === 'doctor') setSelectedDoctor(staff.id);
   }
 
   async function fetchPatients() {
+    if (isDemoMode()) {
+      setPatients(getDemoPatients());
+      return;
+    }
     const { data } = await supabase.from('patients').select('*').order('name');
     setPatients(data ?? []);
   }
@@ -93,6 +104,29 @@ export default function NewInvoice({ onSuccess }: Props) {
     if (items.some(i => !i.description.trim())) { setError('All items must have a description'); return; }
     setSaving(true);
     setError('');
+
+    if (isDemoMode()) {
+      const demoInv = saveDemoInvoice({
+        patient_id: selectedPatient.id,
+        doctor_id: selectedDoctor || null,
+        subtotal,
+        discount: discountAmount,
+        tax: taxAmount,
+        total,
+        paid_amount: paymentStatus === 'paid' ? total : 0,
+        payment_method: paymentMethod,
+        payment_status: paymentStatus,
+        notes: notes.trim() || null,
+        items: items.map((i) => ({
+          description: i.description,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          total: i.quantity * i.unit_price,
+        })),
+      });
+      onSuccess(demoInv.id);
+      return;
+    }
 
     const { data: inv, error: invErr } = await supabase
       .from('invoices')

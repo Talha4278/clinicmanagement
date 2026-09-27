@@ -6,6 +6,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { Treatment, TreatmentStatus, Patient, Staff } from '../lib/types';
 import { getTreatments, saveTreatment, deleteTreatment } from '../lib/clinicStorage';
+import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS } from '../lib/demoData';
 
 interface Props {
   preselectedPatientId?: string | null;
@@ -67,6 +68,24 @@ export default function Treatments({
 
   async function loadData() {
     setLoading(true);
+
+    if (isDemoMode()) {
+      const trts = await getTreatments();
+      const demoPats = getDemoPatients();
+      const demoDocs = DEMO_STAFF_MEMBERS.filter((s) => s.role === 'doctor');
+      setTreatments(trts);
+      setPatients(demoPats);
+      setDoctors(demoDocs);
+      if (preselectedPatientId) {
+        const match = demoPats.find((p) => p.id === preselectedPatientId);
+        if (match) {
+          openAddModal(match.id);
+        }
+      }
+      setLoading(false);
+      return;
+    }
+
     const [trts, patRes, docRes] = await Promise.all([
       getTreatments(),
       supabase.from('patients').select('*').order('name'),

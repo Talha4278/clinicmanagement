@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Search, Plus, Phone, Mail, Calendar, ChevronRight, X, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Patient, GenderType } from '../lib/types';
+import { isDemoMode, getDemoPatients, saveDemoPatient } from '../lib/demoData';
 
 interface Props {
   onViewPatient?: (id: string) => void;
@@ -27,6 +28,11 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
 
   async function fetchPatients() {
     setLoading(true);
+    if (isDemoMode()) {
+      setPatients(getDemoPatients());
+      setLoading(false);
+      return;
+    }
     const { data } = await supabase
       .from('patients')
       .select('*')
@@ -83,6 +89,17 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
       medical_history: form.medical_history.trim() || null,
       allergies: form.allergies.trim() || null,
     };
+
+    if (isDemoMode()) {
+      saveDemoPatient({
+        id: editPatient?.id,
+        ...payload,
+      });
+      await fetchPatients();
+      setShowForm(false);
+      setSaving(false);
+      return;
+    }
 
     if (editPatient) {
       const { error } = await supabase.from('patients').update(payload).eq('id', editPatient.id);

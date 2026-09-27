@@ -11,6 +11,14 @@ import { useClinicSettings } from '../lib/clinicSettings';
 import { generateAppointmentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 import ClockTimePicker from '../components/ClockTimePicker';
+import {
+  isDemoMode,
+  getDemoAppointments,
+  saveDemoAppointment,
+  updateDemoAppointmentStatus,
+  getDemoPatients,
+  DEMO_STAFF_MEMBERS,
+} from '../lib/demoData';
 
 interface Props {
   onNewInvoiceForPatient?: (patientId: string) => void;
@@ -132,6 +140,11 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
+    if (isDemoMode()) {
+      setAppointments(getDemoAppointments());
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from('appointments')
       .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
@@ -145,11 +158,19 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
   }, []);
 
   const fetchPatients = useCallback(async () => {
+    if (isDemoMode()) {
+      setPatients(getDemoPatients());
+      return;
+    }
     const { data } = await supabase.from('patients').select('*').order('name');
     setPatients(data ?? []);
   }, []);
 
   const fetchDoctors = useCallback(async () => {
+    if (isDemoMode()) {
+      setDoctors(DEMO_STAFF_MEMBERS.filter(s => s.role === 'doctor'));
+      return;
+    }
     const { data } = await supabase
       .from('staff')
       .select('*')
@@ -259,6 +280,17 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
       status: modalStatus,
     };
 
+    if (isDemoMode()) {
+      saveDemoAppointment({
+        id: editingAppointment?.id,
+        ...payload,
+      });
+      await fetchAppointments();
+      setShowModal(false);
+      setSaving(false);
+      return;
+    }
+
     if (editingAppointment) {
       const { error: err } = await supabase
         .from('appointments')
@@ -286,6 +318,14 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
   }
 
   async function updateStatus(aptId: string, newStatus: AppointmentStatus) {
+    if (isDemoMode()) {
+      updateDemoAppointmentStatus(aptId, newStatus);
+      setAppointments(prev =>
+        prev.map(a => (a.id === aptId ? { ...a, status: newStatus } : a))
+      );
+      return;
+    }
+
     const { error: err } = await supabase
       .from('appointments')
       .update({ status: newStatus })
