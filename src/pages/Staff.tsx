@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff } from 'lucide-react';
+import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, Lock, ArrowUpRight } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Staff as StaffType, StaffRole } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
+import { checkSeatLimit } from '../lib/tenancy';
 
 const roleColors: Record<StaffRole, string> = {
   admin: 'bg-red-50 text-red-700',
@@ -11,7 +12,7 @@ const roleColors: Record<StaffRole, string> = {
 };
 
 export default function Staff() {
-  const { staff: currentStaff } = useAuth();
+  const { staff: currentStaff, activeClinic } = useAuth();
   const isAdmin = currentStaff?.role === 'admin';
   const [staffList, setStaffList] = useState<StaffType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,10 @@ export default function Staff() {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const activeStaff = staffList.filter(s => s.active);
+  const inactiveStaff = staffList.filter(s => !s.active);
+  const seatInfo = checkSeatLimit(activeStaff.length, activeClinic?.id);
 
   useEffect(() => { fetchStaff(); }, []);
 
@@ -50,6 +55,12 @@ export default function Staff() {
 
   function openAdd() {
     if (!isAdmin) return;
+    if (!seatInfo.allowed) {
+      alert(
+        `Staff Account Limit Reached!\n\nYour clinic "${seatInfo.clinicName}" is subscribed to the ${seatInfo.plan.toUpperCase()} tier, which allows a maximum of ${seatInfo.maxSeats} active staff accounts (${seatInfo.currentCount} currently active).\n\nPlease upgrade your subscription to add more team members.`
+      );
+      return;
+    }
     setEditStaff(null);
     setForm({ name: '', email: '', phone: '', role: 'receptionist', specialization: '', password: '' });
     setShowPassword(false);
@@ -182,9 +193,6 @@ export default function Staff() {
     setStaffList(prev => prev.map(st => st.id === s.id ? { ...st, active: !st.active } : st));
   }
 
-  const activeStaff = staffList.filter(s => s.active);
-  const inactiveStaff = staffList.filter(s => !s.active);
-
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -196,12 +204,54 @@ export default function Staff() {
         {isAdmin && (
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-all"
-            style={{ background: '#3c5e27' }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all ${
+              seatInfo.allowed ? 'hover:opacity-90' : 'opacity-80'
+            }`}
+            style={{ background: seatInfo.allowed ? '#3c5e27' : '#5c7a48' }}
           >
             <Plus size={16} /> Add Staff
           </button>
         )}
+      </div>
+
+      {/* Clinic Plan & Seat Allocation Bar */}
+      <div className="bg-white rounded-2xl p-4 border border-gray-100 card-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold flex-shrink-0">
+            <Sparkles size={18} className="text-emerald-700" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-bold text-gray-900 text-sm">{seatInfo.clinicName}</p>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wide">
+                {seatInfo.plan} Plan
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Seat License: {seatInfo.currentCount} of {seatInfo.maxSeats} staff accounts active ({seatInfo.remainingSeats} available)
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="w-32 bg-gray-100 rounded-full h-2.5 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${
+                seatInfo.currentCount >= seatInfo.maxSeats ? 'bg-amber-500' : 'bg-emerald-600'
+              }`}
+              style={{ width: `${Math.min(100, (seatInfo.currentCount / seatInfo.maxSeats) * 100)}%` }}
+            />
+          </div>
+          {seatInfo.currentCount >= seatInfo.maxSeats ? (
+            <span className="text-xs font-bold text-amber-700 flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+              <Lock size={12} /> Limit Reached
+            </span>
+          ) : (
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+              {seatInfo.remainingSeats} Seats Free
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Role summary */}

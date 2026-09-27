@@ -10,6 +10,7 @@ export type AppointmentStatus = 'scheduled' | 'completed' | 'cancelled' | 'no_sh
 export interface Staff {
   id: string;
   user_id: string | null;
+  clinic_id?: string | null;
   name: string;
   role: StaffRole;
   email: string;
@@ -246,6 +247,39 @@ export interface ClinicSettings {
   currency_symbol?: string;
   whatsapp_config?: WhatsAppConfig;
 }
+
+// ─── MULTI-TENANT CLINIC SIGN-UP & SUBSCRIPTIONS ─────────────────────
+export type SubscriptionPlan = 'starter' | 'pro' | 'enterprise';
+
+export interface ClinicTenant {
+  id: string;
+  name: string;
+  slug: string;
+  plan: SubscriptionPlan;
+  max_seats: number;
+  max_concurrent_sessions: number;
+  owner_name: string;
+  owner_email: string;
+  phone: string;
+  address: string;
+  tagline?: string;
+  logo_url?: string | null;
+  status: 'trial' | 'active' | 'suspended';
+  trial_ends_at: string;
+  created_at: string;
+}
+
+export interface ClinicSignUpData {
+  clinic_name: string;
+  tagline?: string;
+  owner_name: string;
+  email: string;
+  password: string;
+  phone: string;
+  address: string;
+  plan: SubscriptionPlan;
+}
+
 
 
 

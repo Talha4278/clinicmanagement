@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import {
   Stethoscope, LayoutDashboard, Users, Calendar, FileText, BarChart3,
   UserCog, LogOut, Menu, X, ChevronRight, Bell, Package, Pill, CheckCircle2,
-  Settings
+  Settings, Building2, ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
+import { getAllClinics } from '../lib/tenancy';
 
 export type Page =
   | 'dashboard'
@@ -42,9 +43,10 @@ const navItems = [
 ];
 
 export default function Layout({ currentPage, onNavigate, children }: LayoutProps) {
-  const { staff, signOut } = useAuth();
+  const { staff, signOut, activeClinic, switchClinicTenant } = useAuth();
   const { settings: clinic } = useClinicSettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const allClinics = getAllClinics();
 
   const visibleItems = navItems.filter(item =>
     !item.roles || (staff?.role && (item.roles as readonly string[]).includes(staff.role))
@@ -53,7 +55,7 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
   function SidebarContent() {
     return (
       <>
-        {/* Logo */}
+        {/* Logo & Clinic Branding */}
         <div
           className="flex items-center gap-3 px-5 py-5 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors"
           onClick={() => { onNavigate('setup'); setSidebarOpen(false); }}
@@ -66,11 +68,38 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
               <Stethoscope className="w-5 h-5 text-white" />
             )}
           </div>
-          <div className="min-w-0">
-            <p className="text-white font-semibold text-sm leading-none truncate">{clinic.clinic_name || 'Dentivista'}</p>
-            <p className="text-white/60 text-xs mt-1 truncate">{clinic.tagline || 'Dental & Aesthetics'}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <p className="text-white font-semibold text-sm leading-none truncate">{clinic.clinic_name || activeClinic?.name || 'Clinsyst'}</p>
+              {activeClinic?.plan && (
+                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-white/20 text-white uppercase tracking-wider">
+                  {activeClinic.plan}
+                </span>
+              )}
+            </div>
+            <p className="text-white/60 text-xs mt-1 truncate">{clinic.tagline || activeClinic?.tagline || 'Clinic Workspace'}</p>
           </div>
         </div>
+
+        {/* Multi-Clinic Switcher Dropdown (visible if multiple clinics exist) */}
+        {allClinics.length > 1 && (
+          <div className="px-3 pt-3 pb-1 border-b border-white/10">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-white/50 block mb-1 px-1">
+              Switch Clinic Workspace
+            </label>
+            <select
+              value={activeClinic?.id}
+              onChange={(e) => switchClinicTenant(e.target.value)}
+              className="w-full bg-white/15 text-white text-xs font-semibold rounded-xl px-2.5 py-1.5 border border-white/20 focus:outline-none cursor-pointer"
+            >
+              {allClinics.map(c => (
+                <option key={c.id} value={c.id} className="text-gray-900">
+                  {c.name} ({c.plan.toUpperCase()})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
