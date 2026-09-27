@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
-import { Staff, ClinicTenant, ClinicSignUpData } from '../lib/types';
+import { Staff, ClinicTenant, ClinicSignUpData, ActiveSession } from '../lib/types';
 import {
   getActiveClinic,
   setActiveClinic,
@@ -9,14 +9,38 @@ import {
   findTenantUser,
   CLINIC_TENANT_EVENT,
 } from '../lib/tenancy';
+import {
+  registerSession,
+  heartbeatSession,
+  terminateSession,
+  terminateOtherSessions,
+  endCurrentSession,
+  getActiveSessions,
+  listenForSessionTermination,
+  SESSION_UPDATED_EVENT,
+} from '../lib/sessionManager';
 
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
   staff: Staff | null;
   activeClinic: ClinicTenant;
+  activeSessions: ActiveSession[];
+  terminatedNotice: string | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  clearTerminatedNotice: () => void;
+  terminateSessionById: (sessionId: string) => void;
+  terminateAllOtherSessions: () => void;
+  signIn: (
+    email: string,
+    password: string,
+    forceTerminateOldest?: boolean
+  ) => Promise<{
+    error: string | null;
+    sessionExceeded?: boolean;
+    activeCount?: number;
+    maxSessions?: number;
+  }>;
   registerClinic: (data: ClinicSignUpData) => Promise<{ error: string | null }>;
   switchClinicTenant: (clinicId: string) => void;
   signInAsDemo: (role?: 'admin' | 'doctor' | 'receptionist') => void;
@@ -69,6 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [staff, setStaff] = useState<Staff | null>(null);
   const [activeClinic, setActiveClinicState] = useState<ClinicTenant>(getActiveClinic);
+  const [activeSessions, setActiveSessionsState] = useState<ActiveSession[]>([]);
+  const [terminatedNotice, setTerminatedNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   async function fetchStaff(userId: string) {
@@ -86,37 +112,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  function refreshSessions() {
+    const list = getActiveSessions(activeClinic?.id);
+    setActiveSessionsState(list);
+  }
+
   useEffect(() => {
-    // Listen to clinic tenant change events
+    // 1. Listen to clinic tenant change events
     function handleTenantChange(e: Event) {
       const ce = e as CustomEvent<ClinicTenant>;
-      if (ce.detail) {
-        setActiveClinicState(ce.detail);
-      } else {
-        setActiveClinicState(getActiveClinic());
-      }
+      const newClinic = ce.detail || getActiveClinic();
+      setActiveClinicState(newClinic);
+      setActiveSessionsState(getActiveSessions(newClinic.id));
+    }
+
+    // 2. Listen to session updates
+    function handleSessionsUpdated() {
+      refreshSessions();
     }
 
     window.addEventListener(CLINIC_TENANT_EVENT, handleTenantChange);
+    window.addEventListener(SESSION_UPDATED_EVENT, handleSessionsUpdated);
 
-    // Check if demo session is stored
+    // 3. Listen to remote session termination (broadcast or local)
+    const cleanupTerminationListener = listenForSessionTermination((reason) => {
+      setTerminatedNotice(reason || 'Your session was terminated from another browser or device.');
+      localStorage.removeItem('dentivista_demo_role');
+      localStorage.removeItem('clinsyst_active_staff_session');
+      setUser(null);
+      setStaff(null);
+      setSession(null);
+    });
+
+    // 4. Handle tab unload
+    const handleBeforeUnload = () => {
+      endCurrentSession();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Initial session restore check
     const demoRole = localStorage.getItem('dentivista_demo_role');
     if (demoRole && DEMO_STAFF_MAP[demoRole]) {
       const demoStaff = DEMO_STAFF_MAP[demoRole];
-      setStaff(demoStaff);
-      setUser({
+      const demoUser = {
         id: demoStaff.user_id!,
         email: demoStaff.email,
         app_metadata: {},
         user_metadata: {},
         aud: 'authenticated',
         created_at: new Date().toISOString(),
-      } as User);
+      } as User;
+
+      setStaff(demoStaff);
+      setUser(demoUser);
+
+      // Register session for demo user
+      registerSession({
+        clinicId: activeClinic.id,
+        userId: demoStaff.user_id!,
+        userEmail: demoStaff.email,
+        userName: demoStaff.name,
+        role: demoStaff.role,
+        forceTerminateOldest: true,
+      });
+
+      refreshSessions();
       setLoading(false);
-      return () => window.removeEventListener(CLINIC_TENANT_EVENT, handleTenantChange);
+      return () => {
+        window.removeEventListener(CLINIC_TENANT_EVENT, handleTenantChange);
+        window.removeEventListener(SESSION_UPDATED_EVENT, handleSessionsUpdated);
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        cleanupTerminationListener();
+      };
     }
 
-    // Check if tenant user session is stored
     const savedTenantUserJson = localStorage.getItem('clinsyst_active_staff_session');
     if (savedTenantUserJson) {
       try {
@@ -125,8 +194,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setStaff(saved.staff);
           setUser(saved.user);
           setActiveClinicState(getActiveClinic());
+
+          // Re-heartbeat or register session
+          const ok = heartbeatSession();
+          if (!ok) {
+            registerSession({
+              clinicId: getActiveClinic().id,
+              userId: saved.staff.user_id || `user-${saved.staff.id}`,
+              userEmail: saved.staff.email,
+              userName: saved.staff.name,
+              role: saved.staff.role,
+              forceTerminateOldest: true,
+            });
+          }
+
+          refreshSessions();
           setLoading(false);
-          return () => window.removeEventListener(CLINIC_TENANT_EVENT, handleTenantChange);
+          return () => {
+            window.removeEventListener(CLINIC_TENANT_EVENT, handleTenantChange);
+            window.removeEventListener(SESSION_UPDATED_EVENT, handleSessionsUpdated);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            cleanupTerminationListener();
+          };
         }
       } catch (err) {
         console.warn('Failed to parse saved tenant session:', err);
@@ -156,8 +245,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
       window.removeEventListener(CLINIC_TENANT_EVENT, handleTenantChange);
+      window.removeEventListener(SESSION_UPDATED_EVENT, handleSessionsUpdated);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      cleanupTerminationListener();
     };
   }, []);
+
+  // Heartbeat loop for active sessions (every 15s)
+  useEffect(() => {
+    if (!user) return;
+
+    refreshSessions();
+    const interval = setInterval(() => {
+      const isAlive = heartbeatSession();
+      if (!isAlive && !localStorage.getItem('dentivista_demo_role')) {
+        // Current session was removed / invalidated externally
+        setTerminatedNotice('Your session has ended because another device signed in or session limit was exceeded.');
+        signOut();
+      } else {
+        refreshSessions();
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [user, activeClinic.id]);
 
   async function registerClinic(data: ClinicSignUpData): Promise<{ error: string | null }> {
     setLoading(true);
@@ -183,9 +294,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       JSON.stringify({ staff: result.staff, user: newUser })
     );
 
+    // Register active session for newly created clinic
+    registerSession({
+      clinicId: result.clinic.id,
+      userId: newUser.id,
+      userEmail: result.staff.email,
+      userName: result.staff.name,
+      role: 'admin',
+      forceTerminateOldest: true,
+    });
+
     setUser(newUser);
     setStaff(result.staff);
     setActiveClinicState(result.clinic);
+    refreshSessions();
     setLoading(false);
 
     return { error: null };
@@ -194,9 +316,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   function switchClinicTenant(clinicId: string) {
     const updated = setActiveClinic(clinicId);
     setActiveClinicState(updated);
+    refreshSessions();
   }
 
-  async function signIn(email: string, password: string) {
+  async function signIn(
+    email: string,
+    password: string,
+    forceTerminateOldest: boolean = false
+  ): Promise<{
+    error: string | null;
+    sessionExceeded?: boolean;
+    activeCount?: number;
+    maxSessions?: number;
+  }> {
     // 1. Check if user is in multi-tenant registry
     const tenantUser = findTenantUser(email);
     if (tenantUser) {
@@ -204,7 +336,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: 'Invalid password. Please check your credentials.' };
       }
 
-      // Switch active clinic
+      // Check session limits for this clinic
       const clinic = setActiveClinic(tenantUser.clinicId);
       setActiveClinicState(clinic);
 
@@ -230,6 +362,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         created_at: new Date().toISOString(),
       } as User;
 
+      // Register session with concurrent session limit enforcement
+      const sessionResult = registerSession({
+        clinicId: clinic.id,
+        userId: userObj.id,
+        userEmail: staffObj.email,
+        userName: staffObj.name,
+        role: staffObj.role,
+        forceTerminateOldest,
+      });
+
+      if (!sessionResult.success) {
+        return {
+          error: sessionResult.error || 'Concurrent session limit reached.',
+          sessionExceeded: true,
+          activeCount: sessionResult.activeCount,
+          maxSessions: sessionResult.maxSessions,
+        };
+      }
+
       localStorage.removeItem('dentivista_demo_role');
       localStorage.setItem(
         'clinsyst_active_staff_session',
@@ -238,14 +389,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setStaff(staffObj);
       setUser(userObj);
+      refreshSessions();
       return { error: null };
     }
 
     // 2. Otherwise authenticate against Supabase Auth
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
+
+    // Register active session for Supabase user
+    if (authData.user) {
+      const sessionResult = registerSession({
+        clinicId: activeClinic.id,
+        userId: authData.user.id,
+        userEmail: authData.user.email || email,
+        userName: authData.user.user_metadata?.name || 'Clinic Staff',
+        role: 'admin',
+        forceTerminateOldest,
+      });
+
+      if (!sessionResult.success) {
+        await supabase.auth.signOut();
+        return {
+          error: sessionResult.error || 'Concurrent session limit reached.',
+          sessionExceeded: true,
+          activeCount: sessionResult.activeCount,
+          maxSessions: sessionResult.maxSessions,
+        };
+      }
+    }
+
     localStorage.removeItem('dentivista_demo_role');
     localStorage.removeItem('clinsyst_active_staff_session');
+    refreshSessions();
     return { error: null };
   }
 
@@ -254,28 +430,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('dentivista_demo_role', role);
     localStorage.removeItem('clinsyst_active_staff_session');
     setStaff(demoStaff);
-    setUser({
+    const demoUser = {
       id: demoStaff.user_id!,
       email: demoStaff.email,
       app_metadata: {},
       user_metadata: {},
       aud: 'authenticated',
       created_at: new Date().toISOString(),
-    } as User);
+    } as User;
+    setUser(demoUser);
+
+    registerSession({
+      clinicId: activeClinic.id,
+      userId: demoStaff.user_id!,
+      userEmail: demoStaff.email,
+      userName: demoStaff.name,
+      role: demoStaff.role,
+      forceTerminateOldest: true,
+    });
+
+    refreshSessions();
     setLoading(false);
   }
 
   async function signOut() {
+    endCurrentSession();
     localStorage.removeItem('dentivista_demo_role');
     localStorage.removeItem('clinsyst_active_staff_session');
     setUser(null);
     setStaff(null);
     setSession(null);
+    refreshSessions();
     try {
       await supabase.auth.signOut();
     } catch {
       // ignore
     }
+  }
+
+  function terminateSessionById(sessionId: string) {
+    terminateSession(sessionId, 'Terminated by clinic administrator.');
+    refreshSessions();
+  }
+
+  function terminateAllOtherSessions() {
+    terminateOtherSessions(activeClinic.id);
+    refreshSessions();
+  }
+
+  function clearTerminatedNotice() {
+    setTerminatedNotice(null);
   }
 
   return (
@@ -285,7 +489,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         staff,
         activeClinic,
+        activeSessions,
+        terminatedNotice,
         loading,
+        clearTerminatedNotice,
+        terminateSessionById,
+        terminateAllOtherSessions,
         signIn,
         registerClinic,
         switchClinicTenant,

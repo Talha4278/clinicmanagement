@@ -9,7 +9,7 @@ import { ClinicSignUpData, SubscriptionPlan } from '../lib/types';
 import { PLAN_SPECS } from '../lib/tenancy';
 
 export default function LoginPage() {
-  const { signIn, registerClinic, signInAsDemo } = useAuth();
+  const { signIn, registerClinic, signInAsDemo, terminatedNotice, clearTerminatedNotice } = useAuth();
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
 
   // Sign In State
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [sessionExceeded, setSessionExceeded] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Clinic Sign Up State
@@ -31,12 +32,18 @@ export default function LoginPage() {
     plan: 'pro',
   });
 
-  async function handleSignInSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSignInSubmit(e?: React.FormEvent, forceTerminateOldest: boolean = false) {
+    if (e) e.preventDefault();
     setError('');
+    setSessionExceeded(false);
     setLoading(true);
-    const { error } = await signIn(email, password);
-    if (error) setError(error);
+    const res = await signIn(email, password, forceTerminateOldest);
+    if (res.error) {
+      setError(res.error);
+      if (res.sessionExceeded) {
+        setSessionExceeded(true);
+      }
+    }
     setLoading(false);
   }
 
@@ -240,10 +247,47 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {terminatedNotice && (
+            <div className="flex items-start justify-between gap-3 bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-5">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-amber-900 font-semibold text-xs">Session Ended</p>
+                  <p className="text-amber-700 text-xs mt-0.5">{terminatedNotice}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={clearTerminatedNotice}
+                className="text-amber-500 hover:text-amber-800 text-xs font-bold px-1"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {error && (
-            <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-3.5 mb-5">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <p className="text-red-700 text-xs font-medium">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3.5 mb-5 space-y-2.5">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <p className="text-red-700 text-xs font-medium leading-relaxed">{error}</p>
+              </div>
+              {sessionExceeded && (
+                <div className="pt-2 border-t border-red-200/60">
+                  <p className="text-xs text-red-800 font-medium mb-2">
+                    Would you like to terminate the oldest active session on other devices and log in here?
+                  </p>
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleSignInSubmit(undefined, true)}
+                    className="w-full py-2 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <LogOut size={14} />
+                    Terminate Oldest Session & Log In Now
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

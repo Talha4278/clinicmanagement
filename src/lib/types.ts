@@ -280,6 +280,15 @@ export interface ClinicSignUpData {
   plan: SubscriptionPlan;
 }
 
-
-
-
+export interface ActiveSession {
+  id: string;
+  clinic_id: string;
+  user_id: string;
+  user_email: string;
+  user_name: string;
+  role: string;
+  device: string;
+  created_at: string;
+  last_heartbeat: number;
+  is_current?: boolean;
+}
