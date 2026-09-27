@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import {
   Building2, Save, Upload, RefreshCw, CheckCircle2,
   Phone, Mail, MapPin, Globe, FileText, Image as ImageIcon,
-  Stethoscope, Shield, Sparkles, HeartPulse, Activity,
-  MessageSquare, Key, Link as LinkIcon, Send, BellRing, Settings2
+  Stethoscope, Shield, Sparkles, HeartPulse, Activity
 } from 'lucide-react';
 import { useClinicSettings, DEFAULT_CLINIC_SETTINGS } from '../lib/clinicSettings';
-import { ClinicSettings, WhatsAppConfig, WhatsAppProvider } from '../lib/types';
-import { openWhatsAppChat } from '../lib/whatsapp';
+import { ClinicSettings } from '../lib/types';
 
 const PRESET_ICONS = [
   { id: 'stethoscope', label: 'Stethoscope', icon: Stethoscope },
@@ -59,36 +57,6 @@ export default function ClinicSetup() {
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     }
-  }
-
-  function updateWhatsAppConfig(partial: Partial<WhatsAppConfig>) {
-    setForm(prev => ({
-      ...prev,
-      whatsapp_config: {
-        ...(prev.whatsapp_config || {
-          enabled: true,
-          provider: 'direct_web',
-          business_number: prev.phone || '',
-          api_endpoint: 'https://graph.facebook.com/v19.0',
-          api_key: '',
-          phone_number_id: '',
-          account_sid: '',
-          webhook_url: 'https://api.yourclinic.com/webhooks/whatsapp',
-          auto_remind_hours_before: 24,
-        }),
-        ...partial,
-      },
-    }));
-  }
-
-  function handleTestWhatsApp() {
-    const targetPhone = form.whatsapp_config?.business_number || form.phone;
-    if (!targetPhone) {
-      alert('Please enter a WhatsApp contact number first.');
-      return;
-    }
-    const testMsg = `🌟 *Clinsyst WhatsApp Gateway Test*\n\nHello from *${form.clinic_name || 'Clinsyst'}*! Your WhatsApp reminder gateway is successfully configured and ready to dispatch personalized appointment reminders and invoice follow-ups.`;
-    openWhatsAppChat(targetPhone, testMsg);
   }
 
   return (
@@ -335,155 +303,6 @@ export default function ClinicSetup() {
                   placeholder="e.g. NTN-8921-D"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
                 />
-              </div>
-            </div>
-          </div>
-
-          {/* WhatsApp Reminder Notification & Gateway Configuration */}
-          <div className="pt-2 border-t border-gray-100 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
-                  <MessageSquare size={16} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                    WhatsApp Reminders & API Setup
-                  </h3>
-                  <p className="text-xs text-gray-400">
-                    Configure WhatsApp messaging for appointment reminders, post-care follow-ups & unpaid invoices
-                  </p>
-                </div>
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.whatsapp_config?.enabled ?? true}
-                  onChange={(e) => updateWhatsAppConfig({ enabled: e.target.checked })}
-                  className="rounded text-emerald-700 focus:ring-emerald-500 w-4 h-4"
-                />
-                <span className="text-xs font-semibold text-gray-700">Service Active</span>
-              </label>
-            </div>
-
-            {/* Config Fields */}
-            <div className="bg-gray-50/70 border border-gray-200/80 rounded-2xl p-4 space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">
-                    Dispatch Mode / Provider
-                  </label>
-                  <select
-                    value={form.whatsapp_config?.provider || 'direct_web'}
-                    onChange={(e) => updateWhatsAppConfig({ provider: e.target.value as WhatsAppProvider })}
-                    className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white font-medium text-xs text-gray-800 focus:ring-2 focus:ring-emerald-600/20"
-                  >
-                    <option value="direct_web">Direct WhatsApp Web / App (1-Click Send - Recommended)</option>
-                    <option value="cloud_api">Meta WhatsApp Cloud API (Graph API)</option>
-                    <option value="twilio">Twilio WhatsApp Messaging</option>
-                    <option value="ultramsg">UltraMsg / Green API Gateway</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">
-                    WhatsApp Business / Sender Phone
-                  </label>
-                  <input
-                    type="text"
-                    value={form.whatsapp_config?.business_number || ''}
-                    onChange={(e) => updateWhatsAppConfig({ business_number: e.target.value })}
-                    placeholder="e.g. +92 300 0979185"
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-800 font-mono"
-                  />
-                </div>
-              </div>
-
-              {/* API Credentials Placeholders (Meta Cloud API / Twilio) */}
-              <div className="pt-2 border-t border-gray-200/60 space-y-3">
-                <p className="text-[11px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5">
-                  <Key size={13} className="text-emerald-700" />
-                  <span>API Authentication Placeholders (For Automated Cloud Senders)</span>
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-medium text-gray-600 mb-0.5">
-                      Phone Number ID / Instance ID
-                    </label>
-                    <input
-                      type="text"
-                      value={form.whatsapp_config?.phone_number_id || ''}
-                      onChange={(e) => updateWhatsAppConfig({ phone_number_id: e.target.value })}
-                      placeholder="e.g. 109283746591023 (WhatsApp Phone ID)"
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-mono text-gray-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-medium text-gray-600 mb-0.5">
-                      Account SID / WABA ID
-                    </label>
-                    <input
-                      type="text"
-                      value={form.whatsapp_config?.account_sid || ''}
-                      onChange={(e) => updateWhatsAppConfig({ account_sid: e.target.value })}
-                      placeholder="e.g. 102938475610293 (WhatsApp Business Account ID)"
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-mono text-gray-800"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-medium text-gray-600 mb-0.5">
-                      Permanent Access Token / API Key
-                    </label>
-                    <input
-                      type="password"
-                      value={form.whatsapp_config?.api_key || ''}
-                      onChange={(e) => updateWhatsAppConfig({ api_key: e.target.value })}
-                      placeholder="e.g. EAABw... or twilio_auth_token"
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-mono text-gray-800"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-medium text-gray-600 mb-0.5">
-                      Webhook / Delivery Callback URL
-                    </label>
-                    <input
-                      type="text"
-                      value={form.whatsapp_config?.webhook_url || ''}
-                      onChange={(e) => updateWhatsAppConfig({ webhook_url: e.target.value })}
-                      placeholder="https://api.yourclinic.com/webhooks/whatsapp"
-                      className="w-full px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-xs font-mono text-gray-800"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Supported Dynamic Tags Info */}
-              <div className="bg-emerald-50/60 border border-emerald-100 rounded-xl p-3 text-[11px] text-emerald-900 space-y-1">
-                <p className="font-bold flex items-center gap-1.5">
-                  <Sparkles size={13} className="text-emerald-700" />
-                  <span>Personalization Tokens Auto-Injected:</span>
-                </p>
-                <p className="text-emerald-800/90 leading-relaxed font-mono">
-                  &#123;patient_name&#125;, &#123;procedure&#125;, &#123;date&#125;, &#123;time&#125;, &#123;doctor_name&#125;, &#123;total_amount&#125;, &#123;pending_amount&#125;, &#123;invoice_number&#125;, &#123;clinic_name&#125;, &#123;clinic_phone&#125;
-                </p>
-              </div>
-
-              {/* Test Action */}
-              <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px] text-gray-500">
-                  Verify notification format with your clinic phone
-                </span>
-                <button
-                  type="button"
-                  onClick={handleTestWhatsApp}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs"
-                >
-                  <Send size={12} /> Test WhatsApp Message
-                </button>
               </div>
             </div>
           </div>
