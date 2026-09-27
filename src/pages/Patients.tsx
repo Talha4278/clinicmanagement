@@ -210,10 +210,16 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2 justify-end">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); onViewPatient?.(p.id); }}
+                          className="text-xs font-semibold text-emerald-800 bg-emerald-100/70 hover:bg-emerald-200/80 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                        >
+                          Records / Dossier
+                        </button>
                         {onBookAppointment && (
                           <button
                             onClick={(e) => { e.stopPropagation(); onBookAppointment(p.id); }}
-                            className="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                            className="text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 hidden sm:flex"
                           >
                             <Calendar size={12} /> Book Appt
                           </button>

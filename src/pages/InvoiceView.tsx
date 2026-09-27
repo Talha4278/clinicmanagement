@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Printer, ArrowLeft, CheckCircle, Clock, AlertTriangle, Stethoscope } from 'lucide-react';
+import { Printer, ArrowLeft, CheckCircle, Clock, AlertTriangle, Stethoscope, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Invoice, InvoiceItem } from '../lib/types';
+import { useClinicSettings } from '../lib/clinicSettings';
+import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
+import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 
 interface Props {
   invoiceId: string;
@@ -22,10 +25,67 @@ const statusIcons: Record<string, React.ReactNode> = {
 };
 
 export default function InvoiceView({ invoiceId, onBack }: Props) {
+  const { settings: clinic } = useClinicSettings();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+
+  // WhatsApp Modal State
+  const [whatsappModal, setWhatsappModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    patientName: string;
+    patientPhone: string;
+    message: string;
+    metadata?: WhatsAppModalProps['metadata'];
+  }>({
+    isOpen: false,
+    title: '',
+    patientName: '',
+    patientPhone: '',
+    message: '',
+  });
+
+  function handleOpenWhatsApp() {
+    if (!invoice) return;
+    const patientObj = invoice.patient as any;
+    const patientName = patientObj?.name || 'Valued Patient';
+    const patientPhone = patientObj?.phone || '';
+    const totalAmount = Number(invoice.total) || 0;
+    const isPartial = invoice.payment_status === 'partial';
+    const paidAmount = isPartial ? Math.round(totalAmount * 0.5) : 0;
+    const pendingAmount = totalAmount - paidAmount;
+    const itemsDescription = items.length > 0 ? items.map(i => i.item_name).join(', ') : 'Clinical Consultation & Procedures';
+
+    const message = generatePaymentWhatsAppMessage({
+      patientName,
+      phone: patientPhone,
+      invoiceNumber: invoice.invoice_number,
+      procedureOrServices: itemsDescription,
+      totalAmount,
+      paidAmount,
+      pendingAmount,
+      date: invoice.created_at.split('T')[0],
+      clinicSettings: clinic,
+    });
+
+    setWhatsappModal({
+      isOpen: true,
+      title: 'WhatsApp Payment Reminder',
+      patientName,
+      patientPhone,
+      message,
+      metadata: {
+        procedure: itemsDescription,
+        date: formatFriendlyDate(invoice.created_at.split('T')[0]),
+        totalAmount,
+        pendingAmount,
+        invoiceNumber: invoice.invoice_number,
+        statusBadge: invoice.payment_status,
+      },
+    });
+  }
 
   useEffect(() => { fetchInvoice(); }, [invoiceId]);
 
@@ -107,13 +167,22 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
         </button>
         <div className="flex items-center gap-2">
           {invoice.payment_status !== 'paid' && (
-            <button
-              onClick={markPaid}
-              disabled={updating}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
-            >
-              <CheckCircle size={15} /> Mark as Paid
-            </button>
+            <>
+              <button
+                onClick={handleOpenWhatsApp}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-95 shadow-xs"
+                style={{ background: '#25D366' }}
+              >
+                <MessageSquare size={15} /> WhatsApp Reminder
+              </button>
+              <button
+                onClick={markPaid}
+                disabled={updating}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+              >
+                <CheckCircle size={15} /> Mark as Paid
+              </button>
+            </>
           )}
           <button
             onClick={handlePrint}
@@ -131,13 +200,22 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
         <div className="p-8" style={{ background: '#3c5e27' }}>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                <Stethoscope className="w-7 h-7 text-white" />
+              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                {clinic.logo_url ? (
+                  <img src={clinic.logo_url} alt={clinic.clinic_name} className="w-full h-full object-contain p-1" />
+                ) : (
+                  <Stethoscope className="w-7 h-7 text-white" />
+                )}
               </div>
               <div>
-                <h1 className="font-display text-2xl text-white">Dentivista</h1>
-                <p className="text-white/70 text-sm">Dental & Aesthetics</p>
-                <p className="text-white/50 text-xs mt-0.5">1st Floor, 6/Street 2, Down Town Royal Orchard, Multan</p>
+                <h1 className="font-display text-2xl text-white font-bold">{clinic.clinic_name || 'Dentivista'}</h1>
+                {clinic.tagline && <p className="text-white/80 text-sm font-medium">{clinic.tagline}</p>}
+                <p className="text-white/60 text-xs mt-0.5 max-w-md">{clinic.address}</p>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-white/70 text-xs mt-1">
+                  {clinic.phone && <span>Ph: {clinic.phone}</span>}
+                  {clinic.email && <span>• {clinic.email}</span>}
+                  {clinic.tax_number && <span>• {clinic.tax_number}</span>}
+                </div>
               </div>
             </div>
             <div className="text-right">
@@ -260,11 +338,22 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-gray-400">Dentivista Dental & Aesthetics</p>
-            <p className="text-xs text-gray-400">(+92) 300-0979185</p>
+            <p className="text-xs font-semibold text-gray-700">{clinic.clinic_name} {clinic.tagline ? `— ${clinic.tagline}` : ''}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{clinic.phone} {clinic.email ? `• ${clinic.email}` : ''}</p>
           </div>
         </div>
       </div>
+
+      {/* WhatsApp Payment Reminder Modal */}
+      <WhatsAppModal
+        isOpen={whatsappModal.isOpen}
+        onClose={() => setWhatsappModal(prev => ({ ...prev, isOpen: false }))}
+        title={whatsappModal.title}
+        patientName={whatsappModal.patientName}
+        patientPhone={whatsappModal.patientPhone}
+        initialMessage={whatsappModal.message}
+        metadata={whatsappModal.metadata}
+      />
     </div>
   );
 }

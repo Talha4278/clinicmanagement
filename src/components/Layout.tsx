@@ -1,11 +1,25 @@
 import React, { useState } from 'react';
 import {
   Stethoscope, LayoutDashboard, Users, Calendar, FileText, BarChart3,
-  UserCog, LogOut, Menu, X, ChevronRight, Bell
+  UserCog, LogOut, Menu, X, ChevronRight, Bell, Package, Pill, CheckCircle2,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useClinicSettings } from '../lib/clinicSettings';
 
-type Page = 'dashboard' | 'patients' | 'appointments' | 'invoices' | 'new-invoice' | 'reports' | 'staff';
+export type Page =
+  | 'dashboard'
+  | 'patients'
+  | 'appointments'
+  | 'examinations'
+  | 'treatments'
+  | 'prescriptions'
+  | 'inventory'
+  | 'invoices'
+  | 'new-invoice'
+  | 'reports'
+  | 'staff'
+  | 'setup';
 
 interface LayoutProps {
   currentPage: Page;
@@ -17,15 +31,19 @@ const navItems = [
   { id: 'dashboard' as Page, label: 'Dashboard', icon: LayoutDashboard },
   { id: 'patients' as Page, label: 'Patients', icon: Users },
   { id: 'appointments' as Page, label: 'Appointments', icon: Calendar },
+  { id: 'examinations' as Page, label: 'Dental Examination', icon: Stethoscope },
+  { id: 'treatments' as Page, label: 'Treatments', icon: CheckCircle2 },
+  { id: 'prescriptions' as Page, label: 'Prescriptions', icon: Pill },
+  { id: 'inventory' as Page, label: 'Inventory', icon: Package },
   { id: 'invoices' as Page, label: 'Billing & Invoices', icon: FileText },
   { id: 'reports' as Page, label: 'Reports', icon: BarChart3, roles: ['admin', 'doctor'] as const },
   { id: 'staff' as Page, label: 'Staff', icon: UserCog, roles: ['admin', 'doctor'] as const },
+  { id: 'setup' as Page, label: 'Clinic Setup', icon: Settings, roles: ['admin', 'doctor'] as const },
 ];
-
-
 
 export default function Layout({ currentPage, onNavigate, children }: LayoutProps) {
   const { staff, signOut } = useAuth();
+  const { settings: clinic } = useClinicSettings();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const visibleItems = navItems.filter(item =>
@@ -36,13 +54,21 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
     return (
       <>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/10">
-          <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Stethoscope className="w-5 h-5 text-white" />
+        <div
+          className="flex items-center gap-3 px-5 py-5 border-b border-white/10 cursor-pointer hover:bg-white/5 transition-colors"
+          onClick={() => { onNavigate('setup'); setSidebarOpen(false); }}
+          title="Click to manage Clinic Setup"
+        >
+          <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {clinic.logo_url ? (
+              <img src={clinic.logo_url} alt={clinic.clinic_name} className="w-full h-full object-contain p-0.5" />
+            ) : (
+              <Stethoscope className="w-5 h-5 text-white" />
+            )}
           </div>
           <div className="min-w-0">
-            <p className="text-white font-semibold text-sm leading-none truncate">Dentivista</p>
-            <p className="text-white/50 text-xs mt-0.5">Dental & Aesthetics</p>
+            <p className="text-white font-semibold text-sm leading-none truncate">{clinic.clinic_name || 'Dentivista'}</p>
+            <p className="text-white/60 text-xs mt-1 truncate">{clinic.tagline || 'Dental & Aesthetics'}</p>
           </div>
         </div>
 

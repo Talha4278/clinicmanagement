@@ -1,26 +1,29 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
-import Layout from './components/Layout';
+import Layout, { Page } from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Patients from './pages/Patients';
 import Appointments from './pages/Appointments';
+import Examinations from './pages/Examinations';
+import Treatments from './pages/Treatments';
+import Prescriptions from './pages/Prescriptions';
+import Inventory from './pages/Inventory';
 import Invoices from './pages/Invoices';
 import NewInvoice from './pages/NewInvoice';
 import InvoiceView from './pages/InvoiceView';
 import Reports from './pages/Reports';
 import Staff from './pages/Staff';
-
-type Page = 'dashboard' | 'patients' | 'appointments' | 'invoices' | 'new-invoice' | 'reports' | 'staff';
+import ClinicSetup from './pages/ClinicSetup';
+import PatientDossierModal from './components/PatientDossierModal';
 
 function AppContent() {
   const { user, staff, loading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
 
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
-  const [_viewPatientId, setViewPatientId] = useState<string | null>(null);
-  const [bookPatientId, setBookPatientId] = useState<string | null>(null);
-
+  const [viewPatientId, setViewPatientId] = useState<string | null>(null);
+  const [patientContextId, setPatientContextId] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -34,7 +37,7 @@ function AppContent() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <p className="text-sm text-gray-400">Loading Dentivista...</p>
+          <p className="text-sm text-gray-400">Loading Clinsyst...</p>
         </div>
       </div>
     );
@@ -47,11 +50,10 @@ function AppContent() {
   function navigate(p: string, extraId?: string) {
     setPage(p as Page);
     setViewInvoiceId(null);
-    setViewPatientId(null);
-    if (p === 'appointments' && extraId) {
-      setBookPatientId(extraId);
+    if (extraId) {
+      setPatientContextId(extraId);
     } else {
-      setBookPatientId(null);
+      setPatientContextId(null);
     }
   }
 
@@ -68,7 +70,13 @@ function AppContent() {
 
     switch (page) {
       case 'dashboard':
-        return <Dashboard onNavigate={navigate} />;
+        return (
+          <Dashboard
+            onNavigate={navigate}
+            onViewPatientDossier={(patientId) => setViewPatientId(patientId)}
+          />
+        );
+
       case 'patients':
         return (
           <Patients
@@ -76,13 +84,46 @@ function AppContent() {
             onBookAppointment={(patientId) => navigate('appointments', patientId)}
           />
         );
+
       case 'appointments':
         return (
           <Appointments
-            preselectedPatientId={bookPatientId}
+            preselectedPatientId={patientContextId}
             onNewInvoiceForPatient={(patientId) => navigate('new-invoice', patientId)}
           />
         );
+
+      case 'examinations':
+        return (
+          <Examinations
+            preselectedPatientId={patientContextId}
+            onNavigateToTreatment={(pid, _toothNum, _proc) => {
+              navigate('treatments', pid);
+            }}
+            onViewPatientDossier={(pid) => setViewPatientId(pid)}
+          />
+        );
+
+      case 'treatments':
+        return (
+          <Treatments
+            preselectedPatientId={patientContextId}
+            onNewInvoice={(patientId) => navigate('new-invoice', patientId)}
+            onViewPatientDossier={(pid) => setViewPatientId(pid)}
+          />
+        );
+
+      case 'prescriptions':
+        return (
+          <Prescriptions
+            preselectedPatientId={patientContextId}
+            onViewPatientDossier={(pid) => setViewPatientId(pid)}
+          />
+        );
+
+      case 'inventory':
+        return <Inventory />;
+
       case 'invoices':
         return (
           <Invoices
@@ -90,6 +131,7 @@ function AppContent() {
             onViewInvoice={(id) => { setViewInvoiceId(id); }}
           />
         );
+
       case 'new-invoice':
         return (
           <NewInvoice
@@ -99,6 +141,7 @@ function AppContent() {
             }}
           />
         );
+
       case 'reports':
         if (staff?.role === 'receptionist') {
           return <Dashboard onNavigate={navigate} />;
@@ -107,18 +150,38 @@ function AppContent() {
 
       case 'staff':
         return <Staff />;
+
+      case 'setup':
+        return <ClinicSetup />;
+
       default:
         return <Dashboard onNavigate={navigate} />;
     }
   }
 
-
   // Determine which sidebar item to highlight
   const layoutPage = viewInvoiceId ? 'invoices' : page;
 
   return (
-    <Layout currentPage={layoutPage as Page} onNavigate={navigate}>
+    <Layout currentPage={layoutPage} onNavigate={navigate}>
       {renderPage()}
+
+      {/* Patient Dossier Modal (All related records & research timeline) */}
+      {viewPatientId && (
+        <PatientDossierModal
+          patientId={viewPatientId}
+          onClose={() => setViewPatientId(null)}
+          onNavigatePage={(p, extra) => {
+            setViewPatientId(null);
+            navigate(p, extra);
+          }}
+          onViewInvoice={(invId) => {
+            setViewPatientId(null);
+            setPage('invoices');
+            setViewInvoiceId(invId);
+          }}
+        />
+      )}
     </Layout>
   );
 }

@@ -2,11 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Calendar as CalendarIcon, Clock, Plus, Search, X,
   AlertCircle, Stethoscope, FileText, CheckCircle2,
-  XCircle, UserCheck, CalendarDays, Edit2
+  XCircle, UserCheck, CalendarDays, Edit2, MessageSquare
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Appointment, AppointmentStatus, Patient, Staff } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
+import { useClinicSettings } from '../lib/clinicSettings';
+import { generateAppointmentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
+import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 import ClockTimePicker from '../components/ClockTimePicker';
 
 interface Props {
@@ -42,10 +45,67 @@ const commonProcedures = [
 
 export default function Appointments({ onNewInvoiceForPatient, preselectedPatientId }: Props) {
   const { staff } = useAuth();
+  const { settings: clinic } = useClinicSettings();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // WhatsApp Modal State
+  const [whatsappModal, setWhatsappModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    patientName: string;
+    patientPhone: string;
+    message: string;
+    metadata?: WhatsAppModalProps['metadata'];
+  }>({
+    isOpen: false,
+    title: '',
+    patientName: '',
+    patientPhone: '',
+    message: '',
+  });
+
+  function handleOpenWhatsApp(apt: Appointment) {
+    const patientName = apt.patient?.name || 'Valued Patient';
+    const patientPhone = apt.patient?.phone || '';
+    const doctorName = apt.doctor?.name;
+    const proc = apt.procedure || 'Dental Checkup';
+    const status = (apt.status as 'scheduled' | 'completed' | 'no_show' | 'cancelled') || 'scheduled';
+
+    let title = 'WhatsApp Appointment Reminder';
+    if (status === 'completed') {
+      title = 'Post-Treatment Follow-up Care';
+    } else if (status === 'no_show' || status === 'cancelled') {
+      title = 'Reschedule Appointment Invitation';
+    }
+
+    const message = generateAppointmentWhatsAppMessage(status, {
+      patientName,
+      phone: patientPhone,
+      procedure: proc,
+      date: apt.appointment_date,
+      time: apt.appointment_time,
+      doctorName,
+      clinicSettings: clinic,
+    });
+
+    setWhatsappModal({
+      isOpen: true,
+      title,
+      patientName,
+      patientPhone,
+      message,
+      metadata: {
+        procedure: proc,
+        date: formatFriendlyDate(apt.appointment_date),
+        time: apt.appointment_time,
+        doctorName: doctorName ? `Dr. ${doctorName}` : undefined,
+        statusBadge: apt.status,
+      },
+    });
+  }
 
   // Filters
   const [search, setSearch] = useState('');
@@ -589,6 +649,21 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                           </button>
                         )}
 
+                        {/* WhatsApp Notification Button */}
+                        <button
+                          title={
+                            apt.status === 'scheduled'
+                              ? 'Send WhatsApp Reminder'
+                              : apt.status === 'completed'
+                              ? 'Send WhatsApp Post-Treatment Care Follow-up'
+                              : 'Send WhatsApp Reschedule Request'
+                          }
+                          onClick={() => handleOpenWhatsApp(apt)}
+                          className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                        >
+                          <MessageSquare size={16} />
+                        </button>
+
                         <button
                           title="Edit Appointment"
                           onClick={() => openEditModal(apt)}
@@ -853,6 +928,17 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
           </div>
         </div>
       )}
+
+      {/* WhatsApp Reminder & Follow-Up Modal */}
+      <WhatsAppModal
+        isOpen={whatsappModal.isOpen}
+        onClose={() => setWhatsappModal(prev => ({ ...prev, isOpen: false }))}
+        title={whatsappModal.title}
+        patientName={whatsappModal.patientName}
+        patientPhone={whatsappModal.patientPhone}
+        initialMessage={whatsappModal.message}
+        metadata={whatsappModal.metadata}
+      />
     </div>
   );
 }

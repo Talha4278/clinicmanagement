@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Search, Plus, X, FileText } from 'lucide-react';
+import { Search, Plus, X, FileText, MessageSquare, Eye } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Invoice, PaymentStatus } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
+import { useClinicSettings } from '../lib/clinicSettings';
+import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
+import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 
 interface Props {
   onNewInvoice: () => void;
@@ -23,12 +26,68 @@ const methodLabel: Record<string, string> = {
 
 export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
   const { staff } = useAuth();
+  const { settings: clinic } = useClinicSettings();
   const isReceptionist = staff?.role === 'receptionist';
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | ''>('');
+
+  const [whatsappModal, setWhatsappModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    patientName: string;
+    patientPhone: string;
+    message: string;
+    metadata?: WhatsAppModalProps['metadata'];
+  }>({
+    isOpen: false,
+    title: '',
+    patientName: '',
+    patientPhone: '',
+    message: '',
+  });
+
+  function handleOpenWhatsApp(e: React.MouseEvent, inv: Invoice) {
+    e.stopPropagation();
+    const patientName = (inv.patient as any)?.name || 'Valued Patient';
+    const patientPhone = (inv.patient as any)?.phone || '';
+    const totalAmount = Number(inv.total) || 0;
+    const isPartial = inv.payment_status === 'partial';
+    const paidAmount = isPartial ? Math.round(totalAmount * 0.5) : 0;
+    const pendingAmount = totalAmount - paidAmount;
+    const doctorName = (inv.doctor as any)?.name;
+    const procedureOrServices = `Dental Care & Clinical Services (${inv.invoice_number})`;
+
+    const message = generatePaymentWhatsAppMessage({
+      patientName,
+      phone: patientPhone,
+      invoiceNumber: inv.invoice_number,
+      procedureOrServices,
+      totalAmount,
+      paidAmount,
+      pendingAmount,
+      date: inv.created_at.split('T')[0],
+      clinicSettings: clinic,
+    });
+
+    setWhatsappModal({
+      isOpen: true,
+      title: 'WhatsApp Payment Reminder',
+      patientName,
+      patientPhone,
+      message,
+      metadata: {
+        procedure: procedureOrServices,
+        date: formatFriendlyDate(inv.created_at.split('T')[0]),
+        totalAmount,
+        pendingAmount,
+        invoiceNumber: inv.invoice_number,
+        statusBadge: inv.payment_status,
+      },
+    });
+  }
 
   useEffect(() => { fetchInvoices(); }, []);
 
@@ -135,14 +194,15 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5 hidden lg:table-cell">Date</th>
                 <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5">Amount</th>
                 <th className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5">Status</th>
+                <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
-                <tr><td colSpan={7} className="text-center py-12 text-gray-400 text-sm">Loading invoices...</td></tr>
+                <tr><td colSpan={8} className="text-center py-12 text-gray-400 text-sm">Loading invoices...</td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12">
+                  <td colSpan={8} className="text-center py-12">
                     <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                     <p className="text-gray-400 text-sm">
                       {search || statusFilter ? 'No invoices match your filters' : 'No invoices created yet'}
@@ -185,6 +245,29 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
                         {inv.payment_status}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {inv.payment_status !== 'paid' && (
+                          <button
+                            type="button"
+                            title="Send WhatsApp Payment Reminder"
+                            onClick={(e) => handleOpenWhatsApp(e, inv)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold transition-all shadow-2xs"
+                          >
+                            <MessageSquare size={13} className="text-emerald-600" />
+                            <span className="hidden sm:inline">Remind</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          title="View Invoice"
+                          onClick={() => onViewInvoice(inv.id)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          <Eye size={15} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))
               )}
@@ -192,6 +275,17 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
           </table>
         </div>
       </div>
+
+      {/* WhatsApp Payment Reminder Modal */}
+      <WhatsAppModal
+        isOpen={whatsappModal.isOpen}
+        onClose={() => setWhatsappModal(prev => ({ ...prev, isOpen: false }))}
+        title={whatsappModal.title}
+        patientName={whatsappModal.patientName}
+        patientPhone={whatsappModal.patientPhone}
+        initialMessage={whatsappModal.message}
+        metadata={whatsappModal.metadata}
+      />
     </div>
   );
 }
