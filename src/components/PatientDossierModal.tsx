@@ -9,6 +9,7 @@ import {
   Prescription,
 } from '../lib/types';
 import { getPatientDossier, PatientDossierData } from '../lib/clinicStorage';
+import { formatFriendlyTime } from '../lib/whatsapp';
 import DentalChart from './DentalChart';
 import PrescriptionSlip from './PrescriptionSlip';
 
@@ -470,7 +471,9 @@ export default function PatientDossierModal({
                         <tr key={apt.id} className="hover:bg-gray-50/50">
                           <td className="py-3.5 px-4 font-semibold text-gray-900">
                             <div>{apt.appointment_date}</div>
-                            <div className="text-[11px] text-gray-400">{apt.appointment_time}</div>
+                            <div className="text-[11px] font-medium text-purple-700">
+                              {formatFriendlyTime(apt.appointment_time)}
+                            </div>
                           </td>
                           <td className="py-3.5 px-4 font-medium text-gray-800">
                             {apt.procedure || 'Clinical Consultation'}

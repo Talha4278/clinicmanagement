@@ -621,7 +621,7 @@ export async function getPatientDossier(patientId: string): Promise<PatientDossi
   try {
     const { data: apts } = await supabase
       .from('appointments')
-      .select('*, doctor:staff(*)')
+      .select('*, doctor:staff!appointments_doctor_id_fkey(*)')
       .eq('patient_id', patientId)
       .order('appointment_date', { ascending: false });
     if (apts) appointments = apts as Appointment[];
@@ -634,7 +634,7 @@ export async function getPatientDossier(patientId: string): Promise<PatientDossi
   try {
     const { data: invs } = await supabase
       .from('invoices')
-      .select('*, invoice_items(*), doctor:staff(*)')
+      .select('*, invoice_items(*), doctor:staff!invoices_doctor_id_fkey(*)')
       .eq('patient_id', patientId)
       .order('created_at', { ascending: false });
     if (invs) invoices = invs as Invoice[];

@@ -2,13 +2,14 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   Calendar as CalendarIcon, Clock, Plus, Search, X,
   AlertCircle, Stethoscope, FileText, CheckCircle2,
-  XCircle, UserCheck, CalendarDays, Edit2, MessageSquare
+  XCircle, UserCheck, CalendarDays, Edit2, MessageSquare,
+  UserPlus, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Appointment, AppointmentStatus, Patient, Staff } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
-import { generateAppointmentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
+import { generateAppointmentWhatsAppMessage, formatFriendlyDate, formatFriendlyTime } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 import ClockTimePicker from '../components/ClockTimePicker';
 import {
@@ -17,6 +18,7 @@ import {
   saveDemoAppointment,
   updateDemoAppointmentStatus,
   getDemoPatients,
+  saveDemoPatient,
   DEMO_STAFF_MEMBERS,
 } from '../lib/demoData';
 
@@ -122,9 +124,34 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
   const [customDate, setCustomDate] = useState('');
   const [doctorFilter, setDoctorFilter] = useState<string>('all');
 
+  interface NewPatientFormState {
+    name: string;
+    phone: string;
+    gender: 'male' | 'female' | 'other' | '';
+    date_of_birth: string;
+    email: string;
+    address: string;
+    allergies: string;
+    medical_history: string;
+  }
+
+  const emptyNewPatientForm: NewPatientFormState = {
+    name: '',
+    phone: '',
+    gender: '',
+    date_of_birth: '',
+    email: '',
+    address: '',
+    allergies: '',
+    medical_history: '',
+  };
+
   // Booking Modal state
   const [showModal, setShowModal] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [patientMode, setPatientMode] = useState<'existing' | 'new'>('existing');
+  const [newPatientForm, setNewPatientForm] = useState<NewPatientFormState>(emptyNewPatientForm);
+  const [showAdvancedPatientFields, setShowAdvancedPatientFields] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [patientSearch, setPatientSearch] = useState('');
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
@@ -197,8 +224,11 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
     }
   }, [preselectedPatientId, patients]);
 
-  function openNewModal(patient?: Patient) {
+  function openNewModal(patient?: Patient, startInNewPatientMode = false) {
     setEditingAppointment(null);
+    setPatientMode(startInNewPatientMode ? 'new' : 'existing');
+    setNewPatientForm(emptyNewPatientForm);
+    setShowAdvancedPatientFields(false);
     if (patient) {
       setSelectedPatient(patient);
       setPatientSearch(patient.name);
@@ -226,6 +256,9 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
 
   function openEditModal(apt: Appointment) {
     setEditingAppointment(apt);
+    setPatientMode('existing');
+    setNewPatientForm(emptyNewPatientForm);
+    setShowAdvancedPatientFields(false);
     if (apt.patient) {
       setSelectedPatient(apt.patient);
       setPatientSearch(apt.patient.name);
@@ -251,10 +284,6 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedPatient) {
-      setError('Please select a registered patient from the list.');
-      return;
-    }
     if (!appointmentDate) {
       setError('Please select an appointment date.');
       return;
@@ -267,10 +296,75 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
     setSaving(true);
     setError('');
 
+    let finalPatientId = selectedPatient?.id;
+
+    // If new patient mode is active, create the patient record first
+    if (!editingAppointment && patientMode === 'new') {
+      const name = newPatientForm.name.trim();
+      const phone = newPatientForm.phone.trim();
+
+      if (!name) {
+        setError('Please enter the patient full name.');
+        setSaving(false);
+        return;
+      }
+      if (!phone) {
+        setError('Please enter the patient phone number.');
+        setSaving(false);
+        return;
+      }
+
+      const patientPayload = {
+        name,
+        phone,
+        email: newPatientForm.email.trim() || null,
+        date_of_birth: newPatientForm.date_of_birth || null,
+        gender: (newPatientForm.gender as 'male' | 'female' | 'other') || null,
+        address: newPatientForm.address.trim() || null,
+        allergies: newPatientForm.allergies.trim() || null,
+        medical_history: newPatientForm.medical_history.trim() || null,
+      };
+
+      if (isDemoMode()) {
+        const created = saveDemoPatient(patientPayload);
+        finalPatientId = created.id;
+        setSelectedPatient(created);
+        await fetchPatients();
+      } else {
+        const { data: created, error: pErr } = await supabase
+          .from('patients')
+          .insert(patientPayload)
+          .select('*')
+          .single();
+
+        if (pErr || !created) {
+          setError(pErr?.message || 'Failed to create patient record.');
+          setSaving(false);
+          return;
+        }
+        finalPatientId = created.id;
+        setSelectedPatient(created as Patient);
+        await fetchPatients();
+      }
+    } else {
+      if (!selectedPatient) {
+        setError('Please select a registered patient from the list, or switch to "+ New Patient" to register one.');
+        setSaving(false);
+        return;
+      }
+      finalPatientId = selectedPatient.id;
+    }
+
+    if (!finalPatientId) {
+      setError('A valid patient is required to book an appointment.');
+      setSaving(false);
+      return;
+    }
+
     const finalProcedure = procedure === 'other' ? customProcedure.trim() : procedure;
 
     const payload = {
-      patient_id: selectedPatient.id,
+      patient_id: finalPatientId,
       doctor_id: selectedDoctor || null,
       created_by: staff?.id ?? null,
       appointment_date: appointmentDate,
@@ -398,13 +492,21 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
             Schedule and manage patient consultations and clinical appointments
           </p>
         </div>
-        <button
-          onClick={() => openNewModal()}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 shadow-sm"
-          style={{ background: '#3c5e27' }}
-        >
-          <Plus size={18} /> Book Appointment
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={() => openNewModal(undefined, true)}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 font-semibold text-sm transition-all hover:bg-emerald-100 shadow-2xs"
+          >
+            <UserPlus size={16} /> + New Patient & Book
+          </button>
+          <button
+            onClick={() => openNewModal()}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 shadow-sm"
+            style={{ background: '#3c5e27' }}
+          >
+            <Plus size={18} /> Book Appointment
+          </button>
+        </div>
       </div>
 
       {/* Stats Overview */}
@@ -611,8 +713,9 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                           })}
                         </p>
                         <p className="text-xs text-gray-500 flex items-center gap-1.5">
-                          <Clock size={12} className="text-gray-400" />
-                          {apt.appointment_time}
+                          <Clock size={12} className="text-emerald-700" />
+                          <span className="font-semibold text-gray-900">{formatFriendlyTime(apt.appointment_time)}</span>
+                          <span className="text-[10px] text-gray-400 font-mono">({apt.appointment_time})</span>
                         </p>
                       </div>
                     </td>
@@ -733,10 +836,18 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 sticky top-0 bg-white rounded-t-2xl z-10">
               <div>
                 <h3 className="font-semibold text-lg text-gray-900">
-                  {editingAppointment ? 'Edit Appointment' : 'Book New Appointment'}
+                  {editingAppointment
+                    ? 'Edit Appointment'
+                    : patientMode === 'new'
+                    ? 'Register Patient & Book Visit'
+                    : 'Book New Appointment'}
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Select a registered patient and set scheduling details
+                  {editingAppointment
+                    ? 'Update scheduling details for this visit'
+                    : patientMode === 'new'
+                    ? 'Create a permanent patient record and schedule their visit in one easy step'
+                    : 'Select a registered patient or register a new one directly'}
                 </p>
               </div>
               <button
@@ -755,90 +866,358 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                 </div>
               )}
 
-              {/* Patient Selection (searchable dropdown for registered patients) */}
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Registered Patient *
-                </label>
-                <div className="relative">
-                  <Search
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                    size={16}
-                  />
-                  <input
-                    type="text"
-                    value={selectedPatient ? selectedPatient.name : patientSearch}
-                    onChange={e => {
-                      setPatientSearch(e.target.value);
-                      setSelectedPatient(null);
-                      setShowPatientDropdown(true);
-                    }}
-                    onFocus={() => setShowPatientDropdown(true)}
-                    placeholder="Search registered patient by name or phone..."
-                    className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all bg-white"
-                  />
-                  {selectedPatient && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedPatient(null);
-                        setPatientSearch('');
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      <X size={15} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Dropdown list */}
-                {showPatientDropdown && !selectedPatient && (
-                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-30 max-h-48 overflow-y-auto">
-                    {filteredPatientsDropdown.length === 0 ? (
-                      <p className="px-4 py-3 text-sm text-gray-400">No registered patients found</p>
-                    ) : (
-                      filteredPatientsDropdown.slice(0, 20).map(p => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedPatient(p);
-                            setPatientSearch('');
-                            setShowPatientDropdown(false);
-                          }}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left transition-colors"
-                        >
-                          <div
-                            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                            style={{ background: '#3c5e27' }}
-                          >
-                            {p.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{p.name}</p>
-                            <p className="text-xs text-gray-400">{p.phone}</p>
-                          </div>
-                        </button>
-                      ))
-                    )}
+              {/* Patient Selection & Quick Registration */}
+              <div>
+                {!editingAppointment && (
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-semibold text-gray-800">
+                      Patient Information *
+                    </label>
+                    <div className="flex bg-gray-100 p-0.5 rounded-xl border border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => setPatientMode('existing')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                          patientMode === 'existing'
+                            ? 'bg-white text-gray-900 shadow-xs'
+                            : 'text-gray-500 hover:text-gray-800'
+                        }`}
+                      >
+                        <Search size={13} /> Existing Patient
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPatientMode('new');
+                          if (patientSearch && !newPatientForm.name) {
+                            setNewPatientForm(prev => ({ ...prev, name: patientSearch }));
+                          }
+                        }}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
+                          patientMode === 'new'
+                            ? 'bg-emerald-700 text-white shadow-xs'
+                            : 'text-gray-500 hover:text-gray-800'
+                        }`}
+                      >
+                        <UserPlus size={13} /> + New Patient
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                {/* Selected patient preview card */}
-                {selectedPatient && (
-                  <div className="mt-2.5 p-3 rounded-xl bg-green-50/70 border border-green-200/60 flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{selectedPatient.name}</p>
-                      <p className="text-xs text-gray-600">Phone: {selectedPatient.phone}</p>
-                      {selectedPatient.allergies && (
-                        <p className="text-xs text-red-600 font-medium mt-0.5">
-                          Allergies: {selectedPatient.allergies}
-                        </p>
+                {editingAppointment && (
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    Registered Patient *
+                  </label>
+                )}
+
+                {patientMode === 'existing' ? (
+                  <div className="relative">
+                    <div className="relative">
+                      <Search
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        size={16}
+                      />
+                      <input
+                        type="text"
+                        value={selectedPatient ? selectedPatient.name : patientSearch}
+                        onChange={e => {
+                          setPatientSearch(e.target.value);
+                          setSelectedPatient(null);
+                          setShowPatientDropdown(true);
+                        }}
+                        onFocus={() => setShowPatientDropdown(true)}
+                        placeholder="Search registered patient by name or phone..."
+                        className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all bg-white"
+                      />
+                      {selectedPatient ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedPatient(null);
+                            setPatientSearch('');
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={15} />
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {/* Dropdown list */}
+                    {showPatientDropdown && !selectedPatient && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-30 max-h-56 overflow-y-auto">
+                        {filteredPatientsDropdown.length === 0 ? (
+                          <div className="p-4 text-center space-y-2">
+                            <p className="text-xs text-gray-500">
+                              No registered patient found matching &ldquo;{patientSearch}&rdquo;
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPatientMode('new');
+                                setNewPatientForm(prev => ({
+                                  ...prev,
+                                  name: patientSearch,
+                                }));
+                                setShowPatientDropdown(false);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-xs"
+                            >
+                              <UserPlus size={13} /> Create &ldquo;{patientSearch || 'New Patient'}&rdquo; Record
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="divide-y divide-gray-50">
+                              {filteredPatientsDropdown.slice(0, 20).map(p => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedPatient(p);
+                                    setPatientSearch('');
+                                    setShowPatientDropdown(false);
+                                  }}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left transition-colors"
+                                >
+                                  <div
+                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                                    style={{ background: '#3c5e27' }}
+                                  >
+                                    {p.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">{p.name}</p>
+                                    <p className="text-xs text-gray-400">{p.phone}</p>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                            <div className="p-2 border-t border-gray-100 bg-gray-50/80">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setPatientMode('new');
+                                  if (patientSearch && !newPatientForm.name) {
+                                    setNewPatientForm(prev => ({ ...prev, name: patientSearch }));
+                                  }
+                                  setShowPatientDropdown(false);
+                                }}
+                                className="w-full py-1.5 px-2 rounded-lg text-xs font-semibold text-emerald-800 hover:bg-emerald-100/60 transition-colors flex items-center justify-center gap-1"
+                              >
+                                <Plus size={13} /> Not in the list? Register a New Patient
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Selected patient preview card */}
+                    {selectedPatient && (
+                      <div className="mt-2.5 p-3 rounded-xl bg-green-50/70 border border-green-200/60 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{selectedPatient.name}</p>
+                          <p className="text-xs text-gray-600">Phone: {selectedPatient.phone}</p>
+                          {selectedPatient.allergies && (
+                            <p className="text-xs text-red-600 font-medium mt-0.5">
+                              Allergies: {selectedPatient.allergies}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-800 rounded-lg">
+                          Registered
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* New Patient Quick Form */
+                  <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs font-bold">
+                          <UserPlus size={13} />
+                        </span>
+                        <span className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
+                          New Patient Record Details
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-emerald-800 bg-white/90 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold">
+                        Saves to Patient Directory
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Patient Full Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Ayesha Tariq"
+                          value={newPatientForm.name}
+                          onChange={e =>
+                            setNewPatientForm({ ...newPatientForm, name: e.target.value })
+                          }
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Phone Number *
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          placeholder="e.g. 0300-1234567"
+                          value={newPatientForm.phone}
+                          onChange={e =>
+                            setNewPatientForm({ ...newPatientForm, phone: e.target.value })
+                          }
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Gender
+                        </label>
+                        <select
+                          value={newPatientForm.gender}
+                          onChange={e =>
+                            setNewPatientForm({
+                              ...newPatientForm,
+                              gender: e.target.value as any,
+                            })
+                          }
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                        >
+                          <option value="">Select Gender (Optional)</option>
+                          <option value="female">Female</option>
+                          <option value="male">Male</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          Date of Birth
+                        </label>
+                        <input
+                          type="date"
+                          value={newPatientForm.date_of_birth}
+                          onChange={e =>
+                            setNewPatientForm({
+                              ...newPatientForm,
+                              date_of_birth: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Expandable Advanced Patient Details */}
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setShowAdvancedPatientFields(!showAdvancedPatientFields)
+                        }
+                        className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 flex items-center gap-1 transition-colors"
+                      >
+                        {showAdvancedPatientFields ? (
+                          <>
+                            <ChevronUp size={14} /> Less Details
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={14} /> + Add Allergies, Email & Address (Optional)
+                          </>
+                        )}
+                      </button>
+
+                      {showAdvancedPatientFields && (
+                        <div className="mt-2.5 pt-2.5 border-t border-emerald-200/70 space-y-2.5">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                                Known Allergies
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Penicillin, Latex"
+                                value={newPatientForm.allergies}
+                                onChange={e =>
+                                  setNewPatientForm({
+                                    ...newPatientForm,
+                                    allergies: e.target.value,
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                                Email Address
+                              </label>
+                              <input
+                                type="email"
+                                placeholder="patient@example.com"
+                                value={newPatientForm.email}
+                                onChange={e =>
+                                  setNewPatientForm({
+                                    ...newPatientForm,
+                                    email: e.target.value,
+                                  })
+                                }
+                                className="w-full px-3 py-1.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                              Residential Address
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. House #14, Officers Colony, Multan"
+                              value={newPatientForm.address}
+                              onChange={e =>
+                                setNewPatientForm({
+                                  ...newPatientForm,
+                                  address: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-semibold text-gray-600 mb-1">
+                              Medical History / Notes
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Diabetic, Hypertensive, Pre-medication required"
+                              value={newPatientForm.medical_history}
+                              onChange={e =>
+                                setNewPatientForm({
+                                  ...newPatientForm,
+                                  medical_history: e.target.value,
+                                })
+                              }
+                              className="w-full px-3 py-1.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-800 rounded-lg">
-                      Registered
-                    </span>
                   </div>
                 )}
               </div>
@@ -893,9 +1272,14 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Appointment Time *
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Appointment Time *
+                    </label>
+                    <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                      {formatFriendlyTime(appointmentTime)}
+                    </span>
+                  </div>
                   <ClockTimePicker
                     value={appointmentTime}
                     onChange={setAppointmentTime}
@@ -961,7 +1345,13 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                   className="px-6 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-60 flex items-center gap-2"
                   style={{ background: '#3c5e27' }}
                 >
-                  {saving ? 'Saving...' : editingAppointment ? 'Update Appointment' : 'Book Appointment'}
+                  {saving
+                    ? 'Processing...'
+                    : editingAppointment
+                    ? 'Update Appointment'
+                    : patientMode === 'new'
+                    ? 'Register Patient & Book Visit'
+                    : 'Confirm & Book Appointment'}
                 </button>
               </div>
             </form>

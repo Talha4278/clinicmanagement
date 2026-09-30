@@ -60,6 +60,21 @@ export function formatFriendlyDate(dateStr: string): string {
 }
 
 /**
+ * Format a 24-hour time string ("14:30") into a friendly 12-hour string with AM/PM ("02:30 PM")
+ */
+export function formatFriendlyTime(timeStr?: string | null): string {
+  if (!timeStr) return '';
+  const parts = timeStr.trim().split(':');
+  if (parts.length < 2) return timeStr;
+  const h = parseInt(parts[0], 10);
+  const m = parts[1].padStart(2, '0');
+  if (isNaN(h)) return timeStr;
+  const period = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${String(h12).padStart(2, '0')}:${m} ${period}`;
+}
+
+/**
  * Generate highly personalized appointment message based on appointment status
  */
 export function generateAppointmentWhatsAppMessage(
@@ -72,7 +87,7 @@ export function generateAppointmentWhatsAppMessage(
   const doctorName = data.doctorName ? `Dr. ${data.doctorName}` : 'Attending Dentist';
   const procedure = data.procedure || 'Dental Consultation';
   const formattedDate = formatFriendlyDate(data.date);
-  const formattedTime = data.time || 'Scheduled Time';
+  const formattedTime = formatFriendlyTime(data.time) || data.time || 'Scheduled Time';
 
   switch (type) {
     case 'scheduled':

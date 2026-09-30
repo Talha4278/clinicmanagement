@@ -13,6 +13,7 @@ import {
   getDemoInvoices,
   getDemoAppointments,
 } from '../lib/demoData';
+import { formatFriendlyTime } from '../lib/whatsapp';
 
 interface Props {
   onNavigate: (page: string, extraId?: string) => void;
@@ -26,6 +27,25 @@ interface Stats {
   pendingAmount: number;
   todayInvoices: number;
   upcomingAppointmentsCount: number;
+}
+
+function getLocalDateStr(d: Date = new Date()): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return dateStr;
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
@@ -46,11 +66,14 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
   const [upcomingAppointments, setUpcomingAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Calendar State for Upcoming Appointments
+  // Calendar State for Upcoming Appointments: empty string means Show All Upcoming by default
   const [calendarDate, setCalendarDate] = useState(new Date());
-  const [selectedDayStr, setSelectedDayStr] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
+  const [selectedDayStr, setSelectedDayStr] = useState<string>('');
+
+  const todayStr = getLocalDateStr(new Date());
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = getLocalDateStr(tomorrow);
 
   useEffect(() => {
     fetchData();
@@ -62,7 +85,6 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       const demoInvoices = getDemoInvoices();
       const demoAppointments = getDemoAppointments();
 
-      const todayStr = new Date().toISOString().split('T')[0];
       const paidInvoices = demoInvoices.filter(i => i.payment_status === 'paid');
       const todayPaid = paidInvoices.filter(i => (i.created_at || i.issue_date || '').startsWith(todayStr));
       const pendingInvoices = demoInvoices.filter(i => i.payment_status !== 'paid');
@@ -84,7 +106,6 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
     }
 
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
 
     const [
@@ -108,12 +129,27 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       supabase.from('patients').select('*').order('created_at', { ascending: false }).limit(5),
       supabase
         .from('appointments')
-        .select('*, patient:patients(*), doctor:staff(*)')
+        .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
         .gte('appointment_date', todayStr)
         .order('appointment_date', { ascending: true })
         .order('appointment_time', { ascending: true })
-        .limit(20),
+        .limit(50),
     ]);
+
+    let aptsData: Appointment[] = [];
+    if (aptsRes.error) {
+      console.warn('Dashboard appointments query with doctor fkey failed, attempting fallback:', aptsRes.error);
+      const fallbackRes = await supabase
+        .from('appointments')
+        .select('*, patient:patients(*)')
+        .gte('appointment_date', todayStr)
+        .order('appointment_date', { ascending: true })
+        .order('appointment_time', { ascending: true })
+        .limit(50);
+      aptsData = (fallbackRes.data as Appointment[]) ?? [];
+    } else {
+      aptsData = (aptsRes.data as Appointment[]) ?? [];
+    }
 
     const todayCount = await supabase
       .from('invoices')
@@ -126,12 +162,12 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       monthRevenue: (monthInvRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
       pendingAmount: (pendingRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
       todayInvoices: todayCount.count ?? 0,
-      upcomingAppointmentsCount: (aptsRes.data ?? []).length,
+      upcomingAppointmentsCount: aptsData.filter(a => a.status === 'scheduled').length,
     });
 
     setRecentInvoices((recentInvRes.data as Invoice[]) ?? []);
     setRecentPatients((recentPatRes.data as Patient[]) ?? []);
-    setUpcomingAppointments((aptsRes.data as Appointment[]) ?? []);
+    setUpcomingAppointments(aptsData);
     setLoading(false);
   }
 
@@ -285,7 +321,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setSelectedDayStr('')}
               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
@@ -294,7 +330,17 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Show All Upcoming
+              All Upcoming ({upcomingAppointments.length})
+            </button>
+            <button
+              onClick={() => setSelectedDayStr(todayStr)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                selectedDayStr === todayStr
+                  ? 'bg-purple-800 text-white shadow-xs'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Today ({upcomingAppointments.filter(a => a.appointment_date === todayStr).length})
             </button>
             <button
               onClick={() => onNavigate('appointments')}
@@ -352,12 +398,13 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                 const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
                 const isSelected = selectedDayStr === dStr;
                 const hasApt = !!dateToAptCount[dStr];
-                const isToday = new Date().toISOString().split('T')[0] === dStr;
+                const isToday = todayStr === dStr;
 
                 return (
                   <button
                     key={dayNum}
-                    onClick={() => setSelectedDayStr(dStr)}
+                    onClick={() => setSelectedDayStr(isSelected ? '' : dStr)}
+                    title={hasApt ? `${dateToAptCount[dStr]} appointment(s)` : undefined}
                     className={`relative h-8 rounded-lg flex flex-col items-center justify-center font-medium transition-all ${
                       isSelected
                         ? 'bg-purple-700 text-white font-bold shadow-xs'
@@ -369,7 +416,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                     <span>{dayNum}</span>
                     {hasApt && (
                       <span
-                        className={`w-1 h-1 rounded-full ${
+                        className={`w-1.5 h-1.5 rounded-full ${
                           isSelected ? 'bg-white' : 'bg-purple-600'
                         }`}
                       />
@@ -381,14 +428,24 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
 
             <div className="mt-4 pt-3 border-t border-gray-200 flex items-center justify-between text-[11px] text-gray-500">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-purple-600" /> Appointment scheduled
+                <span className="w-2 h-2 rounded-full bg-purple-600" /> Appointments scheduled
               </span>
-              <button
-                onClick={() => setSelectedDayStr(new Date().toISOString().split('T')[0])}
-                className="text-purple-700 font-semibold hover:underline"
-              >
-                Today
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedDayStr(todayStr)}
+                  className="text-purple-700 font-semibold hover:underline"
+                >
+                  Today
+                </button>
+                {selectedDayStr && (
+                  <button
+                    onClick={() => setSelectedDayStr('')}
+                    className="text-gray-500 hover:text-gray-900 font-semibold hover:underline"
+                  >
+                    Show All
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -397,12 +454,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
             <div className="flex items-center justify-between px-1">
               <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                 {selectedDayStr
-                  ? `Appointments for ${new Date(selectedDayStr).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}`
+                  ? `Appointments for ${formatDisplayDate(selectedDayStr)}`
                   : `All Upcoming Appointments (${upcomingAppointments.length})`}
               </h4>
               <span className="text-xs text-purple-700 font-semibold">
@@ -413,15 +465,29 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
             {loading ? (
               <div className="p-8 text-center text-gray-400 text-xs">Loading appointments...</div>
             ) : dayAppointments.length === 0 ? (
-              <div className="p-8 bg-gray-50 rounded-2xl text-center border border-gray-100 text-gray-400 text-xs space-y-2">
-                <Clock size={20} className="mx-auto text-gray-300" />
-                <p>No appointments scheduled for this date</p>
-                <button
-                  onClick={() => onNavigate('appointments')}
-                  className="text-xs font-semibold text-emerald-700 hover:underline"
-                >
-                  Book an appointment now
-                </button>
+              <div className="p-8 bg-gray-50 rounded-2xl text-center border border-gray-100 text-gray-400 text-xs space-y-3">
+                <Clock size={24} className="mx-auto text-gray-300" />
+                <p className="font-medium text-gray-600">
+                  {selectedDayStr
+                    ? `No appointments scheduled for ${formatDisplayDate(selectedDayStr)}`
+                    : 'No upcoming appointments scheduled'}
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  {selectedDayStr && (
+                    <button
+                      onClick={() => setSelectedDayStr('')}
+                      className="px-3 py-1.5 rounded-xl bg-purple-100 text-purple-800 text-xs font-semibold hover:bg-purple-200 transition-colors"
+                    >
+                      Show All Upcoming ({upcomingAppointments.length})
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onNavigate('appointments')}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                  >
+                    Book an appointment
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
@@ -431,11 +497,26 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                     className="p-4 rounded-2xl bg-white border border-gray-100 card-shadow hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                   >
                     <div className="flex items-start gap-3">
-                      {/* Appointment Time Badge */}
-                      <div className="px-3 py-2 bg-purple-50 text-purple-800 rounded-xl border border-purple-200 flex flex-col items-center justify-center flex-shrink-0 min-w-[70px]">
+                      {/* Appointment Time & Date Badge */}
+                      <div className="px-3 py-2 bg-purple-50 text-purple-800 rounded-xl border border-purple-200 flex flex-col items-center justify-center flex-shrink-0 min-w-[76px]">
                         <Clock size={13} className="text-purple-600 mb-0.5" />
                         <span className="text-xs font-bold tracking-tight">
-                          {apt.appointment_time || '09:00'}
+                          {formatFriendlyTime(apt.appointment_time || '09:00')}
+                        </span>
+                        <span
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded mt-1 ${
+                            apt.appointment_date === todayStr
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : apt.appointment_date === tomorrowStr
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-purple-100 text-purple-700'
+                          }`}
+                        >
+                          {apt.appointment_date === todayStr
+                            ? 'Today'
+                            : apt.appointment_date === tomorrowStr
+                            ? 'Tomorrow'
+                            : formatDisplayDate(apt.appointment_date)}
                         </span>
                       </div>
 
