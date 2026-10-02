@@ -235,6 +235,15 @@ export interface WhatsAppConfig {
   auto_remind_hours_before?: number;
 }
 
+export interface AttendingDoctorSetting {
+  id: string;
+  name: string;
+  specialization?: string;
+  phone?: string;
+  email?: string;
+  active?: boolean;
+}
+
 export interface ClinicSettings {
   clinic_name: string;
   tagline: string;
@@ -246,6 +255,7 @@ export interface ClinicSettings {
   tax_number?: string | null;
   currency_symbol?: string;
   whatsapp_config?: WhatsAppConfig;
+  procedures?: string[];
 }
 
 // ─── MULTI-TENANT CLINIC SIGN-UP & SUBSCRIPTIONS ─────────────────────

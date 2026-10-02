@@ -1020,3 +1020,51 @@ export function getDemoPrescriptions(): (Prescription & { items: PrescriptionIte
   return DEMO_PRESCRIPTIONS;
 }
 
+export function getDemoStaff(): Staff[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.staff);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return DEMO_STAFF_MEMBERS;
+}
+
+export function saveDemoStaff(member: Partial<Staff> & { name: string; role: StaffRole }): Staff {
+  const list = getDemoStaff();
+  const existingIdx = list.findIndex(s => s.id === member.id);
+  const nowStr = new Date().toISOString();
+
+  let saved: Staff;
+  if (existingIdx >= 0) {
+    saved = { ...list[existingIdx], ...member };
+    list[existingIdx] = saved;
+  } else {
+    saved = {
+      id: member.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, '0')}`),
+      user_id: member.user_id || `user-${Date.now()}`,
+      clinic_id: member.clinic_id || 'clinic-dentivista-01',
+      name: member.name,
+      role: member.role,
+      email: member.email || `user${Date.now()}@clinic.local`,
+      phone: member.phone || null,
+      specialization: member.specialization || null,
+      active: member.active !== false,
+      created_at: nowStr,
+    };
+    list.push(saved);
+  }
+
+  localStorage.setItem(STORAGE_KEYS.staff, JSON.stringify(list));
+  return saved;
+}
+
+export function deleteDemoStaff(id: string): void {
+  const list = getDemoStaff().filter(s => s.id !== id);
+  localStorage.setItem(STORAGE_KEYS.staff, JSON.stringify(list));
+}
+
+export function toggleDemoStaff(id: string): void {
+  const list = getDemoStaff().map(s => s.id === id ? { ...s, active: !s.active } : s);
+  localStorage.setItem(STORAGE_KEYS.staff, JSON.stringify(list));
+}
+
+

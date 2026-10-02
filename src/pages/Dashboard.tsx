@@ -89,18 +89,19 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       const todayPaid = paidInvoices.filter(i => (i.created_at || i.issue_date || '').startsWith(todayStr));
       const pendingInvoices = demoInvoices.filter(i => i.payment_status !== 'paid');
 
+      const scheduledAppointments = demoAppointments.filter(a => a.status === 'scheduled');
       setStats({
         totalPatients: demoPatients.length,
         todayRevenue: todayPaid.reduce((s, i) => s + Number(i.total), 0),
         monthRevenue: paidInvoices.reduce((s, i) => s + Number(i.total), 0),
         pendingAmount: pendingInvoices.reduce((s, i) => s + (Number(i.total) - Number(i.paid_amount || 0)), 0),
         todayInvoices: demoInvoices.filter(i => (i.created_at || i.issue_date || '').startsWith(todayStr)).length,
-        upcomingAppointmentsCount: demoAppointments.filter(a => a.status === 'scheduled').length,
+        upcomingAppointmentsCount: scheduledAppointments.length,
       });
 
       setRecentInvoices(demoInvoices as Invoice[]);
       setRecentPatients(demoPatients);
-      setUpcomingAppointments(demoAppointments);
+      setUpcomingAppointments(scheduledAppointments);
       setLoading(false);
       return;
     }
@@ -131,6 +132,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
         .from('appointments')
         .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
         .gte('appointment_date', todayStr)
+        .eq('status', 'scheduled')
         .order('appointment_date', { ascending: true })
         .order('appointment_time', { ascending: true })
         .limit(50),
@@ -143,6 +145,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
         .from('appointments')
         .select('*, patient:patients(*)')
         .gte('appointment_date', todayStr)
+        .eq('status', 'scheduled')
         .order('appointment_date', { ascending: true })
         .order('appointment_time', { ascending: true })
         .limit(50);
@@ -156,18 +159,20 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       .select('id', { count: 'exact', head: true })
       .gte('created_at', todayStr);
 
+    const scheduledApts = aptsData.filter(a => a.status === 'scheduled');
+
     setStats({
       totalPatients: patientsRes.count ?? 0,
       todayRevenue: (todayInvRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
       monthRevenue: (monthInvRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
       pendingAmount: (pendingRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
       todayInvoices: todayCount.count ?? 0,
-      upcomingAppointmentsCount: aptsData.filter(a => a.status === 'scheduled').length,
+      upcomingAppointmentsCount: scheduledApts.length,
     });
 
     setRecentInvoices((recentInvRes.data as Invoice[]) ?? []);
     setRecentPatients((recentPatRes.data as Patient[]) ?? []);
-    setUpcomingAppointments(aptsData);
+    setUpcomingAppointments(scheduledApts);
     setLoading(false);
   }
 
@@ -187,16 +192,19 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
     setCalendarDate(new Date(year, month + 1, 1));
   }
 
+  // Filter appointments to only scheduled visits for upcoming section
+  const scheduledOnly = upcomingAppointments.filter((a) => a.status === 'scheduled');
+
   // Map dates to appointment counts for the dots
   const dateToAptCount: Record<string, number> = {};
-  upcomingAppointments.forEach((apt) => {
+  scheduledOnly.forEach((apt) => {
     dateToAptCount[apt.appointment_date] = (dateToAptCount[apt.appointment_date] || 0) + 1;
   });
 
   // Filter appointments for selected day or all upcoming if no selection
   const dayAppointments = selectedDayStr
-    ? upcomingAppointments.filter((a) => a.appointment_date === selectedDayStr)
-    : upcomingAppointments;
+    ? scheduledOnly.filter((a) => a.appointment_date === selectedDayStr)
+    : scheduledOnly;
 
   const allStatCards = [
     {
@@ -330,7 +338,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              All Upcoming ({upcomingAppointments.length})
+              All Upcoming ({scheduledOnly.length})
             </button>
             <button
               onClick={() => setSelectedDayStr(todayStr)}
@@ -340,7 +348,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              Today ({upcomingAppointments.filter(a => a.appointment_date === todayStr).length})
+              Today ({scheduledOnly.filter(a => a.appointment_date === todayStr).length})
             </button>
             <button
               onClick={() => onNavigate('appointments')}
@@ -478,7 +486,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                       onClick={() => setSelectedDayStr('')}
                       className="px-3 py-1.5 rounded-xl bg-purple-100 text-purple-800 text-xs font-semibold hover:bg-purple-200 transition-colors"
                     >
-                      Show All Upcoming ({upcomingAppointments.length})
+                      Show All Upcoming ({scheduledOnly.length})
                     </button>
                   )}
                   <button

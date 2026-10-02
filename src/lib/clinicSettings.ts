@@ -1,6 +1,20 @@
 import { useState, useEffect } from 'react';
 import { ClinicSettings } from './types';
 
+export const DEFAULT_PROCEDURES: string[] = [
+  'General Consultation',
+  'Scaling & Polishing',
+  'Teeth Whitening',
+  'Root Canal Treatment',
+  'Dental Fillings',
+  'Crown & Bridge',
+  'Tooth Extraction',
+  'Orthodontic Checkup',
+  'Facial Aesthetics / Botox',
+  'Dental Implants',
+  'Pediatric Dentistry',
+];
+
 export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   clinic_name: 'Dentivista',
   tagline: 'Dental & Aesthetics',
@@ -22,6 +36,7 @@ export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
     webhook_url: 'https://api.yourclinic.com/webhooks/whatsapp',
     auto_remind_hours_before: 24,
   },
+  procedures: DEFAULT_PROCEDURES,
 };
 
 const STORAGE_KEY = 'dentivista_clinic_settings';
@@ -32,7 +47,20 @@ export function getClinicSettings(): ClinicSettings {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...DEFAULT_CLINIC_SETTINGS, ...parsed };
+      // Clean up legacy hardcoded doctors if present
+      if ('doctors' in parsed) {
+        delete parsed.doctors;
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        } catch {}
+      }
+      return {
+        ...DEFAULT_CLINIC_SETTINGS,
+        ...parsed,
+        procedures: Array.isArray(parsed.procedures) && parsed.procedures.length > 0
+          ? parsed.procedures
+          : DEFAULT_PROCEDURES,
+      };
     }
   } catch (err) {
     console.error('Failed to read clinic settings:', err);

@@ -6,7 +6,8 @@ import {
 import { supabase } from '../lib/supabase';
 import { Treatment, TreatmentStatus, Patient, Staff } from '../lib/types';
 import { getTreatments, saveTreatment, deleteTreatment } from '../lib/clinicStorage';
-import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS } from '../lib/demoData';
+import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS, getDemoStaff } from '../lib/demoData';
+import { useClinicSettings } from '../lib/clinicSettings';
 
 interface Props {
   preselectedPatientId?: string | null;
@@ -48,12 +49,17 @@ export default function Treatments({
   onNewInvoice,
   onViewPatientDossier,
 }: Props) {
+  const { settings: clinic } = useClinicSettings();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const proceduresList = clinic?.procedures && clinic.procedures.length > 0
+    ? clinic.procedures
+    : COMMON_DENTAL_PROCEDURES;
 
   // Modal
   const [showModal, setShowModal] = useState(false);
@@ -72,7 +78,7 @@ export default function Treatments({
     if (isDemoMode()) {
       const trts = await getTreatments();
       const demoPats = getDemoPatients();
-      const demoDocs = DEMO_STAFF_MEMBERS.filter((s) => s.role === 'doctor');
+      const demoDocs = getDemoStaff().filter((s) => s.role === 'doctor' && s.active !== false);
       setTreatments(trts);
       setPatients(demoPats);
       setDoctors(demoDocs);
@@ -118,7 +124,7 @@ export default function Treatments({
 
   function openEditModal(t: Treatment) {
     setEditingTreatment(t);
-    const isCustom = !COMMON_DENTAL_PROCEDURES.includes(t.procedure_name);
+    const isCustom = !proceduresList.includes(t.procedure_name);
     setForm({
       patient_id: t.patient_id,
       doctor_id: t.doctor_id || '',
@@ -150,11 +156,18 @@ export default function Treatments({
     setSaving(true);
     setError('');
 
+    const isValidUuid = (val?: string | null) =>
+      typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+    const doctorIdToUse = isDemoMode()
+      ? (form.doctor_id || null)
+      : (isValidUuid(form.doctor_id) ? form.doctor_id : null);
+
     try {
       await saveTreatment({
         id: editingTreatment?.id,
         patient_id: form.patient_id,
-        doctor_id: form.doctor_id || null,
+        doctor_id: doctorIdToUse,
         treatment_date: form.treatment_date,
         tooth_number: form.tooth_number.trim() || null,
         procedure_name: procName,
@@ -445,7 +458,7 @@ export default function Treatments({
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
                 >
                   <option value="">-- Select Procedure --</option>
-                  {COMMON_DENTAL_PROCEDURES.map((p) => (
+                  {proceduresList.map((p) => (
                     <option key={p} value={p}>
                       {p}
                     </option>

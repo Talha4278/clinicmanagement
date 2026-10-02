@@ -45,6 +45,10 @@ function setLocal<T>(key: string, val: T): void {
   }
 }
 
+function isValidUuid(val?: string | null): boolean {
+  return typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+}
+
 // ─── INVENTORY CRUD ──────────────────────────────────────────────────
 export async function getInventoryItems(): Promise<InventoryItem[]> {
   if (isDemoMode()) {
@@ -213,10 +217,14 @@ export async function saveExamination(exam: Partial<Examination> & { patient_id:
   };
 
   try {
-    if (isEdit) {
+    const dbPayload = {
+      ...payload,
+      doctor_id: isValidUuid(payload.doctor_id) ? payload.doctor_id : null,
+    };
+    if (isEdit && isValidUuid(payload.id)) {
       const { data, error } = await supabase
         .from('examinations')
-        .update(payload)
+        .update(dbPayload)
         .eq('id', payload.id)
         .select()
         .single();
@@ -225,9 +233,10 @@ export async function saveExamination(exam: Partial<Examination> & { patient_id:
         return data as Examination;
       }
     } else {
+      const { id: _ignore, ...insertPayload } = dbPayload;
       const { data, error } = await supabase
         .from('examinations')
-        .insert(payload)
+        .insert(isValidUuid(payload.id) ? dbPayload : insertPayload)
         .select()
         .single();
       if (!error && data) {
@@ -320,10 +329,14 @@ export async function saveTreatment(treatment: Partial<Treatment> & { patient_id
   };
 
   try {
-    if (isEdit) {
+    const dbPayload = {
+      ...payload,
+      doctor_id: isValidUuid(payload.doctor_id) ? payload.doctor_id : null,
+    };
+    if (isEdit && isValidUuid(payload.id)) {
       const { data, error } = await supabase
         .from('treatments')
-        .update(payload)
+        .update(dbPayload)
         .eq('id', payload.id)
         .select()
         .single();
@@ -332,9 +345,10 @@ export async function saveTreatment(treatment: Partial<Treatment> & { patient_id
         return data as Treatment;
       }
     } else {
+      const { id: _ignore, ...insertPayload } = dbPayload;
       const { data, error } = await supabase
         .from('treatments')
-        .insert(payload)
+        .insert(isValidUuid(payload.id) ? dbPayload : insertPayload)
         .select()
         .single();
       if (!error && data) {
@@ -440,10 +454,32 @@ export async function savePrescription(
   };
 
   try {
-    const { error: rxErr } = await supabase.from('prescriptions').upsert(payload);
-    if (!rxErr) {
-      await supabase.from('prescription_items').delete().eq('prescription_id', rxId);
-      await supabase.from('prescription_items').insert(formattedItems);
+    const { items: _items, ...rxOnly } = payload;
+    const dbPayload = {
+      ...rxOnly,
+      doctor_id: isValidUuid(rxOnly.doctor_id) ? rxOnly.doctor_id : null,
+    };
+    if (isValidUuid(rxId)) {
+      const { error: rxErr } = await supabase.from('prescriptions').upsert(dbPayload);
+      if (!rxErr) {
+        await supabase.from('prescription_items').delete().eq('prescription_id', rxId);
+        await supabase.from('prescription_items').insert(formattedItems);
+      }
+    } else {
+      const { id: _ignore, ...insertPayload } = dbPayload;
+      const { data: createdRx, error: rxErr } = await supabase.from('prescriptions').insert(insertPayload).select().single();
+      if (!rxErr && createdRx) {
+        const finalItems = items.map((it, idx) => ({
+          prescription_id: createdRx.id,
+          medicine_name: it.medicine_name,
+          dosage: it.dosage,
+          frequency: it.frequency,
+          duration: it.duration,
+          instructions: it.instructions,
+          quantity: it.quantity,
+        }));
+        await supabase.from('prescription_items').insert(finalItems);
+      }
     }
   } catch {
     // fallback

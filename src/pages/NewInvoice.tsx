@@ -128,12 +128,15 @@ export default function NewInvoice({ onSuccess }: Props) {
       return;
     }
 
+    const isValidUuid = (val?: string | null) =>
+      typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
     const { data: inv, error: invErr } = await supabase
       .from('invoices')
       .insert({
         patient_id: selectedPatient.id,
-        doctor_id: selectedDoctor || null,
-        created_by: staff?.id ?? null,
+        doctor_id: isValidUuid(selectedDoctor) ? selectedDoctor : null,
+        created_by: isValidUuid(staff?.id) ? staff?.id : null,
         subtotal,
         discount_type: discountType,
         discount_value: discountValue,

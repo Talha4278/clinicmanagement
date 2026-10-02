@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Stethoscope, Eye, EyeOff, AlertCircle, Sparkles,
   Pill, Package, FileText, Calendar, ShieldCheck, CheckCircle2,
-  Activity, ArrowRight, Building2, User, Phone, MapPin, Check
+  Activity, ArrowRight, Building2, User, Phone, MapPin, Check, LogOut
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ClinicSignUpData, SubscriptionPlan } from '../lib/types';
@@ -69,7 +69,6 @@ export default function LoginPage() {
       setError(regError);
       setLoading(false);
     }
-    // If successful, AuthContext sets active clinic and user, auto-redirecting to dashboard!
   }
 
   const productFeatures = [
@@ -106,37 +105,40 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen flex" style={{ background: 'var(--cream)' }}>
+    <div className="min-h-screen flex bg-slate-50/60">
       {/* Left branding & product features panel */}
       <div
         className="hidden lg:flex flex-col justify-between w-[50%] p-10 xl:p-14 text-white relative overflow-hidden"
         style={{
-          background: 'radial-gradient(ellipse at 20% 20%, #4a7530 0%, #3c5e27 45%, #243c17 100%)'
+          background: 'radial-gradient(ellipse at 20% 20%, #0284c7 0%, #0369a1 35%, #075985 75%, #0c4a6e 100%)',
         }}
       >
         {/* Subtle background glow */}
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none" />
 
         {/* Top Header */}
         <div className="relative z-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner border border-white/20">
-                <Stethoscope className="w-6 h-6 text-white" />
+              {/* Clinsyst Logo Box */}
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg border border-white/30">
+                <div className="w-8 h-8 rounded-xl bg-[#0284c7] flex items-center justify-center text-white font-bold text-xl font-sans shadow-sm border border-white/40">
+                  C
+                </div>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <p className="text-white font-bold text-xl tracking-tight leading-none font-display">Clinsyst</p>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/20 text-white tracking-wide uppercase">
+                  <p className="text-white font-bold text-2xl tracking-tight leading-none font-display">Clinsyst</p>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white/20 text-white tracking-wide uppercase border border-white/20">
                     v2.0 Multi-Tenant
                   </span>
                 </div>
-                <p className="text-white/70 text-xs mt-1 font-medium">Clinic Management & Intelligence Suite</p>
+                <p className="text-sky-100 text-xs mt-1 font-medium">Clinic Management & Intelligence Suite</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-white/90 text-xs font-medium border border-white/10">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white/95 text-xs font-medium border border-white/20 shadow-xs">
               <Sparkles size={13} className="text-amber-300" />
               <span>Multi-Tenant Architecture</span>
             </div>
@@ -145,17 +147,17 @@ export default function LoginPage() {
 
         {/* Hero Headline & Core Mission */}
         <div className="relative z-10 my-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-emerald-900/40 text-emerald-200 text-xs font-semibold mb-4 border border-emerald-400/20">
-            <ShieldCheck size={14} className="text-emerald-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-sky-950/40 text-sky-200 text-xs font-semibold mb-4 border border-sky-400/30">
+            <ShieldCheck size={14} className="text-sky-300" />
             <span>Built for Modern Dental & Medical Practices</span>
           </div>
 
           <h1 className="font-display text-4xl xl:text-5xl text-white font-bold leading-tight mb-4 tracking-tight">
             Complete Clinical Care,<br />
-            <span className="text-emerald-200">Zero Paperwork Friction.</span>
+            <span className="text-sky-200">Zero Paperwork Friction.</span>
           </h1>
 
-          <p className="text-white/80 text-sm xl:text-base leading-relaxed max-w-xl">
+          <p className="text-sky-100/90 text-sm xl:text-base leading-relaxed max-w-xl">
             Clinsyst unites tooth-by-tooth odontogram charting, real-time inventory control, digital prescription generation, 360° patient dossiers, and automated billing into one effortless workflow.
           </p>
 
@@ -166,17 +168,17 @@ export default function LoginPage() {
               return (
                 <div
                   key={idx}
-                  className="bg-white/10 hover:bg-white/15 backdrop-blur-xs rounded-xl p-3.5 border border-white/10 transition-all duration-200 group"
+                  className="bg-white/10 hover:bg-white/15 backdrop-blur-xs rounded-xl p-3.5 border border-white/15 transition-all duration-200 group"
                 >
                   <div className="flex items-center gap-2.5 mb-1.5">
-                    <div className="w-7 h-7 rounded-lg bg-white/15 flex items-center justify-center text-emerald-200 group-hover:scale-105 transition-transform flex-shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center text-sky-200 group-hover:scale-105 transition-transform flex-shrink-0">
                       <Icon size={15} />
                     </div>
                     <p className="text-white font-semibold text-xs xl:text-sm leading-tight truncate">
                       {feat.title}
                     </p>
                   </div>
-                  <p className="text-white/70 text-[11px] xl:text-xs leading-relaxed line-clamp-2">
+                  <p className="text-sky-100/75 text-[11px] xl:text-xs leading-relaxed line-clamp-2">
                     {feat.desc}
                   </p>
                 </div>
@@ -186,19 +188,19 @@ export default function LoginPage() {
         </div>
 
         {/* Bottom Trust & Security Banner */}
-        <div className="relative z-10 pt-6 border-t border-white/15 flex items-center justify-between text-xs text-white/75">
+        <div className="relative z-10 pt-6 border-t border-white/20 flex items-center justify-between text-xs text-sky-100">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={15} className="text-emerald-300" />
+            <CheckCircle2 size={15} className="text-sky-300" />
             <span>Encrypted Health Records</span>
           </div>
           <span className="text-white/40">•</span>
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={15} className="text-emerald-300" />
+            <CheckCircle2 size={15} className="text-sky-300" />
             <span>Interactive Odontogram Chart</span>
           </div>
           <span className="text-white/40">•</span>
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={15} className="text-emerald-300" />
+            <CheckCircle2 size={15} className="text-sky-300" />
             <span>Dynamic Invoices & Prescriptions</span>
           </div>
         </div>
@@ -209,23 +211,23 @@ export default function LoginPage() {
         <div className="w-full max-w-lg my-auto">
           {/* Mobile branding header */}
           <div className="flex items-center gap-3 mb-6 lg:hidden">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm" style={{ background: '#3c5e27' }}>
-              <Stethoscope className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[#0284c7] flex items-center justify-center shadow-md text-white font-bold text-xl font-sans">
+              C
             </div>
             <div>
               <p className="font-display font-bold text-xl text-gray-900 leading-none">Clinsyst</p>
-              <p className="text-xs text-emerald-700 font-medium mt-0.5">Clinic Management System</p>
+              <p className="text-xs text-sky-700 font-medium mt-0.5">Clinic Management System</p>
             </div>
           </div>
 
           {/* Mode Switcher Tabs (Sign In vs Register New Clinic) */}
-          <div className="flex p-1 bg-gray-100 rounded-2xl mb-6">
+          <div className="flex p-1 bg-slate-100 rounded-2xl mb-6 border border-slate-200/80">
             <button
               type="button"
               onClick={() => { setAuthMode('signin'); setError(''); }}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 authMode === 'signin'
-                  ? 'bg-white text-gray-900 shadow-xs'
+                  ? 'bg-white text-gray-900 shadow-sm border border-gray-100'
                   : 'text-gray-500 hover:text-gray-800'
               }`}
             >
@@ -236,12 +238,12 @@ export default function LoginPage() {
               onClick={() => { setAuthMode('signup'); setError(''); }}
               className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                 authMode === 'signup'
-                  ? 'bg-white text-gray-900 shadow-xs'
+                  ? 'bg-white text-gray-900 shadow-sm border border-gray-100'
                   : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               <span>Register New Clinic</span>
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-full font-semibold">
+              <span className="text-[10px] bg-sky-100 text-sky-800 px-1.5 py-0.2 rounded-full font-semibold">
                 Free Trial
               </span>
             </button>
@@ -297,7 +299,7 @@ export default function LoginPage() {
           {authMode === 'signin' ? (
             <div className="space-y-6">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-800 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-100">
                   Existing Practice Access
                 </span>
                 <h2 className="font-display text-2xl sm:text-3xl font-bold text-gray-900 mt-2 tracking-tight">
@@ -319,7 +321,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="doctor@dentivista.com"
                     required
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700 transition-all text-xs outline-none"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 transition-all text-xs outline-none shadow-xs"
                   />
                 </div>
 
@@ -337,7 +339,7 @@ export default function LoginPage() {
                       placeholder="••••••••"
                       required
                       minLength={6}
-                      className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-emerald-700/20 focus:border-emerald-700 transition-all text-xs outline-none"
+                      className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 transition-all text-xs outline-none shadow-xs"
                     />
                     <button
                       type="button"
@@ -352,8 +354,11 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl text-white font-semibold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed mt-2 shadow-sm flex items-center justify-center gap-2 text-xs"
-                  style={{ background: '#3c5e27' }}
+                  className="w-full py-3.5 rounded-xl text-white font-semibold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed mt-2 shadow-md flex items-center justify-center gap-2 text-xs"
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    boxShadow: '0 4px 14px 0 rgba(2, 132, 199, 0.35)',
+                  }}
                 >
                   <span>{loading ? 'Verifying credentials...' : 'Sign In to Clinsyst'}</span>
                   <ArrowRight size={15} />
@@ -366,16 +371,16 @@ export default function LoginPage() {
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                     Instant Demo Access
                   </p>
-                  <span className="text-[10px] text-emerald-700 font-medium">Click any role to test</span>
+                  <span className="text-[10px] text-sky-700 font-medium">Click any role to test</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2.5">
                   <button
                     type="button"
                     onClick={() => signInAsDemo('doctor')}
-                    className="py-2.5 px-2 bg-emerald-50/80 hover:bg-emerald-100/90 text-emerald-900 border border-emerald-200/80 rounded-xl text-xs font-semibold transition-all text-center flex flex-col items-center gap-0.5 shadow-2xs"
+                    className="py-2.5 px-2 bg-sky-50/80 hover:bg-sky-100/90 text-sky-900 border border-sky-200/80 rounded-xl text-xs font-semibold transition-all text-center flex flex-col items-center gap-0.5 shadow-2xs"
                   >
                     <span className="font-bold">Dr. Sarah</span>
-                    <span className="text-[10px] text-emerald-700 font-normal">Dentist / Doctor</span>
+                    <span className="text-[10px] text-sky-700 font-normal">Dentist / Doctor</span>
                   </button>
                   <button
                     type="button"
@@ -388,24 +393,24 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => signInAsDemo('receptionist')}
-                    className="py-2.5 px-2 bg-amber-50/80 hover:bg-amber-100/90 text-amber-900 border border-amber-200/80 rounded-xl text-xs font-semibold transition-all text-center flex flex-col items-center gap-0.5 shadow-2xs"
+                    className="py-2.5 px-2 bg-cyan-50/80 hover:bg-cyan-100/90 text-cyan-900 border border-cyan-200/80 rounded-xl text-xs font-semibold transition-all text-center flex flex-col items-center gap-0.5 shadow-2xs"
                   >
                     <span className="font-bold">Reception</span>
-                    <span className="text-[10px] text-amber-700 font-normal">Front Desk Desk</span>
+                    <span className="text-[10px] text-cyan-700 font-normal">Front Desk</span>
                   </button>
                 </div>
               </div>
 
               {/* Prompt to register clinic */}
-              <div className="p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-2xl flex items-center justify-between text-xs text-emerald-900">
+              <div className="p-4 bg-sky-50/80 border border-sky-200/80 rounded-2xl flex items-center justify-between text-xs text-sky-950">
                 <div>
                   <p className="font-bold">New to Clinsyst?</p>
-                  <p className="text-[11px] text-emerald-800">Set up your clinic with a 14-day free trial</p>
+                  <p className="text-[11px] text-sky-800">Set up your clinic with a 14-day free trial</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => { setAuthMode('signup'); setError(''); }}
-                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl font-semibold text-xs transition-colors"
+                  className="px-3.5 py-2 bg-[#0284c7] hover:bg-[#0369a1] text-white rounded-xl font-semibold text-xs transition-colors shadow-xs"
                 >
                   Register Clinic
                 </button>
@@ -417,7 +422,7 @@ export default function LoginPage() {
             /* ============================================================ */
             <div className="space-y-5">
               <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-800 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-100">
                   14-Day Full Access Trial
                 </span>
                 <h2 className="font-display text-2xl sm:text-3xl font-bold text-gray-900 mt-1 tracking-tight">
@@ -432,7 +437,7 @@ export default function LoginPage() {
                 {/* Clinic Identity */}
                 <div className="space-y-3 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200/70">
                   <p className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <Building2 size={13} className="text-emerald-700" />
+                    <Building2 size={13} className="text-sky-600" />
                     <span>Clinic Information</span>
                   </p>
 
@@ -447,7 +452,7 @@ export default function LoginPage() {
                         value={signupForm.clinic_name}
                         onChange={(e) => setSignupForm({ ...signupForm, clinic_name: e.target.value })}
                         placeholder="e.g. Apex Dental Studio"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-emerald-700/20 outline-none"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 outline-none"
                       />
                     </div>
 
@@ -460,7 +465,7 @@ export default function LoginPage() {
                         value={signupForm.tagline}
                         onChange={(e) => setSignupForm({ ...signupForm, tagline: e.target.value })}
                         placeholder="e.g. Dental & Aesthetics"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-800 focus:ring-2 focus:ring-emerald-700/20 outline-none"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-800 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 outline-none"
                       />
                     </div>
 
@@ -474,7 +479,7 @@ export default function LoginPage() {
                         value={signupForm.phone}
                         onChange={(e) => setSignupForm({ ...signupForm, phone: e.target.value })}
                         placeholder="+92 300 1234567"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-800 font-mono focus:ring-2 focus:ring-emerald-700/20 outline-none"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-800 font-mono focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 outline-none"
                       />
                     </div>
 
@@ -488,7 +493,7 @@ export default function LoginPage() {
                         value={signupForm.address}
                         onChange={(e) => setSignupForm({ ...signupForm, address: e.target.value })}
                         placeholder="Plaza 4, Phase 5, Lahore"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-800 focus:ring-2 focus:ring-emerald-700/20 outline-none"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-800 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 outline-none"
                       />
                     </div>
                   </div>
@@ -497,7 +502,7 @@ export default function LoginPage() {
                 {/* Administrator / Doctor Credentials */}
                 <div className="space-y-3 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-200/70">
                   <p className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <User size={13} className="text-emerald-700" />
+                    <User size={13} className="text-sky-600" />
                     <span>Clinic Owner / Lead Doctor Account</span>
                   </p>
 
@@ -512,7 +517,7 @@ export default function LoginPage() {
                         value={signupForm.owner_name}
                         onChange={(e) => setSignupForm({ ...signupForm, owner_name: e.target.value })}
                         placeholder="Dr. Zaid Tariq"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-emerald-700/20 outline-none"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 outline-none"
                       />
                     </div>
 
@@ -526,7 +531,7 @@ export default function LoginPage() {
                         value={signupForm.email}
                         onChange={(e) => setSignupForm({ ...signupForm, email: e.target.value })}
                         placeholder="doctor@apexdental.com"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:ring-2 focus:ring-emerald-700/20 outline-none"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 outline-none"
                       />
                     </div>
 
@@ -541,7 +546,7 @@ export default function LoginPage() {
                         value={signupForm.password}
                         onChange={(e) => setSignupForm({ ...signupForm, password: e.target.value })}
                         placeholder="••••••••"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:ring-2 focus:ring-emerald-700/20 outline-none"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 bg-white text-xs text-gray-900 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 outline-none"
                       />
                     </div>
                   </div>
@@ -562,17 +567,17 @@ export default function LoginPage() {
                           onClick={() => setSignupForm({ ...signupForm, plan: p })}
                           className={`p-2.5 rounded-xl border cursor-pointer transition-all text-left relative ${
                             isSelected
-                              ? 'border-emerald-600 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-500'
+                              ? 'border-sky-600 bg-sky-50/80 shadow-xs ring-1 ring-sky-500'
                               : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                         >
                           {p === 'pro' && (
-                            <span className="absolute -top-2 right-2 text-[9px] font-bold bg-emerald-700 text-white px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                            <span className="absolute -top-2 right-2 text-[9px] font-bold bg-[#0284c7] text-white px-1.5 py-0.2 rounded-full uppercase tracking-wider">
                               Popular
                             </span>
                           )}
                           <p className="font-bold text-xs text-gray-900 capitalize">{p}</p>
-                          <p className="text-[11px] font-semibold text-emerald-800">{spec.price}</p>
+                          <p className="text-[11px] font-semibold text-sky-800">{spec.price}</p>
                           <p className="text-[10px] text-gray-500 mt-1">
                             {spec.max_seats} Staff Seats
                           </p>
@@ -583,8 +588,8 @@ export default function LoginPage() {
                 </div>
 
                 {/* Trial Guarantee Note */}
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0" />
+                <div className="p-3 bg-sky-50 border border-sky-200 rounded-xl text-xs text-sky-950 flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-sky-600 flex-shrink-0" />
                   <span>
                     Your 14-day free trial starts immediately. No credit card required. Includes up to{' '}
                     <strong>{PLAN_SPECS[signupForm.plan].max_seats} staff seats</strong>.
@@ -594,8 +599,11 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 rounded-xl text-white font-semibold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2 text-xs"
-                  style={{ background: '#3c5e27' }}
+                  className="w-full py-3.5 rounded-xl text-white font-semibold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2 text-xs"
+                  style={{
+                    background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                    boxShadow: '0 4px 14px 0 rgba(2, 132, 199, 0.35)',
+                  }}
                 >
                   <span>{loading ? 'Setting up your clinic workspace...' : 'Launch Clinic Workspace'}</span>
                   <ArrowRight size={15} />
@@ -606,7 +614,7 @@ export default function LoginPage() {
 
           {/* Security footnote */}
           <p className="text-center text-xs text-gray-400 mt-6 flex items-center justify-center gap-1.5">
-            <ShieldCheck size={14} className="text-emerald-600" />
+            <ShieldCheck size={14} className="text-sky-600" />
             <span>Clinsyst Secure Multi-Tenant Architecture</span>
           </p>
         </div>
@@ -614,5 +622,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-

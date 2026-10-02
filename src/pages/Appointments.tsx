@@ -19,6 +19,7 @@ import {
   updateDemoAppointmentStatus,
   getDemoPatients,
   saveDemoPatient,
+  getDemoStaff,
   DEMO_STAFF_MEMBERS,
 } from '../lib/demoData';
 
@@ -60,6 +61,10 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const proceduresList = clinic?.procedures && clinic.procedures.length > 0
+    ? clinic.procedures
+    : commonProcedures;
 
   // WhatsApp Modal State
   const [whatsappModal, setWhatsappModal] = useState<{
@@ -195,7 +200,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
 
   const fetchDoctors = useCallback(async () => {
     if (isDemoMode()) {
-      setDoctors(DEMO_STAFF_MEMBERS.filter(s => s.role === 'doctor'));
+      setDoctors(getDemoStaff().filter(s => s.role === 'doctor' && s.active !== false));
       return;
     }
     const { data } = await supabase
@@ -246,7 +251,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
     }
     setAppointmentDate(new Date().toISOString().split('T')[0]);
     setAppointmentTime('10:00');
-    setProcedure(commonProcedures[0]);
+    setProcedure(proceduresList[0] || 'General Consultation');
     setCustomProcedure('');
     setNotes('');
     setModalStatus('scheduled');
@@ -269,8 +274,8 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
     setSelectedDoctor(apt.doctor_id || '');
     setAppointmentDate(apt.appointment_date);
     setAppointmentTime(apt.appointment_time);
-    if (commonProcedures.includes(apt.procedure || '')) {
-      setProcedure(apt.procedure || commonProcedures[0]);
+    if (proceduresList.includes(apt.procedure || '')) {
+      setProcedure(apt.procedure || proceduresList[0] || 'General Consultation');
       setCustomProcedure('');
     } else {
       setProcedure('other');
@@ -363,10 +368,21 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
 
     const finalProcedure = procedure === 'other' ? customProcedure.trim() : procedure;
 
+    const isValidUuid = (val?: string | null) =>
+      typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+
+    const doctorIdToUse = isDemoMode()
+      ? (selectedDoctor || null)
+      : (isValidUuid(selectedDoctor) ? selectedDoctor : null);
+
+    const createdByToUse = isDemoMode()
+      ? (staff?.id ?? null)
+      : (isValidUuid(staff?.id) ? staff.id : null);
+
     const payload = {
       patient_id: finalPatientId,
-      doctor_id: selectedDoctor || null,
-      created_by: staff?.id ?? null,
+      doctor_id: doctorIdToUse,
+      created_by: createdByToUse,
       appointment_date: appointmentDate,
       appointment_time: appointmentTime,
       procedure: finalProcedure || null,
@@ -617,7 +633,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
             <option value="all">All Doctors</option>
             {doctors.map(d => (
               <option key={d.id} value={d.id}>
-                Dr. {d.name}
+                {d.name.startsWith('Dr') ? d.name : `Dr. ${d.name}`}
               </option>
             ))}
           </select>
@@ -730,14 +746,17 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
 
                     {/* Doctor */}
                     <td className="px-6 py-4 hidden sm:table-cell">
-                      {apt.doctor ? (
-                        <div className="flex items-center gap-1.5 text-sm text-gray-700">
-                          <Stethoscope size={14} className="text-gray-400 flex-shrink-0" />
-                          <span>Dr. {apt.doctor.name}</span>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">Unassigned</span>
-                      )}
+                      {(() => {
+                        const docObj = apt.doctor || doctors.find(d => d.id === apt.doctor_id);
+                        return docObj ? (
+                          <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                            <Stethoscope size={14} className="text-gray-400 flex-shrink-0" />
+                            <span>{docObj.name.startsWith('Dr') ? docObj.name : `Dr. ${docObj.name}`}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">Unassigned</span>
+                        );
+                      })()}
                     </td>
 
                     {/* Status */}
@@ -1236,7 +1255,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                     <option value="">No Doctor Assigned</option>
                     {doctors.map(d => (
                       <option key={d.id} value={d.id}>
-                        Dr. {d.name} {d.specialization ? `(${d.specialization})` : ''}
+                        {d.name.startsWith('Dr') ? d.name : `Dr. ${d.name}`} {d.specialization ? `(${d.specialization})` : ''}
                       </option>
                     ))}
                   </select>
@@ -1297,7 +1316,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                   onChange={e => setProcedure(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all bg-white mb-2"
                 >
-                  {commonProcedures.map(p => (
+                  {proceduresList.map(p => (
                     <option key={p} value={p}>
                       {p}
                     </option>
