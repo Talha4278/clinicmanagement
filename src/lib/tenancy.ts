@@ -7,24 +7,47 @@ const ACTIVE_CLINIC_STORAGE_KEY = 'clinsyst_active_clinic_id';
 const TENANT_USERS_STORAGE_KEY = 'clinsyst_tenant_credentials';
 export const CLINIC_TENANT_EVENT = 'clinsyst-tenant-changed';
 
-export const PLAN_SPECS: Record<SubscriptionPlan, { name: string; max_seats: number; max_sessions: number; price: string }> = {
+export interface PlanSpec {
+  name: string;
+  max_seats: number;
+  max_sessions: number;
+  price: string;
+  annual_price: string;
+  badge?: string;
+  highlight?: string;
+  description: string;
+}
+
+export const PLAN_SPECS: Record<SubscriptionPlan, PlanSpec> = {
   starter: {
     name: 'Solo Practice (Starter)',
     max_seats: 2,
     max_sessions: 2,
-    price: 'Rs. 4,500 / mo',
+    price: 'Rs. 1,799 / mo',
+    annual_price: 'Rs. 1,499 / mo',
+    badge: 'Save 25%',
+    highlight: '25% cheaper than jDent',
+    description: 'Perfect for solo dentists. Full EMR, dental charts, scheduling & billing.',
   },
   pro: {
     name: 'Clinic Pro (Growth)',
     max_seats: 5,
     max_sessions: 5,
-    price: 'Rs. 9,500 / mo',
+    price: 'Rs. 3,499 / mo',
+    annual_price: 'Rs. 2,899 / mo',
+    badge: 'Popular',
+    highlight: 'Best for 2-3 Chairs',
+    description: 'Multi-doctor clinic management, stock expiry alerts, & revenue analytics.',
   },
   enterprise: {
     name: 'Hospital Enterprise',
     max_seats: 25,
     max_sessions: 25,
-    price: 'Rs. 22,000 / mo',
+    price: 'Rs. 5,999 / mo',
+    annual_price: 'Rs. 4,999 / mo',
+    badge: 'Multi-Branch',
+    highlight: 'Unlimited Scaling',
+    description: 'Clinic chains, multi-branch switching, granular RBAC & priority support.',
   },
 };
 
@@ -289,3 +312,28 @@ export function checkSeatLimit(currentStaffCount: number, clinicId?: string): {
     clinicName: clinic.name,
   };
 }
+
+/**
+ * Update a clinic's subscription plan tier and adjust seat & session quotas
+ */
+export function updateClinicPlan(clinicId: string, newPlan: SubscriptionPlan): boolean {
+  try {
+    const all = getAllClinics();
+    const idx = all.findIndex(c => c.id === clinicId);
+    if (idx === -1) return false;
+    const spec = PLAN_SPECS[newPlan];
+    all[idx] = {
+      ...all[idx],
+      plan: newPlan,
+      max_seats: spec.max_seats,
+      max_concurrent_sessions: spec.max_sessions,
+    };
+    saveAllClinics(all);
+    window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: all[idx] }));
+    return true;
+  } catch (e) {
+    console.error('Failed to update clinic plan:', e);
+    return false;
+  }
+}
+

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, Lock, ArrowUpRight } from 'lucide-react';
+import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, Lock, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { Staff as StaffType, StaffRole } from '../lib/types';
+import { Staff as StaffType, StaffRole, SubscriptionPlan } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
-import { checkSeatLimit } from '../lib/tenancy';
+import { checkSeatLimit, PLAN_SPECS, updateClinicPlan } from '../lib/tenancy';
 import { isDemoMode, DEMO_STAFF_MEMBERS } from '../lib/demoData';
 
 const roleColors: Record<StaffRole, string> = {
@@ -25,6 +25,12 @@ export default function Staff() {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Plan Management Modal State
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(activeClinic?.plan || 'pro');
+  const [planBillingCycle, setPlanBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [planSuccessNotice, setPlanSuccessNotice] = useState<string | null>(null);
 
   const activeStaff = staffList.filter(s => s.active);
   const inactiveStaff = staffList.filter(s => !s.active);
@@ -257,6 +263,18 @@ export default function Staff() {
               {seatInfo.remainingSeats} Seats Free
             </span>
           )}
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setSelectedPlan(activeClinic?.plan || 'pro');
+                setShowPlanModal(true);
+              }}
+              className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-sky-50 text-sky-800 hover:bg-sky-100 border border-sky-200 transition-all flex items-center gap-1"
+            >
+              <span>Manage Tier</span>
+              <ArrowUpRight size={13} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -486,6 +504,156 @@ export default function Staff() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Plan Tier Management Modal */}
+      {showPlanModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 card-shadow border border-gray-100 relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowPlanModal(false)}
+              className="absolute top-5 right-5 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-800 flex items-center justify-center font-bold">
+                <Sparkles size={20} className="text-sky-700" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Manage Clinic Subscription Tier</h3>
+                <p className="text-xs text-gray-500">
+                  Select the tier that fits your practice capacity and team size
+                </p>
+              </div>
+            </div>
+
+            {/* Billing Cycle Switch */}
+            <div className="flex items-center justify-between bg-gray-50 p-2.5 rounded-2xl mb-5 border border-gray-100">
+              <span className="text-xs font-semibold text-gray-700">Billing Cadence</span>
+              <div className="inline-flex items-center bg-white p-1 rounded-xl shadow-xs border border-gray-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setPlanBillingCycle('monthly')}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                    planBillingCycle === 'monthly' ? 'bg-gray-900 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlanBillingCycle('annual')}
+                  className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                    planBillingCycle === 'annual' ? 'bg-[#0284c7] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span>Annual</span>
+                  <span className="text-[10px] bg-emerald-400 text-emerald-950 font-bold px-1.5 py-0.2 rounded-md">Save 17%</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Plan Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+              {(['starter', 'pro', 'enterprise'] as SubscriptionPlan[]).map((p) => {
+                const spec = PLAN_SPECS[p];
+                const isSelected = selectedPlan === p;
+                const isCurrent = (activeClinic?.plan || 'pro') === p;
+                const price = planBillingCycle === 'annual' ? spec.annual_price : spec.price;
+
+                return (
+                  <div
+                    key={p}
+                    onClick={() => setSelectedPlan(p)}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all text-left relative flex flex-col justify-between ${
+                      isSelected
+                        ? 'border-sky-600 bg-sky-50/70 shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    {spec.badge && (
+                      <span
+                        className={`absolute -top-2.5 right-3 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                          p === 'starter'
+                            ? 'bg-emerald-600 text-white'
+                            : p === 'pro'
+                            ? 'bg-[#0284c7] text-white'
+                            : 'bg-indigo-600 text-white'
+                        }`}
+                      >
+                        {spec.badge}
+                      </span>
+                    )}
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-bold text-sm text-gray-900 capitalize">{p}</p>
+                        {isCurrent && (
+                          <span className="text-[9px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-md">Current</span>
+                        )}
+                      </div>
+                      <p className="text-base font-extrabold text-sky-950">{price}</p>
+                      <p className="text-[11px] font-semibold text-emerald-700 mt-0.5">{spec.highlight}</p>
+                      <p className="text-xs text-gray-500 mt-2 font-medium">
+                        • {spec.max_seats} Active Staff Seats<br />
+                        • {spec.max_sessions} Simultaneous Logins
+                      </p>
+                    </div>
+
+                    <p className="text-[11px] text-gray-600 mt-3 pt-3 border-t border-gray-100 leading-snug">
+                      {spec.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Success message */}
+            {planSuccessNotice && (
+              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0" />
+                <span>{planSuccessNotice}</span>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-gray-500">
+                100% data export & privacy guarantee on all tiers.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPlanModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:text-gray-900 rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!activeClinic?.id) return;
+                    const ok = updateClinicPlan(activeClinic.id, selectedPlan);
+                    if (ok) {
+                      setPlanSuccessNotice(`Successfully switched to ${PLAN_SPECS[selectedPlan].name}!`);
+                      setTimeout(() => {
+                        setPlanSuccessNotice(null);
+                        setShowPlanModal(false);
+                      }, 1200);
+                    }
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-95 shadow-md flex items-center gap-1.5"
+                  style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
+                >
+                  <Sparkles size={14} />
+                  <span>Update Plan Tier</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

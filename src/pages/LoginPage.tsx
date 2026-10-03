@@ -31,6 +31,7 @@ export default function LoginPage() {
     address: '',
     plan: 'pro',
   });
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
 
   async function handleSignInSubmit(e?: React.FormEvent, forceTerminateOldest: boolean = false) {
     if (e) e.preventDefault();
@@ -552,15 +553,40 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                {/* Plan Selection with Live Seat Limits */}
+                {/* Plan Selection with Live Seat Limits & Competitive Edge */}
                 <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Select Your Plan Tier
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      Select Your Plan Tier
+                    </label>
+                    <div className="inline-flex items-center bg-gray-100 p-0.5 rounded-lg text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setBillingCycle('monthly')}
+                        className={`px-2 py-0.5 rounded-md font-medium transition-all ${
+                          billingCycle === 'monthly' ? 'bg-white text-gray-900 shadow-xs' : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        Monthly
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBillingCycle('annual')}
+                        className={`px-2 py-0.5 rounded-md font-medium transition-all flex items-center gap-1 ${
+                          billingCycle === 'annual' ? 'bg-[#0284c7] text-white shadow-xs' : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <span>Annual</span>
+                        <span className="text-[9px] bg-emerald-400 text-emerald-950 font-bold px-1 rounded-sm">Save 17%</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-3 gap-2">
                     {(['starter', 'pro', 'enterprise'] as SubscriptionPlan[]).map((p) => {
                       const spec = PLAN_SPECS[p];
                       const isSelected = signupForm.plan === p;
+                      const displayPrice = billingCycle === 'annual' ? spec.annual_price : spec.price;
                       return (
                         <div
                           key={p}
@@ -571,19 +597,33 @@ export default function LoginPage() {
                               : 'border-gray-200 bg-white hover:border-gray-300'
                           }`}
                         >
-                          {p === 'pro' && (
-                            <span className="absolute -top-2 right-2 text-[9px] font-bold bg-[#0284c7] text-white px-1.5 py-0.2 rounded-full uppercase tracking-wider">
-                              Popular
+                          {spec.badge && (
+                            <span
+                              className={`absolute -top-2 right-1.5 text-[8.5px] font-bold px-1.5 py-0.2 rounded-full uppercase tracking-wider ${
+                                p === 'starter'
+                                  ? 'bg-emerald-600 text-white'
+                                  : p === 'pro'
+                                  ? 'bg-[#0284c7] text-white'
+                                  : 'bg-indigo-600 text-white'
+                              }`}
+                            >
+                              {spec.badge}
                             </span>
                           )}
                           <p className="font-bold text-xs text-gray-900 capitalize">{p}</p>
-                          <p className="text-[11px] font-semibold text-sky-800">{spec.price}</p>
-                          <p className="text-[10px] text-gray-500 mt-1">
+                          <p className="text-[11px] font-bold text-sky-800">{displayPrice}</p>
+                          <p className="text-[10px] text-gray-500 mt-0.5">
                             {spec.max_seats} Staff Seats
                           </p>
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* Plan description blurb */}
+                  <div className="text-[11px] text-sky-900 bg-sky-50/70 p-2 rounded-xl border border-sky-100/80 flex items-start gap-1.5">
+                    <span className="font-semibold text-sky-800">Includes:</span>
+                    <span>{PLAN_SPECS[signupForm.plan].description}</span>
                   </div>
                 </div>
 
