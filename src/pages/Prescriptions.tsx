@@ -7,7 +7,8 @@ import { supabase } from '../lib/supabase';
 import { Prescription, PrescriptionItem, Patient, Staff } from '../lib/types';
 import { getPrescriptions, savePrescription, deletePrescription } from '../lib/clinicStorage';
 import PrescriptionSlip from '../components/PrescriptionSlip';
-import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS } from '../lib/demoData';
+import { isDemoMode, getDemoPatients, getDemoStaff } from '../lib/demoData';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
   preselectedPatientId?: string | null;
@@ -59,6 +60,8 @@ export default function Prescriptions({
   // Slip preview modal
   const [previewRx, setPreviewRx] = useState<Prescription | null>(null);
 
+  const { staff: currentStaff } = useAuth();
+
   useEffect(() => {
     loadData();
   }, []);
@@ -69,7 +72,7 @@ export default function Prescriptions({
     if (isDemoMode()) {
       const rxs = await getPrescriptions();
       const demoPats = getDemoPatients();
-      const demoDocs = DEMO_STAFF_MEMBERS.filter((s) => s.role === 'doctor');
+      const demoDocs = getDemoStaff().filter((s) => s.role === 'doctor' && s.active !== false);
       setPrescriptions(rxs);
       setPatients(demoPats);
       setDoctors(demoDocs);
@@ -91,7 +94,10 @@ export default function Prescriptions({
 
     setPrescriptions(rxs);
     setPatients(patRes.data || []);
-    setDoctors(docRes.data || []);
+    const availableDocs = (docRes.data && docRes.data.length > 0)
+      ? docRes.data
+      : (currentStaff ? [currentStaff] : []);
+    setDoctors(availableDocs);
 
     if (preselectedPatientId && patRes.data) {
       const match = patRes.data.find((p) => p.id === preselectedPatientId);

@@ -753,23 +753,101 @@ export const DEMO_INVOICES: (Invoice & { items: InvoiceItem[] })[] = [
 ];
 
 // ─── STORAGE KEYS FOR DEMO SANDBOX ───────────────────────────────────
-const STORAGE_KEYS = {
+export const DEMO_STORAGE_KEYS = {
   patients: 'dentivista_demo_patients',
   appointments: 'dentivista_demo_appointments',
   invoices: 'dentivista_demo_invoices',
-  treatments: 'dentivista_treatments',
-  prescriptions: 'dentivista_prescriptions',
-  examinations: 'dentivista_examinations',
-  inventory: 'dentivista_inventory',
+  treatments: 'dentivista_demo_treatments',
+  prescriptions: 'dentivista_demo_prescriptions',
+  examinations: 'dentivista_demo_examinations',
+  inventory: 'dentivista_demo_inventory',
   staff: 'dentivista_demo_staff',
-  initialized: 'clinsyst_demo_data_seeded_v2',
+  initialized: 'clinsyst_demo_data_seeded_v3',
 };
+const STORAGE_KEYS = DEMO_STORAGE_KEYS;
+
+/**
+ * Checks if a string ID belongs to a demo record
+ */
+export function isDemoIdentifier(id?: string | null): boolean {
+  if (!id || typeof id !== 'string') return false;
+  return (
+    id.startsWith('inv-item-') ||
+    id.startsWith('inv-demo-') ||
+    id.startsWith('exam-demo-') ||
+    id.startsWith('trt-demo-') ||
+    id.startsWith('pr-demo-') ||
+    id.startsWith('pi-demo-') ||
+    id.startsWith('pat-demo-') ||
+    id.startsWith('apt-demo-') ||
+    id.startsWith('staff-demo-') ||
+    id === 'clinic-dentivista-01' ||
+    ['inv-1', 'inv-2', 'inv-3', 'inv-4', 'inv-5', 'inv-6', 'exam-1', 'trt-1', 'trt-2', 'trt-3', 'rx-1'].includes(id)
+  );
+}
+
+/**
+ * Checks if any record object belongs to demo data
+ */
+export function isDemoRecord(item: any): boolean {
+  if (!item || typeof item !== 'object') return false;
+  if (item.id && isDemoIdentifier(item.id)) return true;
+  if (item.patient_id && isDemoIdentifier(item.patient_id)) return true;
+  if (item.doctor_id && isDemoIdentifier(item.doctor_id)) return true;
+  if (item.invoice_id && isDemoIdentifier(item.invoice_id)) return true;
+  if (item.sku && typeof item.sku === 'string' && (
+    item.sku.startsWith('SKU-LIGNO') ||
+    item.sku.startsWith('SKU-FLTK') ||
+    item.sku.startsWith('SKU-KERR') ||
+    item.sku.startsWith('SKU-GLV') ||
+    item.sku.startsWith('SKU-NDL') ||
+    item.sku.startsWith('SKU-PCH')
+  )) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Removes contaminated demo items from actual clinic localStorage keys
+ */
+export function cleanLegacyDemoData(): void {
+  if (typeof window === 'undefined') return;
+  const legacyKeys = [
+    'dentivista_inventory',
+    'dentivista_examinations',
+    'dentivista_treatments',
+    'dentivista_prescriptions',
+  ];
+  for (const k of legacyKeys) {
+    try {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const cleanOnly = parsed.filter((item: any) => !isDemoRecord(item));
+          if (cleanOnly.length === 0) {
+            localStorage.removeItem(k);
+          } else {
+            localStorage.setItem(k, JSON.stringify(cleanOnly));
+          }
+        }
+      }
+    } catch {
+      localStorage.removeItem(k);
+    }
+  }
+}
 
 /**
  * Seeds comprehensive demo data into localStorage when demo account is accessed.
+ * Demo data is strictly isolated inside dentivista_demo_* keys and never touches actual clinics.
  */
 export function seedDemoData(force: boolean = false) {
   if (typeof window === 'undefined') return;
+
+  // Clean any old legacy keys that mistakenly held demo records
+  cleanLegacyDemoData();
 
   if (force || !localStorage.getItem(STORAGE_KEYS.initialized)) {
     localStorage.setItem(STORAGE_KEYS.patients, JSON.stringify(DEMO_PATIENTS));
@@ -1066,5 +1144,156 @@ export function toggleDemoStaff(id: string): void {
   const list = getDemoStaff().map(s => s.id === id ? { ...s, active: !s.active } : s);
   localStorage.setItem(STORAGE_KEYS.staff, JSON.stringify(list));
 }
+
+export function saveDemoInventoryItem(item: Partial<InventoryItem> & { name: string }): InventoryItem {
+  const list = getDemoInventory();
+  const existingIdx = list.findIndex(i => i.id === item.id);
+  const nowStr = new Date().toISOString();
+  let saved: InventoryItem;
+  if (existingIdx >= 0) {
+    saved = { ...list[existingIdx], ...item, updated_at: nowStr };
+    list[existingIdx] = saved;
+  } else {
+    saved = {
+      id: item.id || `inv-demo-${Date.now()}`,
+      name: item.name.trim(),
+      category: item.category || 'Dental Materials',
+      sku: item.sku || `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
+      batch_number: item.batch_number || null,
+      quantity: Number(item.quantity) || 0,
+      unit: item.unit || 'pcs',
+      min_stock_level: Number(item.min_stock_level) || 5,
+      cost_price: Number(item.cost_price) || 0,
+      sale_price: item.sale_price ? Number(item.sale_price) : null,
+      expiry_date: item.expiry_date || null,
+      supplier: item.supplier || null,
+      location: item.location || null,
+      notes: item.notes || null,
+      created_at: item.created_at || nowStr,
+      updated_at: nowStr,
+    };
+    list.unshift(saved);
+  }
+  localStorage.setItem(STORAGE_KEYS.inventory, JSON.stringify(list));
+  return saved;
+}
+
+export function deleteDemoInventoryItem(id: string): void {
+  const list = getDemoInventory().filter(i => i.id !== id);
+  localStorage.setItem(STORAGE_KEYS.inventory, JSON.stringify(list));
+}
+
+export function saveDemoExamination(exam: Partial<Examination> & { patient_id: string }): Examination {
+  const list = getDemoExaminations();
+  const existingIdx = list.findIndex(e => e.id === exam.id);
+  const nowStr = new Date().toISOString();
+  let saved: Examination;
+  if (existingIdx >= 0) {
+    saved = { ...list[existingIdx], ...exam };
+    list[existingIdx] = saved;
+  } else {
+    saved = {
+      id: exam.id || `exam-demo-${Date.now()}`,
+      patient_id: exam.patient_id,
+      doctor_id: exam.doctor_id || null,
+      examination_date: exam.examination_date || nowStr.split('T')[0],
+      dentition_type: exam.dentition_type || 'adult',
+      chief_complaint: exam.chief_complaint || null,
+      gingival_condition: exam.gingival_condition || null,
+      plaque_level: exam.plaque_level || null,
+      soft_tissue_notes: exam.soft_tissue_notes || null,
+      teeth_findings: exam.teeth_findings || {},
+      clinical_notes: exam.clinical_notes || null,
+      treatment_plan_notes: exam.treatment_plan_notes || null,
+      created_at: exam.created_at || nowStr,
+    };
+    list.unshift(saved);
+  }
+  localStorage.setItem(STORAGE_KEYS.examinations, JSON.stringify(list));
+  return saved;
+}
+
+export function deleteDemoExamination(id: string): void {
+  const list = getDemoExaminations().filter(e => e.id !== id);
+  localStorage.setItem(STORAGE_KEYS.examinations, JSON.stringify(list));
+}
+
+export function saveDemoTreatment(treatment: Partial<Treatment> & { patient_id: string; procedure_name: string }): Treatment {
+  const list = getDemoTreatments();
+  const existingIdx = list.findIndex(t => t.id === treatment.id);
+  const nowStr = new Date().toISOString();
+  let saved: Treatment;
+  if (existingIdx >= 0) {
+    saved = { ...list[existingIdx], ...treatment };
+    list[existingIdx] = saved;
+  } else {
+    saved = {
+      id: treatment.id || `trt-demo-${Date.now()}`,
+      patient_id: treatment.patient_id,
+      doctor_id: treatment.doctor_id || null,
+      treatment_date: treatment.treatment_date || nowStr.split('T')[0],
+      tooth_number: treatment.tooth_number || null,
+      procedure_name: treatment.procedure_name.trim(),
+      cost: Number(treatment.cost) || 0,
+      status: treatment.status || 'planned',
+      notes: treatment.notes || null,
+      invoice_id: treatment.invoice_id || null,
+      created_at: treatment.created_at || nowStr,
+    };
+    list.unshift(saved);
+  }
+  localStorage.setItem(STORAGE_KEYS.treatments, JSON.stringify(list));
+  return saved;
+}
+
+export function deleteDemoTreatment(id: string): void {
+  const list = getDemoTreatments().filter(t => t.id !== id);
+  localStorage.setItem(STORAGE_KEYS.treatments, JSON.stringify(list));
+}
+
+export function saveDemoPrescription(
+  rx: Partial<Prescription> & { patient_id: string },
+  items: Omit<PrescriptionItem, 'id' | 'prescription_id'>[]
+): Prescription & { items: PrescriptionItem[] } {
+  const list = getDemoPrescriptions();
+  const rxId = rx.id || `pr-demo-${Date.now()}`;
+  const nowStr = new Date().toISOString();
+  const formattedItems: PrescriptionItem[] = items.map((it, idx) => ({
+    id: `pi-demo-${Date.now()}-${idx}`,
+    prescription_id: rxId,
+    medicine_name: it.medicine_name.trim(),
+    dosage: it.dosage.trim(),
+    frequency: it.frequency.trim(),
+    duration: it.duration.trim(),
+    instructions: it.instructions?.trim() || '',
+    quantity: it.quantity?.trim() || '',
+  }));
+  const saved: Prescription & { items: PrescriptionItem[] } = {
+    id: rxId,
+    patient_id: rx.patient_id,
+    doctor_id: rx.doctor_id || null,
+    prescription_date: rx.prescription_date || nowStr.split('T')[0],
+    diagnosis: rx.diagnosis || null,
+    clinical_notes: rx.clinical_notes || null,
+    advice: rx.advice || null,
+    follow_up_date: rx.follow_up_date || null,
+    created_at: rx.created_at || nowStr,
+    items: formattedItems,
+  };
+  const existingIdx = list.findIndex(p => p.id === rxId);
+  if (existingIdx >= 0) {
+    list[existingIdx] = saved;
+  } else {
+    list.unshift(saved);
+  }
+  localStorage.setItem(STORAGE_KEYS.prescriptions, JSON.stringify(list));
+  return saved;
+}
+
+export function deleteDemoPrescription(id: string): void {
+  const list = getDemoPrescriptions().filter(p => p.id !== id);
+  localStorage.setItem(STORAGE_KEYS.prescriptions, JSON.stringify(list));
+}
+
 
 

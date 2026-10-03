@@ -13,7 +13,8 @@ import {
 } from '../lib/types';
 import { getExaminations, saveExamination } from '../lib/clinicStorage';
 import DentalChart from '../components/DentalChart';
-import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS } from '../lib/demoData';
+import { isDemoMode, getDemoPatients, getDemoStaff } from '../lib/demoData';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
   preselectedPatientId?: string | null;
@@ -26,6 +27,7 @@ export default function Examinations({
   onNavigateToTreatment,
   onViewPatientDossier,
 }: Props) {
+  const { staff: currentStaff } = useAuth();
   const [examinations, setExaminations] = useState<Examination[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Staff[]>([]);
@@ -61,7 +63,7 @@ export default function Examinations({
     if (isDemoMode()) {
       const exams = await getExaminations();
       const demoPats = getDemoPatients();
-      const demoDocs = DEMO_STAFF_MEMBERS.filter((s) => s.role === 'doctor');
+      const demoDocs = getDemoStaff().filter((s) => s.role === 'doctor' && s.active !== false);
       setExaminations(exams);
       setPatients(demoPats);
       setDoctors(demoDocs);
@@ -83,7 +85,10 @@ export default function Examinations({
 
     setExaminations(exams);
     setPatients(patientsRes.data || []);
-    setDoctors(staffRes.data || []);
+    const availableDocs = (staffRes.data && staffRes.data.length > 0)
+      ? staffRes.data
+      : (currentStaff ? [currentStaff] : []);
+    setDoctors(availableDocs);
 
     if (preselectedPatientId && patientsRes.data) {
       const match = patientsRes.data.find((p) => p.id === preselectedPatientId);

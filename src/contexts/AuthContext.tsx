@@ -19,7 +19,8 @@ import {
   listenForSessionTermination,
   SESSION_UPDATED_EVENT,
 } from '../lib/sessionManager';
-import { seedDemoData } from '../lib/demoData';
+import { seedDemoData, cleanLegacyDemoData } from '../lib/demoData';
+import { purgeClinicDemoData } from '../lib/clinicStorage';
 
 interface AuthContextValue {
   user: User | null;
@@ -290,6 +291,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } as User;
 
     localStorage.removeItem('dentivista_demo_role');
+    cleanLegacyDemoData();
+    purgeClinicDemoData(result.clinic.id);
     localStorage.setItem(
       'clinsyst_active_staff_session',
       JSON.stringify({ staff: result.staff, user: newUser })
@@ -317,6 +320,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   function switchClinicTenant(clinicId: string) {
     const updated = setActiveClinic(clinicId);
     setActiveClinicState(updated);
+    if (!localStorage.getItem('dentivista_demo_role')) {
+      cleanLegacyDemoData();
+      purgeClinicDemoData(updated.id);
+    }
     refreshSessions();
   }
 
@@ -383,6 +390,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       localStorage.removeItem('dentivista_demo_role');
+      cleanLegacyDemoData();
+      purgeClinicDemoData(clinic.id);
       localStorage.setItem(
         'clinsyst_active_staff_session',
         JSON.stringify({ staff: staffObj, user: userObj })
@@ -422,6 +431,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     localStorage.removeItem('dentivista_demo_role');
     localStorage.removeItem('clinsyst_active_staff_session');
+    cleanLegacyDemoData();
+    purgeClinicDemoData(activeClinic.id);
     refreshSessions();
     return { error: null };
   }

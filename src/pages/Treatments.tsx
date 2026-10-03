@@ -8,6 +8,7 @@ import { Treatment, TreatmentStatus, Patient, Staff } from '../lib/types';
 import { getTreatments, saveTreatment, deleteTreatment } from '../lib/clinicStorage';
 import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS, getDemoStaff } from '../lib/demoData';
 import { useClinicSettings } from '../lib/clinicSettings';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Props {
   preselectedPatientId?: string | null;
@@ -49,6 +50,7 @@ export default function Treatments({
   onNewInvoice,
   onViewPatientDossier,
 }: Props) {
+  const { staff: currentStaff } = useAuth();
   const { settings: clinic } = useClinicSettings();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -100,7 +102,10 @@ export default function Treatments({
 
     setTreatments(trts);
     setPatients(patRes.data || []);
-    setDoctors(docRes.data || []);
+    const availableDocs = (docRes.data && docRes.data.length > 0)
+      ? docRes.data
+      : (currentStaff ? [currentStaff] : []);
+    setDoctors(availableDocs);
 
     if (preselectedPatientId && patRes.data) {
       const match = patRes.data.find((p) => p.id === preselectedPatientId);

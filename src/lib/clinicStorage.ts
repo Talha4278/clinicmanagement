@@ -13,13 +13,24 @@ import {
 import {
   isDemoMode,
   getDemoInventory,
+  saveDemoInventoryItem,
+  deleteDemoInventoryItem,
   getDemoExaminations,
+  saveDemoExamination,
+  deleteDemoExamination,
   getDemoTreatments,
+  saveDemoTreatment,
+  deleteDemoTreatment,
   getDemoPrescriptions,
+  saveDemoPrescription,
+  deleteDemoPrescription,
   getDemoPatients,
   getDemoAppointments,
   getDemoInvoices,
+  isDemoRecord,
+  cleanLegacyDemoData,
 } from './demoData';
+import { getActiveClinic } from './tenancy';
 
 // ─── INITIAL SEED DATA (EMPTY - REAL DATA ONLY) ──────────────────────
 const SEED_INVENTORY: InventoryItem[] = [];
@@ -27,21 +38,79 @@ const SEED_EXAMINATIONS: Examination[] = [];
 const SEED_TREATMENTS: Treatment[] = [];
 const SEED_PRESCRIPTIONS: (Prescription & { items: PrescriptionItem[] })[] = [];
 
-// Helper to safely access localStorage
-function getLocal<T>(key: string, defaultVal: T): T {
+function getClinicStorageKey(key: string): string {
+  const clinic = getActiveClinic();
+  const clinicId = clinic?.id || 'default';
+  return `dentivista_clinic_${clinicId}_${key}`;
+}
+
+// Safely access clinic-isolated localStorage
+function getClinicLocal<T>(key: string, defaultVal: T): T {
   try {
-    const raw = localStorage.getItem(`dentivista_${key}`);
-    return raw ? JSON.parse(raw) : defaultVal;
+    const scopedKey = getClinicStorageKey(key);
+    const raw = localStorage.getItem(scopedKey);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item) => !isDemoRecord(item)) as unknown as T;
+      }
+      return parsed;
+    }
+    // Also check un-scoped key for clean user-created items if scoped key is empty
+    const legacyRaw = localStorage.getItem(`dentivista_${key}`);
+    if (legacyRaw) {
+      const parsed = JSON.parse(legacyRaw);
+      if (Array.isArray(parsed)) {
+        const cleaned = parsed.filter((item) => !isDemoRecord(item));
+        if (cleaned.length > 0) {
+          localStorage.setItem(scopedKey, JSON.stringify(cleaned));
+          return cleaned as unknown as T;
+        }
+      }
+    }
+    return defaultVal;
   } catch {
     return defaultVal;
   }
 }
 
-function setLocal<T>(key: string, val: T): void {
+function setClinicLocal<T>(key: string, val: T): void {
   try {
-    localStorage.setItem(`dentivista_${key}`, JSON.stringify(val));
+    const scopedKey = getClinicStorageKey(key);
+    if (Array.isArray(val)) {
+      const sanitized = val.filter((item) => !isDemoRecord(item));
+      localStorage.setItem(scopedKey, JSON.stringify(sanitized));
+    } else {
+      localStorage.setItem(scopedKey, JSON.stringify(val));
+    }
   } catch (e) {
     console.error('localStorage error:', e);
+  }
+}
+
+/**
+ * Purges any demo records that might be present in a clinic's storage
+ */
+export function purgeClinicDemoData(clinicId?: string): void {
+  if (typeof window === 'undefined') return;
+  cleanLegacyDemoData();
+  const cId = clinicId || getActiveClinic()?.id;
+  if (!cId) return;
+  const keys = ['inventory', 'examinations', 'treatments', 'prescriptions'];
+  for (const k of keys) {
+    const scopedKey = `dentivista_clinic_${cId}_${k}`;
+    try {
+      const raw = localStorage.getItem(scopedKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter((item) => !isDemoRecord(item));
+          localStorage.setItem(scopedKey, JSON.stringify(cleaned));
+        }
+      }
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -52,31 +121,33 @@ function isValidUuid(val?: string | null): boolean {
 // ─── INVENTORY CRUD ──────────────────────────────────────────────────
 export async function getInventoryItems(): Promise<InventoryItem[]> {
   if (isDemoMode()) {
-    const demo = getLocal<InventoryItem[]>('inventory', null);
-    if (demo && demo.length > 0) return demo;
     return getDemoInventory();
   }
 
+  // Real clinic - try Supabase
   try {
     const { data, error } = await supabase
       .from('inventory_items')
       .select('*')
       .order('name');
-    if (!error && data && data.length > 0) {
-      return data as InventoryItem[];
+    if (!error && Array.isArray(data)) {
+      // Supabase returned valid array (even if empty 0 items for new clinic)
+      return (data as InventoryItem[]).filter((i) => !isDemoRecord(i));
     }
   } catch (err) {
-    console.warn('Supabase inventory_items fetch failed, falling back to local', err);
+    console.warn('Supabase inventory_items fetch failed, falling back to clinic local', err);
   }
 
-  // Fallback to local storage (only actual user-created items)
-  const local = getLocal<InventoryItem[]>('inventory', []).filter(
-    (item) => !['inv-1', 'inv-2', 'inv-3', 'inv-4', 'inv-5', 'inv-6'].includes(item.id)
-  );
-  return local;
+  // Fallback to clinic-isolated local storage (clean slate for new clinic)
+  const local = getClinicLocal<InventoryItem[]>('inventory', SEED_INVENTORY);
+  return local.filter((item) => !isDemoRecord(item));
 }
 
 export async function saveInventoryItem(item: Partial<InventoryItem> & { name: string }): Promise<InventoryItem> {
+  if (isDemoMode()) {
+    return saveDemoInventoryItem(item);
+  }
+
   const isEdit = !!item.id;
   const now = new Date().toISOString();
 
@@ -100,7 +171,7 @@ export async function saveInventoryItem(item: Partial<InventoryItem> & { name: s
   };
 
   try {
-    if (isEdit) {
+    if (isEdit && isValidUuid(payload.id)) {
       const { data, error } = await supabase
         .from('inventory_items')
         .update(payload)
@@ -108,17 +179,18 @@ export async function saveInventoryItem(item: Partial<InventoryItem> & { name: s
         .select()
         .single();
       if (!error && data) {
-        updateLocalInventory(data as InventoryItem);
+        updateClinicLocalInventory(data as InventoryItem);
         return data as InventoryItem;
       }
     } else {
+      const { id: _ignore, ...insertPayload } = payload;
       const { data, error } = await supabase
         .from('inventory_items')
-        .insert(payload)
+        .insert(isValidUuid(payload.id) ? payload : insertPayload)
         .select()
         .single();
       if (!error && data) {
-        updateLocalInventory(data as InventoryItem);
+        updateClinicLocalInventory(data as InventoryItem);
         return data as InventoryItem;
       }
     }
@@ -126,12 +198,13 @@ export async function saveInventoryItem(item: Partial<InventoryItem> & { name: s
     // ignore supabase error and use local
   }
 
-  updateLocalInventory(payload);
+  updateClinicLocalInventory(payload);
   return payload;
 }
 
-function updateLocalInventory(item: InventoryItem) {
-  const current = getLocal<InventoryItem[]>('inventory', SEED_INVENTORY);
+function updateClinicLocalInventory(item: InventoryItem) {
+  if (isDemoRecord(item)) return;
+  const current = getClinicLocal<InventoryItem[]>('inventory', SEED_INVENTORY);
   const idx = current.findIndex((i) => i.id === item.id);
   let updated: InventoryItem[];
   if (idx >= 0) {
@@ -140,17 +213,23 @@ function updateLocalInventory(item: InventoryItem) {
   } else {
     updated = [item, ...current];
   }
-  setLocal('inventory', updated);
+  setClinicLocal('inventory', updated);
 }
 
 export async function deleteInventoryItem(id: string): Promise<boolean> {
+  if (isDemoMode()) {
+    deleteDemoInventoryItem(id);
+    return true;
+  }
   try {
-    await supabase.from('inventory_items').delete().eq('id', id);
+    if (isValidUuid(id)) {
+      await supabase.from('inventory_items').delete().eq('id', id);
+    }
   } catch {
     // proceed
   }
-  const current = getLocal<InventoryItem[]>('inventory', SEED_INVENTORY);
-  setLocal('inventory', current.filter((i) => i.id !== id));
+  const current = getClinicLocal<InventoryItem[]>('inventory', SEED_INVENTORY);
+  setClinicLocal('inventory', current.filter((i) => i.id !== id));
   return true;
 }
 
@@ -165,7 +244,7 @@ export async function adjustInventoryStock(id: string, delta: number, _reason?: 
 // ─── EXAMINATIONS & DENTAL CHART CRUD ────────────────────────────────
 export async function getExaminations(patientId?: string): Promise<Examination[]> {
   if (isDemoMode()) {
-    const demo = getLocal<Examination[]>('examinations', null) || getDemoExaminations();
+    const demo = getDemoExaminations();
     if (patientId) {
       return demo.filter((e) => e.patient_id === patientId);
     }
@@ -180,15 +259,15 @@ export async function getExaminations(patientId?: string): Promise<Examination[]
       query = query.eq('patient_id', patientId);
     }
     const { data, error } = await query.order('examination_date', { ascending: false });
-    if (!error && data && data.length > 0) {
-      return data as Examination[];
+    if (!error && Array.isArray(data)) {
+      return (data as Examination[]).filter((e) => !isDemoRecord(e));
     }
   } catch {
     // fallback
   }
 
-  const local = getLocal<Examination[]>('examinations', []).filter(
-    (e) => !['exam-1'].includes(e.id)
+  const local = getClinicLocal<Examination[]>('examinations', SEED_EXAMINATIONS).filter(
+    (e) => !isDemoRecord(e)
   );
   if (patientId) {
     return local.filter((e) => e.patient_id === patientId);
@@ -197,6 +276,10 @@ export async function getExaminations(patientId?: string): Promise<Examination[]
 }
 
 export async function saveExamination(exam: Partial<Examination> & { patient_id: string }): Promise<Examination> {
+  if (isDemoMode()) {
+    return saveDemoExamination(exam);
+  }
+
   const isEdit = !!exam.id;
   const now = new Date().toISOString();
 
@@ -229,7 +312,7 @@ export async function saveExamination(exam: Partial<Examination> & { patient_id:
         .select()
         .single();
       if (!error && data) {
-        updateLocalExam(data as Examination);
+        updateClinicLocalExam(data as Examination);
         return data as Examination;
       }
     } else {
@@ -240,7 +323,7 @@ export async function saveExamination(exam: Partial<Examination> & { patient_id:
         .select()
         .single();
       if (!error && data) {
-        updateLocalExam(data as Examination);
+        updateClinicLocalExam(data as Examination);
         return data as Examination;
       }
     }
@@ -248,12 +331,13 @@ export async function saveExamination(exam: Partial<Examination> & { patient_id:
     // ignore
   }
 
-  updateLocalExam(payload);
+  updateClinicLocalExam(payload);
   return payload;
 }
 
-function updateLocalExam(exam: Examination) {
-  const current = getLocal<Examination[]>('examinations', SEED_EXAMINATIONS);
+function updateClinicLocalExam(exam: Examination) {
+  if (isDemoRecord(exam)) return;
+  const current = getClinicLocal<Examination[]>('examinations', SEED_EXAMINATIONS);
   const idx = current.findIndex((e) => e.id === exam.id);
   let updated: Examination[];
   if (idx >= 0) {
@@ -262,24 +346,30 @@ function updateLocalExam(exam: Examination) {
   } else {
     updated = [exam, ...current];
   }
-  setLocal('examinations', updated);
+  setClinicLocal('examinations', updated);
 }
 
 export async function deleteExamination(id: string): Promise<boolean> {
+  if (isDemoMode()) {
+    deleteDemoExamination(id);
+    return true;
+  }
   try {
-    await supabase.from('examinations').delete().eq('id', id);
+    if (isValidUuid(id)) {
+      await supabase.from('examinations').delete().eq('id', id);
+    }
   } catch {
     // ignore
   }
-  const current = getLocal<Examination[]>('examinations', SEED_EXAMINATIONS);
-  setLocal('examinations', current.filter((e) => e.id !== id));
+  const current = getClinicLocal<Examination[]>('examinations', SEED_EXAMINATIONS);
+  setClinicLocal('examinations', current.filter((e) => e.id !== id));
   return true;
 }
 
 // ─── TREATMENTS CRUD ─────────────────────────────────────────────────
 export async function getTreatments(patientId?: string): Promise<Treatment[]> {
   if (isDemoMode()) {
-    const demo = getLocal<Treatment[]>('treatments', null) || getDemoTreatments();
+    const demo = getDemoTreatments();
     if (patientId) {
       return demo.filter((t) => t.patient_id === patientId);
     }
@@ -294,15 +384,15 @@ export async function getTreatments(patientId?: string): Promise<Treatment[]> {
       query = query.eq('patient_id', patientId);
     }
     const { data, error } = await query.order('treatment_date', { ascending: false });
-    if (!error && data && data.length > 0) {
-      return data as Treatment[];
+    if (!error && Array.isArray(data)) {
+      return (data as Treatment[]).filter((t) => !isDemoRecord(t));
     }
   } catch {
     // fallback
   }
 
-  const local = getLocal<Treatment[]>('treatments', []).filter(
-    (t) => !['trt-1', 'trt-2', 'trt-3'].includes(t.id)
+  const local = getClinicLocal<Treatment[]>('treatments', SEED_TREATMENTS).filter(
+    (t) => !isDemoRecord(t)
   );
   if (patientId) {
     return local.filter((t) => t.patient_id === patientId);
@@ -311,6 +401,10 @@ export async function getTreatments(patientId?: string): Promise<Treatment[]> {
 }
 
 export async function saveTreatment(treatment: Partial<Treatment> & { patient_id: string; procedure_name: string }): Promise<Treatment> {
+  if (isDemoMode()) {
+    return saveDemoTreatment(treatment);
+  }
+
   const isEdit = !!treatment.id;
   const now = new Date().toISOString();
 
@@ -341,7 +435,7 @@ export async function saveTreatment(treatment: Partial<Treatment> & { patient_id
         .select()
         .single();
       if (!error && data) {
-        updateLocalTreatment(data as Treatment);
+        updateClinicLocalTreatment(data as Treatment);
         return data as Treatment;
       }
     } else {
@@ -352,7 +446,7 @@ export async function saveTreatment(treatment: Partial<Treatment> & { patient_id
         .select()
         .single();
       if (!error && data) {
-        updateLocalTreatment(data as Treatment);
+        updateClinicLocalTreatment(data as Treatment);
         return data as Treatment;
       }
     }
@@ -360,12 +454,13 @@ export async function saveTreatment(treatment: Partial<Treatment> & { patient_id
     // ignore
   }
 
-  updateLocalTreatment(payload);
+  updateClinicLocalTreatment(payload);
   return payload;
 }
 
-function updateLocalTreatment(trt: Treatment) {
-  const current = getLocal<Treatment[]>('treatments', SEED_TREATMENTS);
+function updateClinicLocalTreatment(trt: Treatment) {
+  if (isDemoRecord(trt)) return;
+  const current = getClinicLocal<Treatment[]>('treatments', SEED_TREATMENTS);
   const idx = current.findIndex((t) => t.id === trt.id);
   let updated: Treatment[];
   if (idx >= 0) {
@@ -374,24 +469,30 @@ function updateLocalTreatment(trt: Treatment) {
   } else {
     updated = [trt, ...current];
   }
-  setLocal('treatments', updated);
+  setClinicLocal('treatments', updated);
 }
 
 export async function deleteTreatment(id: string): Promise<boolean> {
+  if (isDemoMode()) {
+    deleteDemoTreatment(id);
+    return true;
+  }
   try {
-    await supabase.from('treatments').delete().eq('id', id);
+    if (isValidUuid(id)) {
+      await supabase.from('treatments').delete().eq('id', id);
+    }
   } catch {
     // ignore
   }
-  const current = getLocal<Treatment[]>('treatments', SEED_TREATMENTS);
-  setLocal('treatments', current.filter((t) => t.id !== id));
+  const current = getClinicLocal<Treatment[]>('treatments', SEED_TREATMENTS);
+  setClinicLocal('treatments', current.filter((t) => t.id !== id));
   return true;
 }
 
 // ─── PRESCRIPTIONS CRUD ──────────────────────────────────────────────
 export async function getPrescriptions(patientId?: string): Promise<Prescription[]> {
   if (isDemoMode()) {
-    const demo = getLocal<Prescription[]>('prescriptions', null) || getDemoPrescriptions();
+    const demo = getDemoPrescriptions();
     if (patientId) {
       return demo.filter((p) => p.patient_id === patientId);
     }
@@ -406,15 +507,15 @@ export async function getPrescriptions(patientId?: string): Promise<Prescription
       query = query.eq('patient_id', patientId);
     }
     const { data, error } = await query.order('prescription_date', { ascending: false });
-    if (!error && data && data.length > 0) {
-      return data as Prescription[];
+    if (!error && Array.isArray(data)) {
+      return (data as Prescription[]).filter((p) => !isDemoRecord(p));
     }
   } catch {
     // fallback
   }
 
-  const local = getLocal<Prescription[]>('prescriptions', []).filter(
-    (p) => !['rx-1'].includes(p.id)
+  const local = getClinicLocal<Prescription[]>('prescriptions', SEED_PRESCRIPTIONS).filter(
+    (p) => !isDemoRecord(p)
   );
   if (patientId) {
     return local.filter((p) => p.patient_id === patientId);
@@ -426,6 +527,10 @@ export async function savePrescription(
   rx: Partial<Prescription> & { patient_id: string },
   items: Omit<PrescriptionItem, 'id' | 'prescription_id'>[]
 ): Promise<Prescription> {
+  if (isDemoMode()) {
+    return saveDemoPrescription(rx, items);
+  }
+
   const rxId = rx.id || `rx-${Date.now()}`;
   const now = new Date().toISOString();
 
@@ -469,7 +574,7 @@ export async function savePrescription(
       const { id: _ignore, ...insertPayload } = dbPayload;
       const { data: createdRx, error: rxErr } = await supabase.from('prescriptions').insert(insertPayload).select().single();
       if (!rxErr && createdRx) {
-        const finalItems = items.map((it, idx) => ({
+        const finalItems = items.map((it) => ({
           prescription_id: createdRx.id,
           medicine_name: it.medicine_name,
           dosage: it.dosage,
@@ -485,8 +590,14 @@ export async function savePrescription(
     // fallback
   }
 
-  const current = getLocal<Prescription[]>('prescriptions', SEED_PRESCRIPTIONS);
-  const idx = current.findIndex((p) => p.id === rxId);
+  updateClinicLocalPrescription(payload);
+  return payload;
+}
+
+function updateClinicLocalPrescription(payload: Prescription) {
+  if (isDemoRecord(payload)) return;
+  const current = getClinicLocal<Prescription[]>('prescriptions', SEED_PRESCRIPTIONS);
+  const idx = current.findIndex((p) => p.id === payload.id);
   let updated: Prescription[];
   if (idx >= 0) {
     updated = [...current];
@@ -494,19 +605,24 @@ export async function savePrescription(
   } else {
     updated = [payload, ...current];
   }
-  setLocal('prescriptions', updated);
-  return payload;
+  setClinicLocal('prescriptions', updated);
 }
 
 export async function deletePrescription(id: string): Promise<boolean> {
+  if (isDemoMode()) {
+    deleteDemoPrescription(id);
+    return true;
+  }
   try {
-    await supabase.from('prescription_items').delete().eq('prescription_id', id);
-    await supabase.from('prescriptions').delete().eq('id', id);
+    if (isValidUuid(id)) {
+      await supabase.from('prescription_items').delete().eq('prescription_id', id);
+      await supabase.from('prescriptions').delete().eq('id', id);
+    }
   } catch {
     // fallback
   }
-  const current = getLocal<Prescription[]>('prescriptions', SEED_PRESCRIPTIONS);
-  setLocal('prescriptions', current.filter((p) => p.id !== id));
+  const current = getClinicLocal<Prescription[]>('prescriptions', SEED_PRESCRIPTIONS);
+  setClinicLocal('prescriptions', current.filter((p) => p.id !== id));
   return true;
 }
 
