@@ -58,6 +58,28 @@ body {
   }
   body {
     background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  /* Ensure print document fits page height without overflow scrollbars or clipping */
+  .fixed {
+    position: static !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+  #printable-prescription,
+  #invoice-print {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    max-height: none !important;
   }
 }
 

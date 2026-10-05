@@ -22,27 +22,28 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-xs no-print" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-xs no-print" onClick={onClose} />
 
-      <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-8 border border-gray-200">
-        {/* Top Action Toolbar (hidden during print) */}
-        <div className="flex items-center justify-between px-6 py-3.5 bg-gray-900 text-white no-print">
+      <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-auto border border-gray-200 z-10 flex flex-col max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2.5rem)]">
+        {/* Top Action Toolbar (fixed/sticky at top, hidden during print) */}
+        <div className="sticky top-0 z-20 flex items-center justify-between px-4 sm:px-6 py-3 bg-gray-900 text-white no-print flex-shrink-0 border-b border-gray-800">
           <div className="flex items-center gap-2">
-            <Stethoscope size={18} className="text-emerald-400" />
-            <span className="text-sm font-semibold">Clinical Prescription Slip</span>
+            <Stethoscope size={18} className="text-emerald-400 flex-shrink-0" />
+            <span className="text-xs sm:text-sm font-semibold truncate">Clinical Prescription Slip</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-semibold transition-colors shadow-xs hover:shadow"
             >
               <Printer size={14} /> Print Prescription
             </button>
             {onClose && (
               <button
                 onClick={onClose}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800 transition-colors"
+                title="Close"
               >
                 <X size={18} />
               </button>
@@ -50,8 +51,8 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
           </div>
         </div>
 
-        {/* Prescription Paper Sheet */}
-        <div className="p-8 sm:p-10 space-y-6 bg-white text-gray-900" id="printable-prescription">
+        {/* Prescription Paper Sheet (Scrollable container) */}
+        <div className="p-6 sm:p-10 space-y-6 bg-white text-gray-900 overflow-y-auto flex-1" id="printable-prescription">
           {/* Clinic Header */}
           <div className="flex items-start justify-between border-b-2 border-emerald-800/80 pb-5">
             <div className="flex items-center gap-3">
