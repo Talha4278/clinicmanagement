@@ -147,6 +147,8 @@ export interface TenantUserCredential {
   role: 'admin' | 'doctor' | 'receptionist';
 }
 
+const TENANT_STAFF_STORAGE_KEY = 'clinsyst_tenant_staff';
+
 function getStoredTenantUsers(): TenantUserCredential[] {
   try {
     const raw = localStorage.getItem(TENANT_USERS_STORAGE_KEY);
@@ -165,6 +167,79 @@ function saveStoredTenantUsers(users: TenantUserCredential[]): void {
 }
 
 /**
+ * Retrieve all locally registered staff members across clinics
+ */
+export function getAllStoredStaff(): Staff[] {
+  try {
+    const raw = localStorage.getItem(TENANT_STAFF_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Save full list of tenant staff to local storage
+ */
+export function saveAllStoredStaff(staffList: Staff[]): void {
+  try {
+    localStorage.setItem(TENANT_STAFF_STORAGE_KEY, JSON.stringify(staffList));
+  } catch (e) {
+    console.error('Failed to save tenant staff list:', e);
+  }
+}
+
+/**
+ * Get staff members belonging to a specific clinic ID
+ */
+export function getTenantStaff(clinicId?: string): Staff[] {
+  const all = getAllStoredStaff();
+  if (!clinicId) return all;
+  return all.filter(s => s.clinic_id === clinicId);
+}
+
+/**
+ * Save or update a single staff member in local multi-tenant store
+ */
+export function saveTenantStaff(staff: Staff): void {
+  const all = getAllStoredStaff();
+  const idx = all.findIndex(
+    s => s.id === staff.id || (s.email.toLowerCase() === staff.email.toLowerCase() && s.clinic_id === staff.clinic_id)
+  );
+  if (idx !== -1) {
+    all[idx] = { ...all[idx], ...staff };
+  } else {
+    all.push(staff);
+  }
+  saveAllStoredStaff(all);
+}
+
+/**
+ * Register a staff member along with their login credentials
+ */
+export function saveTenantStaffMember(staff: Staff, password?: string): void {
+  saveTenantStaff(staff);
+  if (password) {
+    const users = getStoredTenantUsers();
+    const existingIdx = users.findIndex(u => u.email.toLowerCase() === staff.email.toLowerCase());
+    const userEntry: TenantUserCredential = {
+      email: staff.email.toLowerCase(),
+      passwordHash: password,
+      staffId: staff.id,
+      clinicId: staff.clinic_id || 'clinic-dentivista-01',
+      name: staff.name,
+      role: staff.role,
+    };
+    if (existingIdx !== -1) {
+      users[existingIdx] = userEntry;
+    } else {
+      users.push(userEntry);
+    }
+    saveStoredTenantUsers(users);
+  }
+}
+
+/**
  * Find tenant user credentials by email
  */
 export function findTenantUser(email: string): TenantUserCredential | null {
@@ -173,7 +248,9 @@ export function findTenantUser(email: string): TenantUserCredential | null {
 }
 
 /**
- * Register a brand-new multi-tenant clinic
+ * Register a brand-new multi-tenant clinic.
+ * Automatically inserts a row into the clinics table with actual clinic data,
+ * and creates an admin entry in the staff table for the signup email.
  */
 export async function registerNewClinic(data: ClinicSignUpData): Promise<{
   clinic: ClinicTenant;
@@ -217,11 +294,11 @@ export async function registerNewClinic(data: ClinicSignUpData): Promise<{
       created_at: new Date().toISOString(),
     };
 
-    // 1. Save clinic to tenants list
+    // 1. Save clinic to multi-tenant store
     all.push(newClinic);
     saveAllClinics(all);
 
-    // 2. Create the first Administrator staff member (Clinic Owner / Lead Doctor)
+    // 2. Create the first Administrator staff member (Clinic Owner / Signup Admin)
     const staffId = `staff-${clinicId}-admin`;
     const newStaff: Staff = {
       id: staffId,
@@ -230,43 +307,111 @@ export async function registerNewClinic(data: ClinicSignUpData): Promise<{
       name: data.owner_name.trim(),
       role: 'admin',
       email: data.email.trim().toLowerCase(),
-      phone: data.phone.trim(),
+      phone: data.phone.trim() || null,
       specialization: data.tagline || 'Clinic Lead / Administrator',
       active: true,
       created_at: new Date().toISOString(),
     };
 
-    // 3. Register user credentials
-    const users = getStoredTenantUsers();
-    users.push({
-      email: data.email.trim().toLowerCase(),
-      passwordHash: data.password,
-      staffId: newStaff.id,
-      clinicId: newClinic.id,
-      name: newStaff.name,
-      role: 'admin',
-    });
-    saveStoredTenantUsers(users);
+    // 3. Register user credentials and tenant staff member locally
+    saveTenantStaffMember(newStaff, data.password);
 
-    // 4. Try Supabase Auth Sign Up in background (if configured)
+    // 4. Supabase Remote Auth: sign up user with comprehensive clinic metadata
+    let authUserId: string | null = null;
     try {
-      await supabase.auth.signUp({
+      const { data: authData } = await supabase.auth.signUp({
         email: data.email.trim().toLowerCase(),
         password: data.password,
         options: {
           data: {
-            name: data.owner_name,
+            name: data.owner_name.trim(),
+            owner_name: data.owner_name.trim(),
             clinic_id: clinicId,
             clinic_name: newClinic.name,
             role: 'admin',
+            phone: data.phone.trim(),
+            address: data.address.trim(),
+            tagline: data.tagline?.trim() || '',
+            plan: data.plan,
+            billing_cycle: data.billing_cycle || 'annual',
           },
         },
       });
+
+      if (authData?.user) {
+        authUserId = authData.user.id;
+        newStaff.user_id = authData.user.id;
+        saveTenantStaffMember(newStaff, data.password);
+      }
     } catch (e) {
       console.warn('Supabase remote auth signup notice (proceeding locally):', e);
     }
 
-    // 5. Activate this new clinic tenant immediately
+    // 5. Automatically insert actual clinic data row into Supabase clinics table
+    try {
+      const clinicRow = {
+        id: clinicId,
+        name: newClinic.name,
+        slug: newClinic.slug,
+        plan: newClinic.plan,
+        max_seats: newClinic.max_seats,
+        max_concurrent_sessions: newClinic.max_concurrent_sessions,
+        owner_name: newClinic.owner_name,
+        owner_email: newClinic.owner_email,
+        phone: newClinic.phone || null,
+        address: newClinic.address || null,
+        tagline: newClinic.tagline || null,
+        logo_url: null,
+        status: 'trial',
+        trial_ends_at: newClinic.trial_ends_at,
+        created_at: newClinic.created_at,
+      };
+
+      const { error: clinicDbError } = await supabase
+        .from('clinics')
+        .upsert(clinicRow, { onConflict: 'id' });
+
+      if (clinicDbError) {
+        console.warn('Supabase clinics table insert notice:', clinicDbError.message);
+      }
+    } catch (e) {
+      console.warn('Supabase clinics table notice:', e);
+    }
+
+    // 6. Automatically insert staff row for admin role (for signup email) into Supabase staff table
+    try {
+      const staffRow: any = {
+        clinic_id: clinicId,
+        name: newStaff.name,
+        role: 'admin',
+        email: newStaff.email,
+        phone: newStaff.phone || null,
+        specialization: newStaff.specialization || 'Clinic Lead / Administrator',
+        active: true,
+      };
+
+      if (authUserId) {
+        staffRow.user_id = authUserId;
+      }
+
+      const { data: dbStaff, error: staffDbError } = await supabase
+        .from('staff')
+        .insert(staffRow)
+        .select()
+        .maybeSingle();
+
+      if (staffDbError) {
+        console.warn('Supabase staff table insert notice:', staffDbError.message);
+      } else if (dbStaff) {
+        newStaff.id = dbStaff.id;
+        if (dbStaff.user_id) newStaff.user_id = dbStaff.user_id;
+        saveTenantStaffMember(newStaff, data.password);
+      }
+    } catch (e) {
+      console.warn('Supabase staff table notice:', e);
+    }
+
+    // 7. Activate this new clinic tenant immediately
     setActiveClinic(newClinic.id);
 
     return {

@@ -3,7 +3,7 @@ import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, 
 import { supabase } from '../lib/supabase';
 import { Staff as StaffType, StaffRole, SubscriptionPlan } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
-import { checkSeatLimit, PLAN_SPECS, updateClinicPlan } from '../lib/tenancy';
+import { checkSeatLimit, PLAN_SPECS, updateClinicPlan, getTenantStaff, saveTenantStaff, saveTenantStaffMember } from '../lib/tenancy';
 import { isDemoMode, DEMO_STAFF_MEMBERS } from '../lib/demoData';
 
 const roleColors: Record<StaffRole, string> = {
@@ -36,16 +36,57 @@ export default function Staff() {
   const inactiveStaff = staffList.filter(s => !s.active);
   const seatInfo = checkSeatLimit(activeStaff.length, activeClinic?.id);
 
-  useEffect(() => { fetchStaff(); }, []);
+  useEffect(() => { fetchStaff(); }, [activeClinic?.id]);
 
   async function fetchStaff() {
+    setLoading(true);
     if (isDemoMode()) {
       setStaffList(DEMO_STAFF_MEMBERS);
       setLoading(false);
       return;
     }
-    const { data } = await supabase.from('staff').select('*').order('created_at');
-    setStaffList(data ?? []);
+
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    let remoteStaff: StaffType[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('*')
+        .eq('clinic_id', clinicId)
+        .order('created_at');
+
+      if (data && !error) {
+        remoteStaff = data;
+      }
+    } catch (e) {
+      console.warn('Could not fetch staff from Supabase:', e);
+    }
+
+    // Merge with local tenant staff for this clinic (avoiding duplicates)
+    const localStaff = getTenantStaff(clinicId);
+    const staffMap = new Map<string, StaffType>();
+
+    // 1. Add locally registered staff members (e.g. from signup or previous additions)
+    localStaff.forEach((s) => {
+      const key = s.email.toLowerCase();
+      staffMap.set(key, s);
+    });
+
+    // 2. Overlay remote Supabase staff members (DB is authoritative)
+    remoteStaff.forEach((s) => {
+      const key = s.email.toLowerCase();
+      staffMap.set(key, s);
+    });
+
+    // 3. Ensure currently authenticated staff member (e.g. newly signed up admin) is present
+    if (currentStaff && (!currentStaff.clinic_id || currentStaff.clinic_id === clinicId)) {
+      const currentKey = currentStaff.email.toLowerCase();
+      if (!staffMap.has(currentKey)) {
+        staffMap.set(currentKey, currentStaff);
+      }
+    }
+
+    setStaffList(Array.from(staffMap.values()));
     setLoading(false);
   }
 
@@ -109,7 +150,16 @@ export default function Staff() {
 
     if (editStaff) {
       const { error } = await supabase.from('staff').update(payload).eq('id', editStaff.id);
-      if (error) { setError(error.message); setSaving(false); return; }
+      if (error) {
+        console.warn('Supabase staff update warning:', error.message);
+      }
+
+      // Update in local tenant store
+      const updatedStaff: StaffType = {
+        ...editStaff,
+        ...payload,
+      };
+      saveTenantStaffMember(updatedStaff, form.password || undefined);
 
       const emailChanged = payload.email !== editStaff.email;
       const passwordChanged = !!form.password;
@@ -152,47 +202,88 @@ export default function Staff() {
         }
       }
     } else {
-      const { data: { session: adminSession } } = await supabase.auth.getSession();
-      if (!adminSession) {
-        setError('You must be signed in to add staff');
-        setSaving(false);
-        return;
+      // Adding new staff member with their respective role (doctor, receptionist, admin)
+      const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+      let authUserId: string | null = null;
+
+      // 1. Attempt Supabase Auth Sign Up
+      try {
+        const { data: { session: adminSession } } = await supabase.auth.getSession();
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: form.email.trim(),
+          password: form.password,
+          options: {
+            data: {
+              name: form.name.trim(),
+              clinic_id: clinicId,
+              clinic_name: activeClinic?.name,
+              role: form.role,
+              phone: form.phone.trim() || undefined,
+              specialization: form.specialization.trim() || undefined,
+            },
+          },
+        });
+
+        if (authError) {
+          console.warn('Supabase auth signup notice for staff member:', authError.message);
+        }
+
+        if (authData?.user) {
+          authUserId = authData.user.id;
+        }
+
+        // Restore admin session (signUp may switch context)
+        if (adminSession) {
+          await supabase.auth.setSession({
+            access_token: adminSession.access_token,
+            refresh_token: adminSession.refresh_token,
+          });
+        }
+      } catch (authErr) {
+        console.warn('Supabase auth notice for staff member:', authErr);
       }
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      // 2. Insert into Supabase staff table with respective role and clinic_id
+      let dbStaffId: string | null = null;
+      try {
+        const staffInsertPayload: any = {
+          ...payload,
+          clinic_id: clinicId,
+          active: true,
+        };
+        if (authUserId) {
+          staffInsertPayload.user_id = authUserId;
+        }
+
+        const { data: insertedData, error: insertError } = await supabase
+          .from('staff')
+          .insert(staffInsertPayload)
+          .select()
+          .maybeSingle();
+
+        if (insertError) {
+          console.warn('Supabase staff table insert notice:', insertError.message);
+        } else if (insertedData) {
+          dbStaffId = insertedData.id;
+        }
+      } catch (dbErr) {
+        console.warn('Database staff insert notice:', dbErr);
+      }
+
+      // 3. Register in local tenant credentials and local staff storage
+      const newStaffRecord: StaffType = {
+        id: dbStaffId || `staff-${Date.now()}`,
+        user_id: authUserId || `user-${Date.now()}`,
+        clinic_id: clinicId,
+        name: form.name.trim(),
+        role: form.role,
         email: form.email.trim(),
-        password: form.password,
-      });
-
-      if (authError) {
-        setError(authError.message);
-        setSaving(false);
-        return;
-      }
-      if (!authData.user) {
-        setError('Failed to create login account for staff member');
-        setSaving(false);
-        return;
-      }
-
-      // Restore admin session (signUp may switch to the new user)
-      const { error: restoreError } = await supabase.auth.setSession({
-        access_token: adminSession.access_token,
-        refresh_token: adminSession.refresh_token,
-      });
-      if (restoreError) {
-        setError(restoreError.message);
-        setSaving(false);
-        return;
-      }
-
-      const { error } = await supabase.from('staff').insert({
-        ...payload,
-        clinic_id: activeClinic?.id || 'clinic-dentivista-01',
-        user_id: authData.user.id,
+        phone: form.phone.trim() || null,
+        specialization: form.specialization.trim() || null,
         active: true,
-      });
-      if (error) { setError(error.message); setSaving(false); return; }
+        created_at: new Date().toISOString(),
+      };
+      saveTenantStaffMember(newStaffRecord, form.password);
     }
 
     await fetchStaff();
@@ -202,8 +293,12 @@ export default function Staff() {
 
   async function toggleActive(s: StaffType) {
     if (!isAdmin || s.id === currentStaff?.id) return;
-    await supabase.from('staff').update({ active: !s.active }).eq('id', s.id);
-    setStaffList(prev => prev.map(st => st.id === s.id ? { ...st, active: !st.active } : st));
+    try {
+      await supabase.from('staff').update({ active: !s.active }).eq('id', s.id);
+    } catch {}
+    const updated = { ...s, active: !s.active };
+    saveTenantStaff(updated);
+    setStaffList(prev => prev.map(st => st.id === s.id ? updated : st));
   }
 
   return (
