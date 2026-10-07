@@ -48,6 +48,7 @@ interface AuthContextValue {
   switchClinicTenant: (clinicId: string) => void;
   signInAsDemo: (role?: 'admin' | 'doctor' | 'receptionist') => void;
   signOut: () => Promise<void>;
+  refreshClinicStatus: () => Promise<ClinicTenant | null>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -110,10 +111,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data) {
         setStaff(data);
         if (data.clinic_id) {
-          const current = getActiveClinic();
-          if (current.id !== data.clinic_id) {
-            const clinic = setActiveClinic(data.clinic_id);
-            setActiveClinicState(clinic);
+          const synced = await syncClinicFromDatabase(data.clinic_id);
+          if (synced) {
+            setActiveClinicState(synced);
+          } else {
+            const current = getActiveClinic();
+            if (current.id !== data.clinic_id) {
+              const clinic = setActiveClinic(data.clinic_id);
+              setActiveClinicState(clinic);
+            }
           }
         }
       }
@@ -128,7 +134,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // 1. Listen to clinic tenant change events
+    // 1. Initial clinic status sync from database
+    const initialClinic = getActiveClinic();
+    syncClinicFromDatabase(initialClinic.id).then((synced) => {
+      if (synced) {
+        setActiveClinicState(synced);
+      }
+    });
+
+    // 2. Realtime subscription: instantly react when clinic status is changed in Supabase dashboard
+    const realtimeChannel = supabase
+      .channel('realtime_clinics_status_listener')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'clinics',
+        },
+        async (payload) => {
+          const updatedRow = payload.new as any;
+          if (updatedRow?.id) {
+            const currentActive = getActiveClinic();
+            if (updatedRow.id === currentActive.id || updatedRow.slug === currentActive.slug) {
+              const synced = await syncClinicFromDatabase(updatedRow.id);
+              if (synced) {
+                setActiveClinicState(synced);
+              }
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    // 3. Listen to clinic tenant change events
     function handleTenantChange(e: Event) {
       const ce = e as CustomEvent<ClinicTenant>;
       const newClinic = ce.detail || getActiveClinic();
@@ -136,7 +175,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setActiveSessionsState(getActiveSessions(newClinic.id));
     }
 
-    // 2. Listen to session updates
+    // 4. Listen to session updates
     function handleSessionsUpdated() {
       refreshSessions();
     }
@@ -254,6 +293,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       subscription.unsubscribe();
+      supabase.removeChannel(realtimeChannel);
       window.removeEventListener(CLINIC_TENANT_EVENT, handleTenantChange);
       window.removeEventListener(SESSION_UPDATED_EVENT, handleSessionsUpdated);
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -277,11 +317,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Check if clinic was deactivated/suspended in database
       const dbClinic = await syncClinicFromDatabase(activeClinic.id);
+      if (dbClinic) {
+        setActiveClinicState(dbClinic);
+      }
       const currentStatus = dbClinic?.status || getActiveClinic().status;
       if (currentStatus === 'suspended') {
         setTerminatedNotice('Your clinic membership access has been suspended/deactivated. Please send your subscription payment receipt on WhatsApp (03093622732) to reactivate access.');
-        signOut();
-        return;
       }
 
       refreshSessions();
@@ -446,8 +487,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .maybeSingle();
         if (staffData?.clinic_id) {
           resolvedClinicId = staffData.clinic_id;
-          const synced = setActiveClinic(staffData.clinic_id);
-          setActiveClinicState(synced);
+          const synced = await syncClinicFromDatabase(staffData.clinic_id);
+          if (synced) {
+            setActiveClinicState(synced);
+            if (synced.status === 'suspended') {
+              await supabase.auth.signOut();
+              return {
+                error: 'Your clinic membership access is currently suspended/deactivated. Please send your subscription payment receipt on WhatsApp (03093622732) to reactivate access.',
+              };
+            }
+          } else {
+            const fallbackSynced = setActiveClinic(staffData.clinic_id);
+            setActiveClinicState(fallbackSynced);
+          }
         }
       } catch {}
 
@@ -537,6 +589,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setTerminatedNotice(null);
   }
 
+  async function refreshClinicStatus(): Promise<ClinicTenant | null> {
+    const synced = await syncClinicFromDatabase(activeClinic.id);
+    if (synced) {
+      setActiveClinicState(synced);
+    }
+    return synced;
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -555,6 +615,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         switchClinicTenant,
         signInAsDemo,
         signOut,
+        refreshClinicStatus,
       }}
     >
       {children}

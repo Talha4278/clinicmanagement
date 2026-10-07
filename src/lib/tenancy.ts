@@ -540,15 +540,26 @@ export function deactivateClinicMembership(clinicId: string): boolean {
  */
 export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTenant | null> {
   try {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('clinics')
       .select('*')
       .eq('id', clinicId)
       .maybeSingle();
 
+    // Fallback: If not found by exact ID, attempt to lookup single clinic or by slug
+    if (!data && !error) {
+      const { data: fallbackList } = await supabase
+        .from('clinics')
+        .select('*')
+        .limit(2);
+      if (fallbackList && fallbackList.length === 1) {
+        data = fallbackList[0];
+      }
+    }
+
     if (data && !error) {
       const all = getAllClinics();
-      const idx = all.findIndex(c => c.id === clinicId);
+      const idx = all.findIndex(c => c.id === data.id || c.id === clinicId);
       const updated: ClinicTenant = {
         id: data.id,
         name: data.name,
@@ -573,6 +584,13 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
         all.push(updated);
       }
       saveAllClinics(all);
+
+      // Keep active clinic storage key pointing to this clinic
+      const currentActiveId = localStorage.getItem(ACTIVE_CLINIC_STORAGE_KEY);
+      if (!currentActiveId || currentActiveId === clinicId || currentActiveId === data.id) {
+        localStorage.setItem(ACTIVE_CLINIC_STORAGE_KEY, data.id);
+      }
+
       window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: updated }));
       return updated;
     }

@@ -16,6 +16,7 @@ import Reports from './pages/Reports';
 import Staff from './pages/Staff';
 import ClinicSetup from './pages/ClinicSetup';
 import PatientDossierModal from './components/PatientDossierModal';
+import SuspendedClinicScreen from './components/SuspendedClinicScreen';
 import { SubscriptionPlan } from './lib/types';
 
 /** Static marketing landing page (root index.html). The React app lives at /app/. */
@@ -42,7 +43,7 @@ function readAuthEntryParams(): AuthEntryParams {
 }
 
 function AppContent() {
-  const { user, staff, loading } = useAuth();
+  const { user, staff, activeClinic, refreshClinicStatus, signOut, loading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
   const [authEntry] = useState<AuthEntryParams>(readAuthEntryParams);
 
@@ -75,6 +76,22 @@ function AppContent() {
         initialPlan={authEntry.plan}
         initialBilling={authEntry.billing}
         onBackToLanding={() => { window.location.href = LANDING_URL; }}
+      />
+    );
+  }
+
+  // Clinic access guard: enforce suspended status and expired trials
+  const isTrialExpired =
+    activeClinic?.status === 'trial' &&
+    Boolean(activeClinic.trial_ends_at && new Date() > new Date(activeClinic.trial_ends_at));
+
+  if (activeClinic && (activeClinic.status === 'suspended' || isTrialExpired)) {
+    return (
+      <SuspendedClinicScreen
+        clinic={activeClinic}
+        isTrialExpired={isTrialExpired}
+        onRefreshStatus={refreshClinicStatus}
+        onSignOut={signOut}
       />
     );
   }
