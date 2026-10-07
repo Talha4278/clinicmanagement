@@ -5,6 +5,7 @@ import { Staff as StaffType, StaffRole, SubscriptionPlan } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { checkSeatLimit, PLAN_SPECS, updateClinicPlan, getTenantStaff, saveTenantStaff, saveTenantStaffMember } from '../lib/tenancy';
 import { isDemoMode, DEMO_STAFF_MEMBERS } from '../lib/demoData';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
 const roleColors: Record<StaffRole, string> = {
   admin: 'bg-red-50 text-red-700',
@@ -49,14 +50,15 @@ export default function Staff() {
     const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     let remoteStaff: StaffType[] = [];
     try {
-      const { data, error } = await supabase
-        .from('staff')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('created_at');
+      let query = supabase.from('staff').select('*');
+      query = applyClinicFilter(query, clinicId);
+      const { data, error } = await query.order('created_at');
 
-      if (data && !error) {
+      if (!error && data) {
         remoteStaff = data;
+      } else if (error && isMissingClinicIdColumnError(error)) {
+        const fallback = await supabase.from('staff').select('*').order('created_at');
+        if (fallback.data) remoteStaff = fallback.data;
       }
     } catch (e) {
       console.warn('Could not fetch staff from Supabase:', e);

@@ -7,7 +7,7 @@ import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whats
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 import { isDemoMode, getDemoInvoices, updateDemoInvoicePayment } from '../lib/demoData';
 import { useAuth } from '../contexts/AuthContext';
-import { getClinicInvoices, saveClinicInvoice } from '../lib/clinicStorage';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
 interface Props {
   invoiceId: string;
@@ -112,34 +112,34 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
     let loadedItems: InvoiceItem[] = [];
 
     try {
+      let query = supabase
+        .from('invoices')
+        .select('*, patient:patients(*), doctor:staff!invoices_doctor_id_fkey(name, specialization, phone), creator:staff!invoices_created_by_fkey(name)')
+        .eq('id', invoiceId);
+      query = applyClinicFilter(query, clinicId);
+
       const [invRes, itemsRes] = await Promise.all([
-        supabase
-          .from('invoices')
-          .select('*, patient:patients(*), doctor:staff!invoices_doctor_id_fkey(name, specialization, phone), creator:staff!invoices_created_by_fkey(name)')
-          .eq('id', invoiceId)
-          .eq('clinic_id', clinicId)
-          .maybeSingle(),
+        query.maybeSingle(),
         supabase
           .from('invoice_items')
           .select('*')
           .eq('invoice_id', invoiceId)
           .order('created_at'),
       ]);
-      if (invRes.data) {
+
+      if (invRes.error && isMissingClinicIdColumnError(invRes.error)) {
+        const fallback = await supabase
+          .from('invoices')
+          .select('*, patient:patients(*), doctor:staff!invoices_doctor_id_fkey(name, specialization, phone), creator:staff!invoices_created_by_fkey(name)')
+          .eq('id', invoiceId)
+          .maybeSingle();
+        loadedInvoice = fallback.data as Invoice;
+      } else if (invRes.data) {
         loadedInvoice = invRes.data as Invoice;
-        loadedItems = itemsRes.data ?? [];
       }
+      loadedItems = itemsRes.data ?? [];
     } catch {
       // ignore
-    }
-
-    if (!loadedInvoice) {
-      const localInvs = getClinicInvoices(clinicId);
-      const match = localInvs.find((i) => i.id === invoiceId);
-      if (match) {
-        loadedInvoice = match;
-        loadedItems = match.items || [];
-      }
     }
 
     setInvoice(loadedInvoice);
@@ -160,17 +160,18 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
     }
 
     try {
-      await supabase
+      let { error } = await supabase
         .from('invoices')
         .update({ payment_status: 'paid' })
-        .eq('id', invoice.id)
-        .eq('clinic_id', clinicId);
+        .eq('id', invoice.id);
+      if (error && isMissingClinicIdColumnError(error)) {
+        await supabase.from('invoices').update({ payment_status: 'paid' }).eq('id', invoice.id);
+      }
     } catch {
       // ignore
     }
 
     const updated = { ...invoice, payment_status: 'paid' as const, paid_amount: invoice.total };
-    saveClinicInvoice(updated, clinicId);
     setInvoice(updated);
     setUpdating(false);
   }

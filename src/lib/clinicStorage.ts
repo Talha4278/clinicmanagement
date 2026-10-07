@@ -31,104 +31,10 @@ import {
   cleanLegacyDemoData,
 } from './demoData';
 import { getActiveClinic } from './tenancy';
+import { applyClinicFilter, isMissingClinicIdColumnError } from './tenancyQuery';
 
-// ─── INITIAL SEED DATA (EMPTY - REAL DATA ONLY) ──────────────────────
-const SEED_INVENTORY: InventoryItem[] = [];
-const SEED_EXAMINATIONS: Examination[] = [];
-const SEED_TREATMENTS: Treatment[] = [];
-const SEED_PRESCRIPTIONS: (Prescription & { items: PrescriptionItem[] })[] = [];
-
-export function getClinicStorageKey(key: string, clinicId?: string): string {
-  const clinic = getActiveClinic();
-  const cId = clinicId || clinic?.id || 'clinic-dentivista-01';
-  return `dentivista_clinic_${cId}_${key}`;
-}
-
-// Safely access clinic-isolated localStorage
-export function getClinicLocal<T>(key: string, defaultVal: T, clinicId?: string): T {
-  try {
-    const scopedKey = getClinicStorageKey(key, clinicId);
-    const raw = localStorage.getItem(scopedKey);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.filter((item) => !isDemoRecord(item)) as unknown as T;
-      }
-      return parsed;
-    }
-    return defaultVal;
-  } catch {
-    return defaultVal;
-  }
-}
-
-export function setClinicLocal<T>(key: string, val: T, clinicId?: string): void {
-  try {
-    const scopedKey = getClinicStorageKey(key, clinicId);
-    if (Array.isArray(val)) {
-      const sanitized = val.filter((item) => !isDemoRecord(item));
-      localStorage.setItem(scopedKey, JSON.stringify(sanitized));
-    } else {
-      localStorage.setItem(scopedKey, JSON.stringify(val));
-    }
-  } catch (e) {
-    console.error('localStorage error:', e);
-  }
-}
-
-// ─── LOCAL CLINIC PATIENTS, APPOINTMENTS & INVOICES HELPERS ───────────
-export function getClinicPatients(clinicId?: string): Patient[] {
-  return getClinicLocal<Patient[]>('patients', [], clinicId);
-}
-
-export function saveClinicPatient(patient: Patient, clinicId?: string): Patient {
-  const cId = clinicId || patient.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const list = getClinicPatients(cId);
-  const idx = list.findIndex(p => p.id === patient.id || (p.phone && p.phone === patient.phone));
-  const toSave = { ...patient, clinic_id: cId };
-  if (idx >= 0) {
-    list[idx] = toSave;
-  } else {
-    list.unshift(toSave);
-  }
-  setClinicLocal('patients', list, cId);
-  return toSave;
-}
-
-export function getClinicAppointments(clinicId?: string): Appointment[] {
-  return getClinicLocal<Appointment[]>('appointments', [], clinicId);
-}
-
-export function saveClinicAppointment(apt: Appointment, clinicId?: string): Appointment {
-  const cId = clinicId || apt.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const list = getClinicAppointments(cId);
-  const idx = list.findIndex(a => a.id === apt.id);
-  const toSave = { ...apt, clinic_id: cId };
-  if (idx >= 0) {
-    list[idx] = toSave;
-  } else {
-    list.unshift(toSave);
-  }
-  setClinicLocal('appointments', list, cId);
-  return toSave;
-}
-
-export function getClinicInvoices(clinicId?: string): Invoice[] {
-  return getClinicLocal<Invoice[]>('invoices', [], clinicId);
-}
-
-export function saveClinicInvoice(inv: Invoice, clinicId?: string): Invoice {
-  const cId = clinicId || inv.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const list = getClinicInvoices(cId);
-  const idx = list.findIndex(i => i.id === inv.id || i.invoice_number === inv.invoice_number);
-  const toSave = { ...inv, clinic_id: cId };
-  if (idx >= 0) {
-    list[idx] = toSave;
-  } else {
-    list.unshift(toSave);
-  }
-  setClinicLocal('invoices', list, cId);
-  return toSave;
+function isValidUuid(val?: string | null): boolean {
+  return typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 }
 
 /**
@@ -139,29 +45,17 @@ export function purgeClinicDemoData(clinicId?: string): void {
   cleanLegacyDemoData();
   const cId = clinicId || getActiveClinic()?.id;
   if (!cId) return;
-  const keys = ['inventory', 'examinations', 'treatments', 'prescriptions'];
+  const keys = ['inventory', 'examinations', 'treatments', 'prescriptions', 'patients', 'appointments', 'invoices'];
   for (const k of keys) {
-    const scopedKey = `dentivista_clinic_${cId}_${k}`;
     try {
-      const raw = localStorage.getItem(scopedKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter((item) => !isDemoRecord(item));
-          localStorage.setItem(scopedKey, JSON.stringify(cleaned));
-        }
-      }
+      localStorage.removeItem(`dentivista_clinic_${cId}_${k}`);
     } catch {
       // ignore
     }
   }
 }
 
-function isValidUuid(val?: string | null): boolean {
-  return typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
-}
-
-// ─── INVENTORY CRUD ──────────────────────────────────────────────────
+// ─── INVENTORY MODULE (DIRECT SUPABASE ONLY) ─────────────────────────
 export async function getInventoryItems(clinicId?: string): Promise<InventoryItem[]> {
   if (isDemoMode()) {
     return getDemoInventory();
@@ -169,23 +63,22 @@ export async function getInventoryItems(clinicId?: string): Promise<InventoryIte
 
   const cId = clinicId || getActiveClinic()?.id || 'clinic-dentivista-01';
 
-  // Real clinic - try Supabase scoped by clinic_id
-  try {
-    const { data, error } = await supabase
-      .from('inventory_items')
-      .select('*')
-      .eq('clinic_id', cId)
-      .order('name');
-    if (!error && Array.isArray(data)) {
-      return (data as InventoryItem[]).filter((i) => !isDemoRecord(i));
-    }
-  } catch (err) {
-    console.warn('Supabase inventory_items fetch failed, falling back to clinic local', err);
+  let query = supabase.from('inventory_items').select('*');
+  query = applyClinicFilter(query, cId);
+  let { data, error } = await query.order('name');
+
+  if (error && isMissingClinicIdColumnError(error)) {
+    const fallback = await supabase.from('inventory_items').select('*').order('name');
+    data = fallback.data;
+    error = fallback.error;
   }
 
-  // Fallback to clinic-isolated local storage (clean slate for new clinic)
-  const local = getClinicLocal<InventoryItem[]>('inventory', SEED_INVENTORY, cId);
-  return local.filter((item) => !isDemoRecord(item));
+  if (error) {
+    console.error('Supabase inventory_items fetch error:', error);
+    throw new Error(`Database error loading inventory: ${error.message}`);
+  }
+
+  return (data || []).filter((i) => !isDemoRecord(i)) as InventoryItem[];
 }
 
 export async function saveInventoryItem(
@@ -197,11 +90,10 @@ export async function saveInventoryItem(
   }
 
   const cId = clinicId || item.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const isEdit = !!item.id;
+  const isEdit = !!item.id && isValidUuid(item.id);
   const now = new Date().toISOString();
 
-  const payload: InventoryItem = {
-    id: item.id || `inv-${Date.now()}`,
+  const payload: any = {
     clinic_id: cId,
     name: item.name.trim(),
     category: item.category || 'Dental Materials',
@@ -211,61 +103,68 @@ export async function saveInventoryItem(
     unit: item.unit || 'pcs',
     min_stock_level: Number(item.min_stock_level) || 5,
     cost_price: Number(item.cost_price) || 0,
-    sale_price: item.sale_price ? Number(item.sale_price) : null,
+    sale_price: item.sale_price !== null && item.sale_price !== undefined ? Number(item.sale_price) : null,
     expiry_date: item.expiry_date || null,
     supplier: item.supplier || null,
     location: item.location || null,
     notes: item.notes || null,
-    created_at: item.created_at || now,
     updated_at: now,
   };
 
-  try {
-    if (isEdit && isValidUuid(payload.id)) {
-      const { data, error } = await supabase
+  if (isEdit) {
+    let { data, error } = await supabase
+      .from('inventory_items')
+      .update(payload)
+      .eq('id', item.id)
+      .eq('clinic_id', cId)
+      .select()
+      .single();
+
+    if (error && isMissingClinicIdColumnError(error)) {
+      const { clinic_id: _c, ...legacyPayload } = payload;
+      const res = await supabase
         .from('inventory_items')
-        .update(payload)
-        .eq('id', payload.id)
-        .eq('clinic_id', cId)
+        .update(legacyPayload)
+        .eq('id', item.id)
         .select()
         .single();
-      if (!error && data) {
-        updateClinicLocalInventory(data as InventoryItem, cId);
-        return data as InventoryItem;
-      }
-    } else {
-      const { id: _ignore, ...insertPayload } = payload;
-      const { data, error } = await supabase
-        .from('inventory_items')
-        .insert(isValidUuid(payload.id) ? payload : insertPayload)
-        .select()
-        .single();
-      if (!error && data) {
-        updateClinicLocalInventory(data as InventoryItem, cId);
-        return data as InventoryItem;
-      }
+      data = res.data;
+      error = res.error;
     }
-  } catch {
-    // ignore supabase error and use local
-  }
 
-  updateClinicLocalInventory(payload, cId);
-  return payload;
-}
-
-function updateClinicLocalInventory(item: InventoryItem, clinicId?: string) {
-  if (isDemoRecord(item)) return;
-  const cId = clinicId || item.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const current = getClinicLocal<InventoryItem[]>('inventory', SEED_INVENTORY, cId);
-  const idx = current.findIndex((i) => i.id === item.id);
-  let updated: InventoryItem[];
-  if (idx >= 0) {
-    updated = [...current];
-    updated[idx] = item;
+    if (error) {
+      console.error('Supabase inventory_items update error:', error);
+      throw new Error(`Database error updating inventory: ${error.message}`);
+    }
+    return data as InventoryItem;
   } else {
-    updated = [item, ...current];
+    payload.created_at = item.created_at || now;
+    if (item.id && isValidUuid(item.id)) {
+      payload.id = item.id;
+    }
+    let { data, error } = await supabase
+      .from('inventory_items')
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error && isMissingClinicIdColumnError(error)) {
+      const { clinic_id: _c, ...legacyPayload } = payload;
+      const res = await supabase
+        .from('inventory_items')
+        .insert(legacyPayload)
+        .select()
+        .single();
+      data = res.data;
+      error = res.error;
+    }
+
+    if (error) {
+      console.error('Supabase inventory_items insert error:', error);
+      throw new Error(`Database error creating inventory item: ${error.message}`);
+    }
+    return data as InventoryItem;
   }
-  setClinicLocal('inventory', updated, cId);
 }
 
 export async function deleteInventoryItem(id: string, clinicId?: string): Promise<boolean> {
@@ -274,15 +173,15 @@ export async function deleteInventoryItem(id: string, clinicId?: string): Promis
     return true;
   }
   const cId = clinicId || getActiveClinic()?.id || 'clinic-dentivista-01';
-  try {
-    if (isValidUuid(id)) {
-      await supabase.from('inventory_items').delete().eq('id', id).eq('clinic_id', cId);
-    }
-  } catch {
-    // proceed
+  let { error } = await supabase.from('inventory_items').delete().eq('id', id).eq('clinic_id', cId);
+  if (error && isMissingClinicIdColumnError(error)) {
+    const res = await supabase.from('inventory_items').delete().eq('id', id);
+    error = res.error;
   }
-  const current = getClinicLocal<InventoryItem[]>('inventory', SEED_INVENTORY, cId);
-  setClinicLocal('inventory', current.filter((i) => i.id !== id), cId);
+  if (error) {
+    console.error('Supabase inventory_items delete error:', error);
+    throw new Error(`Database error deleting inventory item: ${error.message}`);
+  }
   return true;
 }
 
@@ -295,7 +194,7 @@ export async function adjustInventoryStock(id: string, delta: number, clinicId?:
   return saveInventoryItem({ ...item, quantity: newQty }, cId);
 }
 
-// ─── EXAMINATIONS & DENTAL CHART CRUD ────────────────────────────────
+// ─── EXAMINATIONS & DENTAL CHART (DIRECT SUPABASE ONLY) ─────────────
 export async function getExaminations(patientId?: string, clinicId?: string): Promise<Examination[]> {
   if (isDemoMode()) {
     const demo = getDemoExaminations();
@@ -307,29 +206,31 @@ export async function getExaminations(patientId?: string, clinicId?: string): Pr
 
   const cId = clinicId || getActiveClinic()?.id || 'clinic-dentivista-01';
 
-  try {
-    let query = supabase
+  let query = supabase
+    .from('examinations')
+    .select('*, patient:patients(*), doctor:staff(*)');
+  query = applyClinicFilter(query, cId);
+  if (patientId) {
+    query = query.eq('patient_id', patientId);
+  }
+  let { data, error } = await query.order('examination_date', { ascending: false });
+
+  if (error && isMissingClinicIdColumnError(error)) {
+    let fallbackQuery = supabase
       .from('examinations')
-      .select('*, patient:patients(*), doctor:staff(*)')
-      .eq('clinic_id', cId);
-    if (patientId) {
-      query = query.eq('patient_id', patientId);
-    }
-    const { data, error } = await query.order('examination_date', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      return (data as Examination[]).filter((e) => !isDemoRecord(e));
-    }
-  } catch {
-    // fallback
+      .select('*, patient:patients(*), doctor:staff(*)');
+    if (patientId) fallbackQuery = fallbackQuery.eq('patient_id', patientId);
+    const fallback = await fallbackQuery.order('examination_date', { ascending: false });
+    data = fallback.data;
+    error = fallback.error;
   }
 
-  const local = getClinicLocal<Examination[]>('examinations', SEED_EXAMINATIONS, cId).filter(
-    (e) => !isDemoRecord(e)
-  );
-  if (patientId) {
-    return local.filter((e) => e.patient_id === patientId);
+  if (error) {
+    console.error('Supabase examinations fetch error:', error);
+    throw new Error(`Database error loading examinations: ${error.message}`);
   }
-  return local;
+
+  return (data || []).filter((e) => !isDemoRecord(e)) as Examination[];
 }
 
 export async function saveExamination(
@@ -341,14 +242,13 @@ export async function saveExamination(
   }
 
   const cId = clinicId || exam.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const isEdit = !!exam.id;
+  const isEdit = !!exam.id && isValidUuid(exam.id);
   const now = new Date().toISOString();
 
-  const payload: Examination = {
-    id: exam.id || `exam-${Date.now()}`,
+  const payload: any = {
     clinic_id: cId,
     patient_id: exam.patient_id,
-    doctor_id: exam.doctor_id || null,
+    doctor_id: isValidUuid(exam.doctor_id) ? exam.doctor_id : null,
     examination_date: exam.examination_date || now.split('T')[0],
     dentition_type: exam.dentition_type || 'adult',
     chief_complaint: exam.chief_complaint || null,
@@ -358,59 +258,62 @@ export async function saveExamination(
     teeth_findings: exam.teeth_findings || {},
     clinical_notes: exam.clinical_notes || null,
     treatment_plan_notes: exam.treatment_plan_notes || null,
-    created_at: exam.created_at || now,
   };
 
-  try {
-    const dbPayload = {
-      ...payload,
-      doctor_id: isValidUuid(payload.doctor_id) ? payload.doctor_id : null,
-    };
-    if (isEdit && isValidUuid(payload.id)) {
-      const { data, error } = await supabase
+  if (isEdit) {
+    let { data, error } = await supabase
+      .from('examinations')
+      .update(payload)
+      .eq('id', exam.id)
+      .eq('clinic_id', cId)
+      .select('*, patient:patients(*), doctor:staff(*)')
+      .single();
+
+    if (error && isMissingClinicIdColumnError(error)) {
+      const { clinic_id: _c, ...legacyPayload } = payload;
+      const res = await supabase
         .from('examinations')
-        .update(dbPayload)
-        .eq('id', payload.id)
-        .eq('clinic_id', cId)
-        .select()
+        .update(legacyPayload)
+        .eq('id', exam.id)
+        .select('*, patient:patients(*), doctor:staff(*)')
         .single();
-      if (!error && data) {
-        updateClinicLocalExam(data as Examination, cId);
-        return data as Examination;
-      }
-    } else {
-      const { id: _ignore, ...insertPayload } = dbPayload;
-      const { data, error } = await supabase
-        .from('examinations')
-        .insert(isValidUuid(payload.id) ? dbPayload : insertPayload)
-        .select()
-        .single();
-      if (!error && data) {
-        updateClinicLocalExam(data as Examination, cId);
-        return data as Examination;
-      }
+      data = res.data;
+      error = res.error;
     }
-  } catch {
-    // ignore
-  }
 
-  updateClinicLocalExam(payload, cId);
-  return payload;
-}
-
-function updateClinicLocalExam(exam: Examination, clinicId?: string) {
-  if (isDemoRecord(exam)) return;
-  const cId = clinicId || exam.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const current = getClinicLocal<Examination[]>('examinations', SEED_EXAMINATIONS, cId);
-  const idx = current.findIndex((e) => e.id === exam.id);
-  let updated: Examination[];
-  if (idx >= 0) {
-    updated = [...current];
-    updated[idx] = exam;
+    if (error) {
+      console.error('Supabase examinations update error:', error);
+      throw new Error(`Database error updating examination: ${error.message}`);
+    }
+    return data as Examination;
   } else {
-    updated = [exam, ...current];
+    payload.created_at = exam.created_at || now;
+    if (exam.id && isValidUuid(exam.id)) {
+      payload.id = exam.id;
+    }
+    let { data, error } = await supabase
+      .from('examinations')
+      .insert(payload)
+      .select('*, patient:patients(*), doctor:staff(*)')
+      .single();
+
+    if (error && isMissingClinicIdColumnError(error)) {
+      const { clinic_id: _c, ...legacyPayload } = payload;
+      const res = await supabase
+        .from('examinations')
+        .insert(legacyPayload)
+        .select('*, patient:patients(*), doctor:staff(*)')
+        .single();
+      data = res.data;
+      error = res.error;
+    }
+
+    if (error) {
+      console.error('Supabase examinations insert error:', error);
+      throw new Error(`Database error creating examination: ${error.message}`);
+    }
+    return data as Examination;
   }
-  setClinicLocal('examinations', updated, cId);
 }
 
 export async function deleteExamination(id: string, clinicId?: string): Promise<boolean> {
@@ -419,19 +322,19 @@ export async function deleteExamination(id: string, clinicId?: string): Promise<
     return true;
   }
   const cId = clinicId || getActiveClinic()?.id || 'clinic-dentivista-01';
-  try {
-    if (isValidUuid(id)) {
-      await supabase.from('examinations').delete().eq('id', id).eq('clinic_id', cId);
-    }
-  } catch {
-    // ignore
+  let { error } = await supabase.from('examinations').delete().eq('id', id).eq('clinic_id', cId);
+  if (error && isMissingClinicIdColumnError(error)) {
+    const res = await supabase.from('examinations').delete().eq('id', id);
+    error = res.error;
   }
-  const current = getClinicLocal<Examination[]>('examinations', SEED_EXAMINATIONS, cId);
-  setClinicLocal('examinations', current.filter((e) => e.id !== id), cId);
+  if (error) {
+    console.error('Supabase examinations delete error:', error);
+    throw new Error(`Database error deleting examination: ${error.message}`);
+  }
   return true;
 }
 
-// ─── TREATMENTS CRUD ─────────────────────────────────────────────────
+// ─── TREATMENTS MODULE (DIRECT SUPABASE ONLY) ────────────────────────
 export async function getTreatments(patientId?: string, clinicId?: string): Promise<Treatment[]> {
   if (isDemoMode()) {
     const demo = getDemoTreatments();
@@ -443,29 +346,31 @@ export async function getTreatments(patientId?: string, clinicId?: string): Prom
 
   const cId = clinicId || getActiveClinic()?.id || 'clinic-dentivista-01';
 
-  try {
-    let query = supabase
+  let query = supabase
+    .from('treatments')
+    .select('*, patient:patients(*), doctor:staff(*)');
+  query = applyClinicFilter(query, cId);
+  if (patientId) {
+    query = query.eq('patient_id', patientId);
+  }
+  let { data, error } = await query.order('treatment_date', { ascending: false });
+
+  if (error && isMissingClinicIdColumnError(error)) {
+    let fallbackQuery = supabase
       .from('treatments')
-      .select('*, patient:patients(*), doctor:staff(*)')
-      .eq('clinic_id', cId);
-    if (patientId) {
-      query = query.eq('patient_id', patientId);
-    }
-    const { data, error } = await query.order('treatment_date', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      return (data as Treatment[]).filter((t) => !isDemoRecord(t));
-    }
-  } catch {
-    // fallback
+      .select('*, patient:patients(*), doctor:staff(*)');
+    if (patientId) fallbackQuery = fallbackQuery.eq('patient_id', patientId);
+    const fallback = await fallbackQuery.order('treatment_date', { ascending: false });
+    data = fallback.data;
+    error = fallback.error;
   }
 
-  const local = getClinicLocal<Treatment[]>('treatments', SEED_TREATMENTS, cId).filter(
-    (t) => !isDemoRecord(t)
-  );
-  if (patientId) {
-    return local.filter((t) => t.patient_id === patientId);
+  if (error) {
+    console.error('Supabase treatments fetch error:', error);
+    throw new Error(`Database error loading treatments: ${error.message}`);
   }
-  return local;
+
+  return (data || []).filter((t) => !isDemoRecord(t)) as Treatment[];
 }
 
 export async function saveTreatment(
@@ -477,74 +382,76 @@ export async function saveTreatment(
   }
 
   const cId = clinicId || treatment.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const isEdit = !!treatment.id;
+  const isEdit = !!treatment.id && isValidUuid(treatment.id);
   const now = new Date().toISOString();
 
-  const payload: Treatment = {
-    id: treatment.id || `trt-${Date.now()}`,
+  const payload: any = {
     clinic_id: cId,
     patient_id: treatment.patient_id,
-    doctor_id: treatment.doctor_id || null,
+    doctor_id: isValidUuid(treatment.doctor_id) ? treatment.doctor_id : null,
     treatment_date: treatment.treatment_date || now.split('T')[0],
     tooth_number: treatment.tooth_number || null,
     procedure_name: treatment.procedure_name.trim(),
     cost: Number(treatment.cost) || 0,
     status: treatment.status || 'planned',
     notes: treatment.notes || null,
-    invoice_id: treatment.invoice_id || null,
-    created_at: treatment.created_at || now,
+    invoice_id: isValidUuid(treatment.invoice_id) ? treatment.invoice_id : null,
   };
 
-  try {
-    const dbPayload = {
-      ...payload,
-      doctor_id: isValidUuid(payload.doctor_id) ? payload.doctor_id : null,
-    };
-    if (isEdit && isValidUuid(payload.id)) {
-      const { data, error } = await supabase
+  if (isEdit) {
+    let { data, error } = await supabase
+      .from('treatments')
+      .update(payload)
+      .eq('id', treatment.id)
+      .eq('clinic_id', cId)
+      .select('*, patient:patients(*), doctor:staff(*)')
+      .single();
+
+    if (error && isMissingClinicIdColumnError(error)) {
+      const { clinic_id: _c, ...legacyPayload } = payload;
+      const res = await supabase
         .from('treatments')
-        .update(dbPayload)
-        .eq('id', payload.id)
-        .eq('clinic_id', cId)
-        .select()
+        .update(legacyPayload)
+        .eq('id', treatment.id)
+        .select('*, patient:patients(*), doctor:staff(*)')
         .single();
-      if (!error && data) {
-        updateClinicLocalTreatment(data as Treatment, cId);
-        return data as Treatment;
-      }
-    } else {
-      const { id: _ignore, ...insertPayload } = dbPayload;
-      const { data, error } = await supabase
-        .from('treatments')
-        .insert(isValidUuid(payload.id) ? dbPayload : insertPayload)
-        .select()
-        .single();
-      if (!error && data) {
-        updateClinicLocalTreatment(data as Treatment, cId);
-        return data as Treatment;
-      }
+      data = res.data;
+      error = res.error;
     }
-  } catch {
-    // ignore
-  }
 
-  updateClinicLocalTreatment(payload, cId);
-  return payload;
-}
-
-function updateClinicLocalTreatment(trt: Treatment, clinicId?: string) {
-  if (isDemoRecord(trt)) return;
-  const cId = clinicId || trt.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const current = getClinicLocal<Treatment[]>('treatments', SEED_TREATMENTS, cId);
-  const idx = current.findIndex((t) => t.id === trt.id);
-  let updated: Treatment[];
-  if (idx >= 0) {
-    updated = [...current];
-    updated[idx] = trt;
+    if (error) {
+      console.error('Supabase treatments update error:', error);
+      throw new Error(`Database error updating treatment: ${error.message}`);
+    }
+    return data as Treatment;
   } else {
-    updated = [trt, ...current];
+    payload.created_at = treatment.created_at || now;
+    if (treatment.id && isValidUuid(treatment.id)) {
+      payload.id = treatment.id;
+    }
+    let { data, error } = await supabase
+      .from('treatments')
+      .insert(payload)
+      .select('*, patient:patients(*), doctor:staff(*)')
+      .single();
+
+    if (error && isMissingClinicIdColumnError(error)) {
+      const { clinic_id: _c, ...legacyPayload } = payload;
+      const res = await supabase
+        .from('treatments')
+        .insert(legacyPayload)
+        .select('*, patient:patients(*), doctor:staff(*)')
+        .single();
+      data = res.data;
+      error = res.error;
+    }
+
+    if (error) {
+      console.error('Supabase treatments insert error:', error);
+      throw new Error(`Database error creating treatment: ${error.message}`);
+    }
+    return data as Treatment;
   }
-  setClinicLocal('treatments', updated, cId);
 }
 
 export async function deleteTreatment(id: string, clinicId?: string): Promise<boolean> {
@@ -553,19 +460,19 @@ export async function deleteTreatment(id: string, clinicId?: string): Promise<bo
     return true;
   }
   const cId = clinicId || getActiveClinic()?.id || 'clinic-dentivista-01';
-  try {
-    if (isValidUuid(id)) {
-      await supabase.from('treatments').delete().eq('id', id).eq('clinic_id', cId);
-    }
-  } catch {
-    // ignore
+  let { error } = await supabase.from('treatments').delete().eq('id', id).eq('clinic_id', cId);
+  if (error && isMissingClinicIdColumnError(error)) {
+    const res = await supabase.from('treatments').delete().eq('id', id);
+    error = res.error;
   }
-  const current = getClinicLocal<Treatment[]>('treatments', SEED_TREATMENTS, cId);
-  setClinicLocal('treatments', current.filter((t) => t.id !== id), cId);
+  if (error) {
+    console.error('Supabase treatments delete error:', error);
+    throw new Error(`Database error deleting treatment: ${error.message}`);
+  }
   return true;
 }
 
-// ─── PRESCRIPTIONS CRUD ──────────────────────────────────────────────
+// ─── PRESCRIPTIONS MODULE (DIRECT SUPABASE ONLY) ─────────────────────
 export async function getPrescriptions(patientId?: string, clinicId?: string): Promise<Prescription[]> {
   if (isDemoMode()) {
     const demo = getDemoPrescriptions();
@@ -577,29 +484,31 @@ export async function getPrescriptions(patientId?: string, clinicId?: string): P
 
   const cId = clinicId || getActiveClinic()?.id || 'clinic-dentivista-01';
 
-  try {
-    let query = supabase
+  let query = supabase
+    .from('prescriptions')
+    .select('*, patient:patients(*), doctor:staff(*), items:prescription_items(*)');
+  query = applyClinicFilter(query, cId);
+  if (patientId) {
+    query = query.eq('patient_id', patientId);
+  }
+  let { data, error } = await query.order('prescription_date', { ascending: false });
+
+  if (error && isMissingClinicIdColumnError(error)) {
+    let fallbackQuery = supabase
       .from('prescriptions')
-      .select('*, patient:patients(*), doctor:staff(*), items:prescription_items(*)')
-      .eq('clinic_id', cId);
-    if (patientId) {
-      query = query.eq('patient_id', patientId);
-    }
-    const { data, error } = await query.order('prescription_date', { ascending: false });
-    if (!error && Array.isArray(data)) {
-      return (data as Prescription[]).filter((p) => !isDemoRecord(p));
-    }
-  } catch {
-    // fallback
+      .select('*, patient:patients(*), doctor:staff(*), items:prescription_items(*)');
+    if (patientId) fallbackQuery = fallbackQuery.eq('patient_id', patientId);
+    const fallback = await fallbackQuery.order('prescription_date', { ascending: false });
+    data = fallback.data;
+    error = fallback.error;
   }
 
-  const local = getClinicLocal<Prescription[]>('prescriptions', SEED_PRESCRIPTIONS, cId).filter(
-    (p) => !isDemoRecord(p)
-  );
-  if (patientId) {
-    return local.filter((p) => p.patient_id === patientId);
+  if (error) {
+    console.error('Supabase prescriptions fetch error:', error);
+    throw new Error(`Database error loading prescriptions: ${error.message}`);
   }
-  return local;
+
+  return (data || []).filter((p) => !isDemoRecord(p)) as Prescription[];
 }
 
 export async function savePrescription(
@@ -612,87 +521,101 @@ export async function savePrescription(
   }
 
   const cId = clinicId || rx.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const rxId = rx.id || `rx-${Date.now()}`;
   const now = new Date().toISOString();
+  const isEdit = !!rx.id && isValidUuid(rx.id);
 
-  const formattedItems: PrescriptionItem[] = items.map((it, idx) => ({
-    id: `rxi-${Date.now()}-${idx}`,
-    prescription_id: rxId,
-    medicine_name: it.medicine_name.trim(),
-    dosage: it.dosage.trim(),
-    frequency: it.frequency.trim(),
-    duration: it.duration.trim(),
-    instructions: it.instructions?.trim() || '',
-    quantity: it.quantity?.trim() || '',
-  }));
-
-  const payload: Prescription = {
-    id: rxId,
+  const payload: any = {
     clinic_id: cId,
     patient_id: rx.patient_id,
-    doctor_id: rx.doctor_id || null,
+    doctor_id: isValidUuid(rx.doctor_id) ? rx.doctor_id : null,
     prescription_date: rx.prescription_date || now.split('T')[0],
     diagnosis: rx.diagnosis || null,
     clinical_notes: rx.clinical_notes || null,
     advice: rx.advice || null,
     follow_up_date: rx.follow_up_date || null,
-    created_at: rx.created_at || now,
-    items: formattedItems,
   };
 
-  try {
-    const { items: _items, ...rxOnly } = payload;
-    const dbPayload = {
-      ...rxOnly,
-      doctor_id: isValidUuid(rxOnly.doctor_id) ? rxOnly.doctor_id : null,
-    };
-    if (isValidUuid(rxId)) {
-      const { error: rxErr } = await supabase.from('prescriptions').upsert(dbPayload);
-      if (!rxErr) {
-        await supabase.from('prescription_items').delete().eq('prescription_id', rxId);
-        await supabase.from('prescription_items').insert(formattedItems);
-      }
-    } else {
-      const { id: _ignore, ...insertPayload } = dbPayload;
-      const { data: createdRx, error: rxErr } = await supabase
+  let savedRx: any = null;
+
+  if (isEdit) {
+    let { data, error } = await supabase
+      .from('prescriptions')
+      .update(payload)
+      .eq('id', rx.id)
+      .eq('clinic_id', cId)
+      .select('*, patient:patients(*), doctor:staff(*)')
+      .single();
+
+    if (error && isMissingClinicIdColumnError(error)) {
+      const { clinic_id: _c, ...legacyPayload } = payload;
+      const res = await supabase
         .from('prescriptions')
-        .insert(insertPayload)
-        .select()
+        .update(legacyPayload)
+        .eq('id', rx.id)
+        .select('*, patient:patients(*), doctor:staff(*)')
         .single();
-      if (!rxErr && createdRx) {
-        const finalItems = items.map((it) => ({
-          prescription_id: createdRx.id,
-          medicine_name: it.medicine_name,
-          dosage: it.dosage,
-          frequency: it.frequency,
-          duration: it.duration,
-          instructions: it.instructions,
-          quantity: it.quantity,
-        }));
-        await supabase.from('prescription_items').insert(finalItems);
-      }
+      data = res.data;
+      error = res.error;
     }
-  } catch {
-    // fallback
-  }
 
-  updateClinicLocalPrescription(payload, cId);
-  return payload;
-}
-
-function updateClinicLocalPrescription(payload: Prescription, clinicId?: string) {
-  if (isDemoRecord(payload)) return;
-  const cId = clinicId || payload.clinic_id || getActiveClinic()?.id || 'clinic-dentivista-01';
-  const current = getClinicLocal<Prescription[]>('prescriptions', SEED_PRESCRIPTIONS, cId);
-  const idx = current.findIndex((p) => p.id === payload.id);
-  let updated: Prescription[];
-  if (idx >= 0) {
-    updated = [...current];
-    updated[idx] = payload;
+    if (error) {
+      console.error('Supabase prescriptions update error:', error);
+      throw new Error(`Database error updating prescription: ${error.message}`);
+    }
+    savedRx = data;
+    await supabase.from('prescription_items').delete().eq('prescription_id', rx.id);
   } else {
-    updated = [payload, ...current];
+    payload.created_at = rx.created_at || now;
+    if (rx.id && isValidUuid(rx.id)) {
+      payload.id = rx.id;
+    }
+    let { data, error } = await supabase
+      .from('prescriptions')
+      .insert(payload)
+      .select('*, patient:patients(*), doctor:staff(*)')
+      .single();
+
+    if (error && isMissingClinicIdColumnError(error)) {
+      const { clinic_id: _c, ...legacyPayload } = payload;
+      const res = await supabase
+        .from('prescriptions')
+        .insert(legacyPayload)
+        .select('*, patient:patients(*), doctor:staff(*)')
+        .single();
+      data = res.data;
+      error = res.error;
+    }
+
+    if (error) {
+      console.error('Supabase prescriptions insert error:', error);
+      throw new Error(`Database error creating prescription: ${error.message}`);
+    }
+    savedRx = data;
   }
-  setClinicLocal('prescriptions', updated, cId);
+
+  // Insert prescription line items
+  if (items.length > 0 && savedRx?.id) {
+    const formattedItems = items.map((it) => ({
+      prescription_id: savedRx.id,
+      medicine_name: it.medicine_name.trim(),
+      dosage: it.dosage.trim(),
+      frequency: it.frequency.trim(),
+      duration: it.duration.trim(),
+      instructions: it.instructions?.trim() || null,
+      quantity: it.quantity?.trim() || null,
+    }));
+    const { data: insertedItems, error: itemsErr } = await supabase
+      .from('prescription_items')
+      .insert(formattedItems)
+      .select();
+    if (itemsErr) {
+      console.error('Supabase prescription_items insert error:', itemsErr);
+    } else {
+      savedRx.items = insertedItems;
+    }
+  }
+
+  return savedRx as Prescription;
 }
 
 export async function deletePrescription(id: string, clinicId?: string): Promise<boolean> {
@@ -701,20 +624,19 @@ export async function deletePrescription(id: string, clinicId?: string): Promise
     return true;
   }
   const cId = clinicId || getActiveClinic()?.id || 'clinic-dentivista-01';
-  try {
-    if (isValidUuid(id)) {
-      await supabase.from('prescription_items').delete().eq('prescription_id', id);
-      await supabase.from('prescriptions').delete().eq('id', id).eq('clinic_id', cId);
-    }
-  } catch {
-    // fallback
+  let { error } = await supabase.from('prescriptions').delete().eq('id', id).eq('clinic_id', cId);
+  if (error && isMissingClinicIdColumnError(error)) {
+    const res = await supabase.from('prescriptions').delete().eq('id', id);
+    error = res.error;
   }
-  const current = getClinicLocal<Prescription[]>('prescriptions', SEED_PRESCRIPTIONS, cId);
-  setClinicLocal('prescriptions', current.filter((p) => p.id !== id), cId);
+  if (error) {
+    console.error('Supabase prescriptions delete error:', error);
+    throw new Error(`Database error deleting prescription: ${error.message}`);
+  }
   return true;
 }
 
-// ─── PATIENT 360 DOSSIER: RESEARCH & TIMELINE AGGREGATOR ─────────────
+// ─── PATIENT 360 DOSSIER: TIMELINE AGGREGATOR (DIRECT SUPABASE ONLY) ───
 export interface PatientDossierData {
   patient: Patient;
   appointments: Appointment[];
@@ -740,7 +662,6 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
 
     const timeline: PatientActivityEvent[] = [];
 
-    // Appointments events
     appointments.forEach((apt) => {
       timeline.push({
         id: `act-apt-${apt.id}`,
@@ -761,7 +682,6 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
       });
     });
 
-    // Examination events
     examinations.forEach((exam) => {
       const toothCount = Object.keys(exam.teeth_findings || {}).length;
       timeline.push({
@@ -777,7 +697,6 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
       });
     });
 
-    // Treatment events
     treatments.forEach((trt) => {
       timeline.push({
         id: `act-trt-${trt.id}`,
@@ -799,7 +718,6 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
       });
     });
 
-    // Prescription events
     prescriptions.forEach((rx) => {
       const itemCount = rx.items?.length || 0;
       timeline.push({
@@ -815,7 +733,6 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
       });
     });
 
-    // Invoice events
     invoices.forEach((inv) => {
       timeline.push({
         id: `act-inv-${inv.id}`,
@@ -848,74 +765,103 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
     };
   }
 
-  // 1. Fetch Patient details
-  let patient: Patient | null = null;
-  try {
-    const { data: patientData } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('id', patientId)
-      .eq('clinic_id', cId)
-      .maybeSingle();
+  // 1. Fetch Patient details from Supabase
+  let query = supabase.from('patients').select('*').eq('id', patientId);
+  query = applyClinicFilter(query, cId);
+  let { data: patientData, error: patientErr } = await query.maybeSingle();
 
-    if (patientData) {
-      patient = patientData as Patient;
-    }
-  } catch {
-    // fallback
+  if (patientErr && isMissingClinicIdColumnError(patientErr)) {
+    const fallback = await supabase.from('patients').select('*').eq('id', patientId).maybeSingle();
+    patientData = fallback.data;
   }
 
-  if (!patient) {
-    const localPats = getClinicPatients(cId);
-    const match = localPats.find((p) => p.id === patientId);
-    if (match) {
-      patient = match;
-    }
+  if (!patientData) {
+    return null;
   }
-
-  if (!patient) return null;
+  const patient = patientData as Patient;
 
   // 2. Fetch Appointments
   let appointments: Appointment[] = [];
   try {
-    const { data: apts } = await supabase
+    let aptQuery = supabase
       .from('appointments')
       .select('*, doctor:staff!appointments_doctor_id_fkey(*)')
-      .eq('patient_id', patientId)
-      .eq('clinic_id', cId)
-      .order('appointment_date', { ascending: false });
+      .eq('patient_id', patientId);
+    aptQuery = applyClinicFilter(aptQuery, cId);
+    let { data: apts, error: aptErr } = await aptQuery.order('appointment_date', { ascending: false });
+
+    if (aptErr && isMissingClinicIdColumnError(aptErr)) {
+      const fallback = await supabase
+        .from('appointments')
+        .select('*, doctor:staff!appointments_doctor_id_fkey(*)')
+        .eq('patient_id', patientId)
+        .order('appointment_date', { ascending: false });
+      apts = fallback.data;
+      aptErr = fallback.error;
+    }
+
+    if (aptErr) {
+      const fallbackNoDoc = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('appointment_date', { ascending: false });
+      if (fallbackNoDoc.data) {
+        apts = fallbackNoDoc.data;
+      }
+    }
+
     if (apts) appointments = apts as Appointment[];
-  } catch {
-    // ignore
+  } catch (err) {
+    console.error('Error fetching appointments for dossier:', err);
   }
 
   // 3. Fetch Invoices
   let invoices: Invoice[] = [];
   try {
-    const { data: invs } = await supabase
+    let invQuery = supabase
       .from('invoices')
       .select('*, invoice_items(*), doctor:staff!invoices_doctor_id_fkey(*)')
-      .eq('patient_id', patientId)
-      .eq('clinic_id', cId)
-      .order('created_at', { ascending: false });
+      .eq('patient_id', patientId);
+    invQuery = applyClinicFilter(invQuery, cId);
+    let { data: invs, error: invErr } = await invQuery.order('created_at', { ascending: false });
+
+    if (invErr && isMissingClinicIdColumnError(invErr)) {
+      const fallback = await supabase
+        .from('invoices')
+        .select('*, invoice_items(*), doctor:staff!invoices_doctor_id_fkey(*)')
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false });
+      invs = fallback.data;
+      invErr = fallback.error;
+    }
+
+    if (invErr) {
+      const fallbackNoDoc = await supabase
+        .from('invoices')
+        .select('*, invoice_items(*)')
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false });
+      if (fallbackNoDoc.data) {
+        invs = fallbackNoDoc.data;
+      }
+    }
+
     if (invs) invoices = invs as Invoice[];
-  } catch {
-    // ignore
+  } catch (err) {
+    console.error('Error fetching invoices for dossier:', err);
   }
 
-  // 4. Fetch Examinations
-  const examinations = await getExaminations(patientId, cId);
+  // 4. Fetch Examinations, Treatments & Prescriptions directly from Supabase
+  const [examinations, treatments, prescriptions] = await Promise.all([
+    getExaminations(patientId, cId).catch(() => []),
+    getTreatments(patientId, cId).catch(() => []),
+    getPrescriptions(patientId, cId).catch(() => []),
+  ]);
 
-  // 5. Fetch Treatments
-  const treatments = await getTreatments(patientId, cId);
-
-  // 6. Fetch Prescriptions
-  const prescriptions = await getPrescriptions(patientId, cId);
-
-  // 7. Assemble Unified Chronological Timeline for Research
+  // 5. Assemble Timeline
   const timeline: PatientActivityEvent[] = [];
 
-  // Appointments events
   appointments.forEach((apt) => {
     timeline.push({
       id: `act-apt-${apt.id}`,
@@ -936,7 +882,6 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
     });
   });
 
-  // Examination events
   examinations.forEach((exam) => {
     const toothCount = Object.keys(exam.teeth_findings || {}).length;
     timeline.push({
@@ -952,7 +897,6 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
     });
   });
 
-  // Treatment events
   treatments.forEach((trt) => {
     timeline.push({
       id: `act-trt-${trt.id}`,
@@ -965,51 +909,48 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
       doctorName: trt.doctor?.name,
       badgeColor:
         trt.status === 'completed'
-          ? '#059669'
+          ? '#166534'
           : trt.status === 'in_progress'
           ? '#d97706'
-          : '#4f46e5',
+          : '#0284c7',
       rawRecord: trt,
     });
   });
 
-  // Prescription events
   prescriptions.forEach((rx) => {
-    const medList = (rx.items || []).map((m) => m.medicine_name).join(', ');
+    const itemCount = rx.items?.length || 0;
     timeline.push({
       id: `act-rx-${rx.id}`,
       type: 'prescription',
       date: rx.prescription_date,
-      title: `Prescription Issued`,
-      subtitle: medList ? `${rx.items?.length} Medications: ${medList}` : undefined,
-      details: rx.diagnosis ? `Diagnosis: ${rx.diagnosis}` : rx.advice || undefined,
+      title: `Prescription: ${rx.diagnosis || 'Clinical Prescription'}`,
+      subtitle: `${itemCount} medication${itemCount === 1 ? '' : 's'} prescribed`,
+      details: rx.clinical_notes || rx.advice || undefined,
       doctorName: rx.doctor?.name,
-      badgeColor: '#0284c7',
+      badgeColor: '#059669',
       rawRecord: rx,
     });
   });
 
-  // Invoice events
   invoices.forEach((inv) => {
     timeline.push({
       id: `act-inv-${inv.id}`,
       type: 'invoice',
-      date: inv.created_at,
-      title: `Invoice ${inv.invoice_number}`,
-      subtitle: `Total: Rs. ${Number(inv.total).toLocaleString()} (${inv.payment_method})`,
-      details: inv.notes || undefined,
+      date: inv.created_at || inv.issue_date,
+      title: `Invoice: ${inv.invoice_number}`,
+      subtitle: `Total: Rs. ${Number(inv.total).toLocaleString()} • ${inv.payment_status.toUpperCase()}`,
+      amount: Number(inv.total),
       status: inv.payment_status,
       badgeColor:
         inv.payment_status === 'paid'
-          ? '#16a34a'
+          ? '#166534'
           : inv.payment_status === 'partial'
-          ? '#2563eb'
-          : '#ca8a04',
+          ? '#d97706'
+          : '#dc2626',
       rawRecord: inv,
     });
   });
 
-  // Sort timeline chronologically (latest first)
   timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return {

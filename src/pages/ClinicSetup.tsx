@@ -10,6 +10,7 @@ import {
   CheckCheck, Landmark
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 import { useAuth } from '../contexts/AuthContext';
 import {
   useClinicSettings,
@@ -164,12 +165,25 @@ export default function ClinicSetup() {
         const staff = getDemoStaff();
         setDoctors(staff.filter((s) => s.role === 'doctor'));
       } else {
-        const { data, error } = await supabase
+        let query = supabase
           .from('staff')
           .select('*')
-          .eq('clinic_id', clinicId)
           .eq('role', 'doctor')
           .order('name');
+        
+        query = applyClinicFilter(query, clinicId);
+        let { data, error } = await query;
+
+        if (error && isMissingClinicIdColumnError(error)) {
+          const fallback = await supabase
+            .from('staff')
+            .select('*')
+            .eq('role', 'doctor')
+            .order('name');
+          data = fallback.data;
+          error = fallback.error;
+        }
+
         if (!error && data) {
           setDoctors(data);
         }

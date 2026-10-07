@@ -14,6 +14,7 @@ import {
   getDemoAppointments,
 } from '../lib/demoData';
 import { formatFriendlyTime } from '../lib/whatsapp';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
 interface Props {
   onNavigate: (page: string, extraId?: string) => void;
@@ -110,7 +111,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
     const today = new Date();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
 
-    const [
+    let [
       patientsRes,
       todayInvRes,
       monthInvRes,
@@ -119,27 +120,66 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       recentPatRes,
       aptsRes,
     ] = await Promise.all([
-      supabase.from('patients').select('id', { count: 'exact', head: true }).eq('clinic_id', clinicId),
-      supabase.from('invoices').select('total').eq('clinic_id', clinicId).gte('created_at', todayStr).eq('payment_status', 'paid'),
-      supabase.from('invoices').select('total').eq('clinic_id', clinicId).gte('created_at', monthStart).eq('payment_status', 'paid'),
-      supabase.from('invoices').select('total').eq('clinic_id', clinicId).in('payment_status', ['pending', 'partial']),
-      supabase
-        .from('invoices')
-        .select('*, patient:patients(name,phone), doctor:staff!invoices_doctor_id_fkey(name)')
-        .eq('clinic_id', clinicId)
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase.from('patients').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }).limit(5),
-      supabase
-        .from('appointments')
-        .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
-        .eq('clinic_id', clinicId)
-        .gte('appointment_date', todayStr)
-        .eq('status', 'scheduled')
-        .order('appointment_date', { ascending: true })
-        .order('appointment_time', { ascending: true })
-        .limit(50),
+      applyClinicFilter(supabase.from('patients').select('id', { count: 'exact', head: true }), clinicId),
+      applyClinicFilter(supabase.from('invoices').select('total').gte('created_at', todayStr).eq('payment_status', 'paid'), clinicId),
+      applyClinicFilter(supabase.from('invoices').select('total').gte('created_at', monthStart).eq('payment_status', 'paid'), clinicId),
+      applyClinicFilter(supabase.from('invoices').select('total').in('payment_status', ['pending', 'partial']), clinicId),
+      applyClinicFilter(
+        supabase
+          .from('invoices')
+          .select('*, patient:patients(name,phone), doctor:staff!invoices_doctor_id_fkey(name)')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        clinicId
+      ),
+      applyClinicFilter(
+        supabase.from('patients').select('*').order('created_at', { ascending: false }).limit(5),
+        clinicId
+      ),
+      applyClinicFilter(
+        supabase
+          .from('appointments')
+          .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
+          .gte('appointment_date', todayStr)
+          .eq('status', 'scheduled')
+          .order('appointment_date', { ascending: true })
+          .order('appointment_time', { ascending: true })
+          .limit(50),
+        clinicId
+      ),
     ]);
+
+    // Check if column clinic_id is missing on remote database
+    if (patientsRes.error && isMissingClinicIdColumnError(patientsRes.error)) {
+      [
+        patientsRes,
+        todayInvRes,
+        monthInvRes,
+        pendingRes,
+        recentInvRes,
+        recentPatRes,
+        aptsRes,
+      ] = await Promise.all([
+        supabase.from('patients').select('id', { count: 'exact', head: true }),
+        supabase.from('invoices').select('total').gte('created_at', todayStr).eq('payment_status', 'paid'),
+        supabase.from('invoices').select('total').gte('created_at', monthStart).eq('payment_status', 'paid'),
+        supabase.from('invoices').select('total').in('payment_status', ['pending', 'partial']),
+        supabase
+          .from('invoices')
+          .select('*, patient:patients(name,phone), doctor:staff!invoices_doctor_id_fkey(name)')
+          .order('created_at', { ascending: false })
+          .limit(5),
+        supabase.from('patients').select('*').order('created_at', { ascending: false }).limit(5),
+        supabase
+          .from('appointments')
+          .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
+          .gte('appointment_date', todayStr)
+          .eq('status', 'scheduled')
+          .order('appointment_date', { ascending: true })
+          .order('appointment_time', { ascending: true })
+          .limit(50),
+      ]);
+    }
 
     let aptsData: Appointment[] = [];
     if (aptsRes.error) {
@@ -147,7 +187,6 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       const fallbackRes = await supabase
         .from('appointments')
         .select('*, patient:patients(*)')
-        .eq('clinic_id', clinicId)
         .gte('appointment_date', todayStr)
         .eq('status', 'scheduled')
         .order('appointment_date', { ascending: true })
@@ -158,11 +197,13 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       aptsData = (aptsRes.data as Appointment[]) ?? [];
     }
 
-    const todayCount = await supabase
-      .from('invoices')
-      .select('id', { count: 'exact', head: true })
-      .eq('clinic_id', clinicId)
-      .gte('created_at', todayStr);
+    let todayCount = await applyClinicFilter(
+      supabase.from('invoices').select('id', { count: 'exact', head: true }).gte('created_at', todayStr),
+      clinicId
+    );
+    if (todayCount.error && isMissingClinicIdColumnError(todayCount.error)) {
+      todayCount = await supabase.from('invoices').select('id', { count: 'exact', head: true }).gte('created_at', todayStr);
+    }
 
     const scheduledApts = aptsData.filter(a => a.status === 'scheduled');
 

@@ -5,7 +5,7 @@ import { Patient, Staff, ItemType, DiscountType, PaymentMethod, PaymentStatus } 
 import { useAuth } from '../contexts/AuthContext';
 import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS, saveDemoInvoice } from '../lib/demoData';
 import { useClinicSettings } from '../lib/clinicSettings';
-import { saveClinicInvoice } from '../lib/clinicStorage';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
 interface LineItem {
   item_type: ItemType;
@@ -61,12 +61,13 @@ export default function NewInvoice({ onSuccess }: Props) {
       return;
     }
     const clinicId = activeClinic?.id || 'clinic-dentivista-01';
-    const { data } = await supabase
-      .from('staff')
-      .select('*')
-      .eq('clinic_id', clinicId)
-      .eq('role', 'doctor')
-      .eq('active', true);
+    let query = supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true);
+    query = applyClinicFilter(query, clinicId);
+    let { data, error } = await query;
+    if (error && isMissingClinicIdColumnError(error)) {
+      const fallback = await supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true);
+      data = fallback.data;
+    }
     setDoctors(data ?? []);
     if (staff?.role === 'doctor') setSelectedDoctor(staff.id);
   }
@@ -77,11 +78,13 @@ export default function NewInvoice({ onSuccess }: Props) {
       return;
     }
     const clinicId = activeClinic?.id || 'clinic-dentivista-01';
-    const { data } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('clinic_id', clinicId)
-      .order('name');
+    let query = supabase.from('patients').select('*');
+    query = applyClinicFilter(query, clinicId);
+    let { data, error } = await query.order('name');
+    if (error && isMissingClinicIdColumnError(error)) {
+      const fallback = await supabase.from('patients').select('*').order('name');
+      data = fallback.data;
+    }
     setPatients(data ?? []);
   }
 
@@ -146,26 +149,35 @@ export default function NewInvoice({ onSuccess }: Props) {
       typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
     const clinicId = activeClinic?.id || 'clinic-dentivista-01';
-    const { data: inv, error: invErr } = await supabase
+    const invoicePayload: any = {
+      clinic_id: clinicId,
+      patient_id: selectedPatient.id,
+      doctor_id: isValidUuid(selectedDoctor) ? selectedDoctor : null,
+      created_by: isValidUuid(staff?.id) ? staff?.id : null,
+      subtotal,
+      discount_type: discountType,
+      discount_value: discountValue,
+      discount_amount: discountAmount,
+      tax_rate: taxRate,
+      tax_amount: taxAmount,
+      total,
+      payment_method: paymentMethod,
+      payment_status: paymentStatus,
+      notes: notes.trim() || null,
+    };
+
+    let { data: inv, error: invErr } = await supabase
       .from('invoices')
-      .insert({
-        clinic_id: clinicId,
-        patient_id: selectedPatient.id,
-        doctor_id: isValidUuid(selectedDoctor) ? selectedDoctor : null,
-        created_by: isValidUuid(staff?.id) ? staff?.id : null,
-        subtotal,
-        discount_type: discountType,
-        discount_value: discountValue,
-        discount_amount: discountAmount,
-        tax_rate: taxRate,
-        tax_amount: taxAmount,
-        total,
-        payment_method: paymentMethod,
-        payment_status: paymentStatus,
-        notes: notes.trim() || null,
-      })
+      .insert(invoicePayload)
       .select()
       .single();
+
+    if (invErr && isMissingClinicIdColumnError(invErr)) {
+      const { clinic_id, ...legacyPayload } = invoicePayload;
+      const res = await supabase.from('invoices').insert(legacyPayload).select().single();
+      inv = res.data;
+      invErr = res.error;
+    }
 
     if (invErr || !inv) {
       setError(invErr?.message ?? 'Failed to create invoice');
@@ -188,12 +200,6 @@ export default function NewInvoice({ onSuccess }: Props) {
       setSaving(false);
       return;
     }
-
-    saveClinicInvoice({
-      ...inv,
-      patient: selectedPatient,
-      items: lineItems,
-    }, clinicId);
 
     onSuccess(inv.id);
   }

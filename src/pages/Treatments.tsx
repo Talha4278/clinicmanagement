@@ -9,6 +9,7 @@ import { getTreatments, saveTreatment, deleteTreatment } from '../lib/clinicStor
 import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS, getDemoStaff } from '../lib/demoData';
 import { useClinicSettings } from '../lib/clinicSettings';
 import { useAuth } from '../contexts/AuthContext';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
 interface Props {
   preselectedPatientId?: string | null;
@@ -95,11 +96,18 @@ export default function Treatments({
       return;
     }
 
-    const [trts, patRes, docRes] = await Promise.all([
+    let [trts, patRes, docRes] = await Promise.all([
       getTreatments(undefined, clinicId),
-      supabase.from('patients').select('*').eq('clinic_id', clinicId).order('name'),
-      supabase.from('staff').select('*').eq('clinic_id', clinicId).eq('role', 'doctor').eq('active', true),
+      applyClinicFilter(supabase.from('patients').select('*'), clinicId).order('name'),
+      applyClinicFilter(supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true), clinicId),
     ]);
+
+    if (patRes.error && isMissingClinicIdColumnError(patRes.error)) {
+      patRes = await supabase.from('patients').select('*').order('name');
+    }
+    if (docRes.error && isMissingClinicIdColumnError(docRes.error)) {
+      docRes = await supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true);
+    }
 
     setTreatments(trts);
     setPatients(patRes.data || []);

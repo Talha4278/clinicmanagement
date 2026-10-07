@@ -109,6 +109,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
       if (data) {
         setStaff(data);
+        if (data.clinic_id) {
+          const current = getActiveClinic();
+          if (current.id !== data.clinic_id) {
+            const clinic = setActiveClinic(data.clinic_id);
+            setActiveClinicState(clinic);
+          }
+        }
       }
     } catch {
       // ignore
@@ -430,8 +437,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Register active session for Supabase user
     if (authData.user) {
+      let resolvedClinicId = activeClinic.id;
+      try {
+        const { data: staffData } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('user_id', authData.user.id)
+          .maybeSingle();
+        if (staffData?.clinic_id) {
+          resolvedClinicId = staffData.clinic_id;
+          const synced = setActiveClinic(staffData.clinic_id);
+          setActiveClinicState(synced);
+        }
+      } catch {}
+
       const sessionResult = registerSession({
-        clinicId: activeClinic.id,
+        clinicId: resolvedClinicId,
         userId: authData.user.id,
         userEmail: authData.user.email || email,
         userName: authData.user.user_metadata?.name || 'Clinic Staff',

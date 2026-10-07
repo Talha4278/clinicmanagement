@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Patient, GenderType } from '../lib/types';
 import { isDemoMode, getDemoPatients, saveDemoPatient } from '../lib/demoData';
 import { useAuth } from '../contexts/AuthContext';
-import { getClinicPatients, saveClinicPatient } from '../lib/clinicStorage';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
 interface Props {
   onViewPatient?: (id: string) => void;
@@ -39,24 +39,24 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
     const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     let remotePatients: Patient[] = [];
     try {
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('clinic_id', clinicId)
-        .order('created_at', { ascending: false });
-      if (data && !error) {
+      let query = supabase.from('patients').select('*');
+      query = applyClinicFilter(query, clinicId);
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (!error && data) {
         remotePatients = data;
+      } else if (error && isMissingClinicIdColumnError(error)) {
+        const fallback = await supabase
+          .from('patients')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (fallback.data) remotePatients = fallback.data;
       }
     } catch (e) {
       console.warn('Could not fetch patients from Supabase:', e);
     }
 
-    const localPatients = getClinicPatients(clinicId);
-    const patMap = new Map<string, Patient>();
-    localPatients.forEach(p => patMap.set(p.id, p));
-    remotePatients.forEach(p => patMap.set(p.id, p));
-
-    setPatients(Array.from(patMap.values()));
+    setPatients(remotePatients);
     setLoading(false);
   }
 
@@ -124,19 +124,24 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
 
     let savedId = editPatient?.id;
     if (editPatient) {
-      const { error } = await supabase.from('patients').update(payload).eq('id', editPatient.id).eq('clinic_id', clinicId);
+      let { error } = await supabase.from('patients').update(payload).eq('id', editPatient.id);
+      if (error && isMissingClinicIdColumnError(error)) {
+        const { clinic_id, ...legacyPayload } = payload;
+        const res = await supabase.from('patients').update(legacyPayload).eq('id', editPatient.id);
+        error = res.error;
+      }
       if (error) { setError(error.message); setSaving(false); return; }
     } else {
-      const { data: inserted, error } = await supabase.from('patients').insert(payload).select().maybeSingle();
+      let { data: inserted, error } = await supabase.from('patients').insert(payload).select().maybeSingle();
+      if (error && isMissingClinicIdColumnError(error)) {
+        const { clinic_id, ...legacyPayload } = payload;
+        const res = await supabase.from('patients').insert(legacyPayload).select().maybeSingle();
+        inserted = res.data;
+        error = res.error;
+      }
       if (error) { setError(error.message); setSaving(false); return; }
       if (inserted) savedId = inserted.id;
     }
-
-    saveClinicPatient({
-      ...payload,
-      id: savedId || `pat-${Date.now()}`,
-      created_at: new Date().toISOString(),
-    }, clinicId);
 
     await fetchPatients();
     setShowForm(false);

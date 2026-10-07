@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Stethoscope, Eye, EyeOff, AlertCircle, Sparkles,
   Pill, Package, FileText, Calendar, ShieldCheck, CheckCircle2,
-  Activity, ArrowRight, Building2, User, Phone, MapPin, Check, LogOut
+  Activity, ArrowRight, Building2, User, Phone, MapPin, Check, LogOut,
+  KeyRound, Mail, X, Loader2
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ClinicSignUpData, SubscriptionPlan } from '../lib/types';
 import { PLAN_SPECS } from '../lib/tenancy';
@@ -45,6 +47,103 @@ export default function LoginPage({
     plan: initialPlan,
   });
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialBilling);
+
+  // Forgot Password / Recovery State
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Recovery Mode State (when redirected with password reset link)
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [recoverySuccess, setRecoverySuccess] = useState(false);
+  const [recoveryError, setRecoveryError] = useState('');
+
+  useEffect(() => {
+    // 1. Detect recovery token from URL hash or query params
+    const hash = window.location.hash || '';
+    if (hash.includes('type=recovery') || window.location.search.includes('type=recovery')) {
+      setIsRecoveryMode(true);
+    }
+
+    // 2. Parse any Supabase auth errors (e.g. #error=access_denied&error_description=Redirect+URL+not+allowed)
+    const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+    const searchParams = new URLSearchParams(window.location.search || '');
+    const authErrorDesc = hashParams.get('error_description') || searchParams.get('error_description') || hashParams.get('error') || searchParams.get('error');
+    if (authErrorDesc) {
+      const decoded = decodeURIComponent(authErrorDesc.replace(/\+/g, ' '));
+      setError(`Auth Redirect Notice: ${decoded}`);
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsRecoveryMode(true);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  async function handleSendResetLink(e: React.FormEvent) {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setForgotMessage({ type: 'error', text: 'Please enter your registered staff email address.' });
+      return;
+    }
+    setForgotLoading(true);
+    setForgotMessage(null);
+    try {
+      const redirectUrl = `${window.location.origin}/app/`;
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: redirectUrl,
+      });
+      if (error) {
+        setForgotMessage({ type: 'error', text: error.message });
+      } else {
+        setForgotMessage({
+          type: 'success',
+          text: `Password reset link sent to ${forgotEmail.trim()}. Please check your email inbox and click the link to set a new password.`,
+        });
+      }
+    } catch (err: any) {
+      setForgotMessage({ type: 'error', text: err?.message || 'Failed to send reset link.' });
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
+  async function handleUpdatePassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      setRecoveryError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setRecoveryError('Passwords do not match.');
+      return;
+    }
+    setRecoveryLoading(true);
+    setRecoveryError('');
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        setRecoveryError(error.message);
+      } else {
+        setRecoverySuccess(true);
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    } catch (err: any) {
+      setRecoveryError(err?.message || 'Failed to update password.');
+    } finally {
+      setRecoveryLoading(false);
+    }
+  }
 
   async function handleSignInSubmit(e?: React.FormEvent, forceTerminateOldest: boolean = false) {
     if (e) e.preventDefault();
@@ -322,9 +421,123 @@ export default function LoginPage({
           )}
 
           {/* ============================================================ */}
-          {/* TAB 1: SIGN IN FORM                                          */}
+          {/* TAB 1: PASSWORD RECOVERY OR SIGN IN FORM                     */}
           {/* ============================================================ */}
-          {authMode === 'signin' ? (
+          {isRecoveryMode ? (
+            <div className="space-y-6">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-800 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-100 inline-flex items-center gap-1.5">
+                  <KeyRound size={12} />
+                  <span>Account Security</span>
+                </span>
+                <h2 className="font-display text-2xl sm:text-3xl font-bold text-gray-900 mt-2 tracking-tight">
+                  Set New Password
+                </h2>
+                <p className="text-gray-500 text-xs mt-1">
+                  Enter and confirm a new secure password for your clinic account
+                </p>
+              </div>
+
+              {recoverySuccess ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5 text-center space-y-3">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" />
+                  <p className="text-emerald-900 font-bold text-sm">Password Updated Successfully!</p>
+                  <p className="text-emerald-700 text-xs leading-relaxed">
+                    Your new password has been saved. You can now sign in with your updated credentials.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsRecoveryMode(false);
+                      setRecoverySuccess(false);
+                      setAuthMode('signin');
+                    }}
+                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-xs transition-colors"
+                  >
+                    Proceed to Sign In
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleUpdatePassword} className="space-y-4">
+                  {recoveryError && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2.5">
+                      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-red-700 text-xs">{recoveryError}</p>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      New Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        minLength={6}
+                        className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 transition-all text-xs outline-none shadow-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      minLength={6}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 transition-all text-xs outline-none shadow-xs"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={recoveryLoading}
+                    className="w-full py-3.5 rounded-xl text-white font-semibold transition-all hover:opacity-95 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2 text-xs"
+                    style={{
+                      background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+                      boxShadow: '0 4px 14px 0 rgba(2, 132, 199, 0.35)',
+                    }}
+                  >
+                    {recoveryLoading ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        <span>Updating Password...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Save New Password & Continue</span>
+                        <ArrowRight size={15} />
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsRecoveryMode(false)}
+                    className="w-full text-center text-xs text-gray-500 hover:text-gray-800 transition-colors py-1"
+                  >
+                    Cancel & Return to Sign In
+                  </button>
+                </form>
+              )}
+            </div>
+          ) : authMode === 'signin' ? (
             <div className="space-y-6">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-sky-800 bg-sky-50 px-2.5 py-1 rounded-md border border-sky-100">
@@ -358,6 +571,17 @@ export default function LoginPage({
                     <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
                       Password
                     </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowForgotModal(true);
+                        setForgotEmail(email);
+                        setForgotMessage(null);
+                      }}
+                      className="text-xs font-semibold text-sky-700 hover:text-sky-900 transition-colors"
+                    >
+                      Forgot Password?
+                    </button>
                   </div>
                   <div className="relative">
                     <input
@@ -686,6 +910,97 @@ export default function LoginPage({
           </p>
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* FORGOT PASSWORD MODAL                                        */}
+      {/* ============================================================ */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-150">
+            <button
+              type="button"
+              onClick={() => setShowForgotModal(false)}
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center border border-sky-100 flex-shrink-0">
+                <KeyRound size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-base">Reset Your Password</h3>
+                <p className="text-gray-500 text-xs">Receive a secure link to reset your clinic password</p>
+              </div>
+            </div>
+
+            {forgotMessage && (
+              <div
+                className={`p-3.5 rounded-xl mb-4 text-xs flex items-start gap-2.5 ${
+                  forgotMessage.type === 'success'
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}
+              >
+                {forgotMessage.type === 'success' ? (
+                  <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle size={16} className="text-red-600 flex-shrink-0 mt-0.5" />
+                )}
+                <span className="leading-relaxed">{forgotMessage.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSendResetLink} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Your Registered Email
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="email"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="doctor@dentivista.com"
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-sky-600/20 focus:border-sky-600 text-xs outline-none shadow-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-[11px] text-gray-600 leading-relaxed">
+                💡 <span className="font-semibold text-gray-800">Admin instant option:</span> If you are the clinic owner or administrator, you can also reset any staff password directly inside the <span className="font-medium text-sky-800">Staff Module</span> or via the <span className="font-medium text-sky-800">Supabase Auth Dashboard</span>.
+              </div>
+
+              <div className="flex gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForgotModal(false)}
+                  className="flex-1 py-2.5 px-3 border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl text-xs font-semibold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={forgotLoading}
+                  className="flex-1 py-2.5 px-3 bg-sky-700 hover:bg-sky-800 text-white rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-sm disabled:opacity-60"
+                >
+                  {forgotLoading ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      <span>Sending Link...</span>
+                    </>
+                  ) : (
+                    <span>Send Reset Link</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

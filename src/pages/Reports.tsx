@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, DollarSign, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { isDemoMode, getDemoInvoices, getDemoPatients } from '../lib/demoData';
 import { useAuth } from '../contexts/AuthContext';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
 interface DailyRevenue {
   date: string;
@@ -100,14 +101,25 @@ export default function Reports() {
     }
     const startStr = startDate.toISOString();
 
-    const [paidRes, pendingRes, countRes, patientRes, dailyRes, outstandingRes] = await Promise.all([
-      supabase.from('invoices').select('total').eq('clinic_id', clinicId).gte('created_at', startStr).eq('payment_status', 'paid'),
-      supabase.from('invoices').select('total').eq('clinic_id', clinicId).gte('created_at', startStr).neq('payment_status', 'paid'),
-      supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('clinic_id', clinicId).gte('created_at', startStr),
-      supabase.from('patients').select('id', { count: 'exact', head: true }).eq('clinic_id', clinicId).gte('created_at', startStr),
-      supabase.from('invoices').select('created_at, total, payment_status').eq('clinic_id', clinicId).gte('created_at', startStr).order('created_at'),
-      supabase.from('invoices').select('invoice_number, total, payment_status, created_at, patient:patients(name, phone)').eq('clinic_id', clinicId).in('payment_status', ['pending', 'partial']).order('created_at', { ascending: false }).limit(20),
+    let [paidRes, pendingRes, countRes, patientRes, dailyRes, outstandingRes] = await Promise.all([
+      applyClinicFilter(supabase.from('invoices').select('total').gte('created_at', startStr).eq('payment_status', 'paid'), clinicId),
+      applyClinicFilter(supabase.from('invoices').select('total').gte('created_at', startStr).neq('payment_status', 'paid'), clinicId),
+      applyClinicFilter(supabase.from('invoices').select('id', { count: 'exact', head: true }).gte('created_at', startStr), clinicId),
+      applyClinicFilter(supabase.from('patients').select('id', { count: 'exact', head: true }).gte('created_at', startStr), clinicId),
+      applyClinicFilter(supabase.from('invoices').select('created_at, total, payment_status').gte('created_at', startStr).order('created_at'), clinicId),
+      applyClinicFilter(supabase.from('invoices').select('invoice_number, total, payment_status, created_at, patient:patients(name, phone)').in('payment_status', ['pending', 'partial']).order('created_at', { ascending: false }).limit(20), clinicId),
     ]);
+
+    if (patientRes.error && isMissingClinicIdColumnError(patientRes.error)) {
+      [paidRes, pendingRes, countRes, patientRes, dailyRes, outstandingRes] = await Promise.all([
+        supabase.from('invoices').select('total').gte('created_at', startStr).eq('payment_status', 'paid'),
+        supabase.from('invoices').select('total').gte('created_at', startStr).neq('payment_status', 'paid'),
+        supabase.from('invoices').select('id', { count: 'exact', head: true }).gte('created_at', startStr),
+        supabase.from('patients').select('id', { count: 'exact', head: true }).gte('created_at', startStr),
+        supabase.from('invoices').select('created_at, total, payment_status').gte('created_at', startStr).order('created_at'),
+        supabase.from('invoices').select('invoice_number, total, payment_status, created_at, patient:patients(name, phone)').in('payment_status', ['pending', 'partial']).order('created_at', { ascending: false }).limit(20),
+      ]);
+    }
 
     // Aggregate daily revenue
     const dayMap = new Map<string, { revenue: number; count: number }>();

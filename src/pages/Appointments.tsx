@@ -22,6 +22,7 @@ import {
   getDemoStaff,
   DEMO_STAFF_MEMBERS,
 } from '../lib/demoData';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
 interface Props {
   onNewInvoiceForPatient?: (patientId: string) => void;
@@ -179,14 +180,36 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
     }
     const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     let remoteApts: Appointment[] = [];
-    const { data, error } = await supabase
+    let query = supabase
       .from('appointments')
-      .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
-      .eq('clinic_id', clinicId)
+      .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)');
+    query = applyClinicFilter(query, clinicId);
+    let { data, error } = await query
       .order('appointment_date', { ascending: false })
       .order('appointment_time', { ascending: true });
 
-    if (!error && data) {
+    if (error && isMissingClinicIdColumnError(error)) {
+      const fallback = await supabase
+        .from('appointments')
+        .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
+        .order('appointment_date', { ascending: false })
+        .order('appointment_time', { ascending: true });
+      data = fallback.data;
+      error = fallback.error;
+    }
+
+    if (error) {
+      const fallbackNoDoc = await supabase
+        .from('appointments')
+        .select('*, patient:patients(*)')
+        .order('appointment_date', { ascending: false })
+        .order('appointment_time', { ascending: true });
+      if (fallbackNoDoc.data) {
+        data = fallbackNoDoc.data;
+      }
+    }
+
+    if (data) {
       remoteApts = data as Appointment[];
     }
 
@@ -200,11 +223,13 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
       return;
     }
     const clinicId = activeClinic?.id || 'clinic-dentivista-01';
-    const { data } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('clinic_id', clinicId)
-      .order('name');
+    let query = supabase.from('patients').select('*');
+    query = applyClinicFilter(query, clinicId);
+    let { data, error } = await query.order('name');
+    if (error && isMissingClinicIdColumnError(error)) {
+      const fallback = await supabase.from('patients').select('*').order('name');
+      data = fallback.data;
+    }
     setPatients(data ?? []);
   }, [activeClinic?.id]);
 
@@ -214,13 +239,13 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
       return;
     }
     const clinicId = activeClinic?.id || 'clinic-dentivista-01';
-    const { data } = await supabase
-      .from('staff')
-      .select('*')
-      .eq('clinic_id', clinicId)
-      .eq('role', 'doctor')
-      .eq('active', true)
-      .order('name');
+    let query = supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true);
+    query = applyClinicFilter(query, clinicId);
+    let { data, error } = await query.order('name');
+    if (error && isMissingClinicIdColumnError(error)) {
+      const fallback = await supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true).order('name');
+      data = fallback.data;
+    }
     setDoctors(data ?? []);
   }, [activeClinic?.id]);
 
@@ -418,11 +443,16 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
     }
 
     if (editingAppointment) {
-      const { error: err } = await supabase
+      let { error: err } = await supabase
         .from('appointments')
         .update(payload)
-        .eq('id', editingAppointment.id)
-        .eq('clinic_id', clinicId);
+        .eq('id', editingAppointment.id);
+
+      if (err && isMissingClinicIdColumnError(err)) {
+        const { clinic_id, ...legacyPayload } = payload;
+        const res = await supabase.from('appointments').update(legacyPayload).eq('id', editingAppointment.id);
+        err = res.error;
+      }
 
       if (err) {
         setError(err.message);
@@ -430,7 +460,13 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
         return;
       }
     } else {
-      const { error: err } = await supabase.from('appointments').insert(payload);
+      let { error: err } = await supabase.from('appointments').insert(payload);
+
+      if (err && isMissingClinicIdColumnError(err)) {
+        const { clinic_id, ...legacyPayload } = payload;
+        const res = await supabase.from('appointments').insert(legacyPayload);
+        err = res.error;
+      }
 
       if (err) {
         setError(err.message);

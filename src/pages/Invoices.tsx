@@ -7,7 +7,7 @@ import { useClinicSettings } from '../lib/clinicSettings';
 import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 import { isDemoMode, getDemoInvoices } from '../lib/demoData';
-import { getClinicInvoices } from '../lib/clinicStorage';
+import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
 interface Props {
   onNewInvoice: () => void;
@@ -105,25 +105,39 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
 
     let remoteInvoices: Invoice[] = [];
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('invoices')
-        .select('*, patient:patients(name, phone), doctor:staff!invoices_doctor_id_fkey(name)')
-        .eq('clinic_id', clinicId)
-        .order('created_at', { ascending: false });
+        .select('*, patient:patients(name, phone), doctor:staff!invoices_doctor_id_fkey(name)');
+      query = applyClinicFilter(query, clinicId);
+      let { data, error } = await query.order('created_at', { ascending: false });
 
-      if (data && !error) {
+      if (error && isMissingClinicIdColumnError(error)) {
+        const fallback = await supabase
+          .from('invoices')
+          .select('*, patient:patients(name, phone), doctor:staff!invoices_doctor_id_fkey(name)')
+          .order('created_at', { ascending: false });
+        data = fallback.data;
+        error = fallback.error;
+      }
+
+      if (error) {
+        const fallbackNoDoc = await supabase
+          .from('invoices')
+          .select('*, patient:patients(name, phone)')
+          .order('created_at', { ascending: false });
+        if (fallbackNoDoc.data) {
+          data = fallbackNoDoc.data;
+        }
+      }
+
+      if (data) {
         remoteInvoices = data as Invoice[];
       }
     } catch {
       // fallback
     }
 
-    const localInvoices = getClinicInvoices(clinicId);
-    const invMap = new Map<string, Invoice>();
-    localInvoices.forEach(i => invMap.set(i.id, i));
-    remoteInvoices.forEach(i => invMap.set(i.id, i));
-
-    setInvoices(Array.from(invMap.values()));
+    setInvoices(remoteInvoices);
     setLoading(false);
   }
 
