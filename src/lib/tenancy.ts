@@ -327,6 +327,7 @@ export function updateClinicPlan(clinicId: string, newPlan: SubscriptionPlan): b
       plan: newPlan,
       max_seats: spec.max_seats,
       max_concurrent_sessions: spec.max_sessions,
+      status: 'active', // Auto-activate membership on plan update
     };
     saveAllClinics(all);
     window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: all[idx] }));
@@ -335,5 +336,104 @@ export function updateClinicPlan(clinicId: string, newPlan: SubscriptionPlan): b
     console.error('Failed to update clinic plan:', e);
     return false;
   }
+}
+
+/**
+ * Activate or deactivate membership access status for a clinic by clinicId
+ * Updates local storage immediately and syncs with Supabase clinics table.
+ */
+export function updateClinicStatus(
+  clinicId: string,
+  status: 'active' | 'suspended' | 'trial'
+): boolean {
+  try {
+    const all = getAllClinics();
+    const idx = all.findIndex(c => c.id === clinicId);
+    if (idx === -1) return false;
+    all[idx] = {
+      ...all[idx],
+      status,
+    };
+    saveAllClinics(all);
+    window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: all[idx] }));
+
+    // Async sync with Supabase clinics table
+    supabase
+      .from('clinics')
+      .update({ status })
+      .eq('id', clinicId)
+      .then(({ error }) => {
+        if (error) {
+          console.warn('Could not sync clinic status to Supabase:', error.message);
+        }
+      })
+      .catch(() => {});
+
+    return true;
+  } catch (e) {
+    console.error('Failed to update clinic status:', e);
+    return false;
+  }
+}
+
+/**
+ * Convenience method to activate membership access for a clinic ID
+ */
+export function activateClinicMembership(clinicId: string): boolean {
+  return updateClinicStatus(clinicId, 'active');
+}
+
+/**
+ * Convenience method to deactivate/suspend membership access for a clinic ID
+ */
+export function deactivateClinicMembership(clinicId: string): boolean {
+  return updateClinicStatus(clinicId, 'suspended');
+}
+
+/**
+ * Sync clinic status and details from Supabase database table into local state
+ */
+export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTenant | null> {
+  try {
+    const { data, error } = await supabase
+      .from('clinics')
+      .select('*')
+      .eq('id', clinicId)
+      .maybeSingle();
+
+    if (data && !error) {
+      const all = getAllClinics();
+      const idx = all.findIndex(c => c.id === clinicId);
+      const updated: ClinicTenant = {
+        id: data.id,
+        name: data.name,
+        slug: data.slug,
+        plan: data.plan,
+        max_seats: data.max_seats,
+        max_concurrent_sessions: data.max_concurrent_sessions,
+        owner_name: data.owner_name,
+        owner_email: data.owner_email,
+        phone: data.phone || '',
+        address: data.address || '',
+        tagline: data.tagline || '',
+        logo_url: data.logo_url || null,
+        status: data.status,
+        trial_ends_at: data.trial_ends_at,
+        created_at: data.created_at,
+      };
+
+      if (idx !== -1) {
+        all[idx] = updated;
+      } else {
+        all.push(updated);
+      }
+      saveAllClinics(all);
+      window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: updated }));
+      return updated;
+    }
+  } catch (err) {
+    console.warn('Could not sync clinic from database:', err);
+  }
+  return null;
 }
 

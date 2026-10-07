@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { Patient, Staff, ItemType, DiscountType, PaymentMethod, PaymentStatus } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS, saveDemoInvoice } from '../lib/demoData';
+import { useClinicSettings } from '../lib/clinicSettings';
 
 interface LineItem {
   item_type: ItemType;
@@ -29,6 +30,7 @@ const defaultItems: LineItem[] = [
 
 export default function NewInvoice({ onSuccess }: Props) {
   const { staff } = useAuth();
+  const { settings } = useClinicSettings();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Staff[]>([]);
   const [patientSearch, setPatientSearch] = useState('');
@@ -38,7 +40,7 @@ export default function NewInvoice({ onSuccess }: Props) {
   const [items, setItems] = useState<LineItem[]>([...defaultItems]);
   const [discountType, setDiscountType] = useState<DiscountType>('fixed');
   const [discountValue, setDiscountValue] = useState(0);
-  const [taxRate, setTaxRate] = useState(0);
+  const [taxRate, setTaxRate] = useState<number>(settings.tax_rate ?? 5);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('paid');
   const [notes, setNotes] = useState('');
@@ -420,7 +422,7 @@ export default function NewInvoice({ onSuccess }: Props) {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Subtotal</span>
-                <span className="font-medium text-gray-900">Rs. {subtotal.toLocaleString()}</span>
+                <span className="font-medium text-gray-900">{settings.currency_symbol || 'Rs. '}{subtotal.toLocaleString()}</span>
               </div>
 
               <div className="flex items-center gap-2">
@@ -429,7 +431,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                   onChange={(e) => setDiscountType(e.target.value as DiscountType)}
                   className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-600/20 focus:border-green-700"
                 >
-                  <option value="fixed">Fixed Discount (Rs.)</option>
+                  <option value="fixed">Fixed Discount ({settings.currency_symbol || 'Rs. '})</option>
                   <option value="percentage">% Discount</option>
                 </select>
                 <input
@@ -446,12 +448,14 @@ export default function NewInvoice({ onSuccess }: Props) {
               {discountAmount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Discount</span>
-                  <span className="text-red-600 font-medium">- Rs. {discountAmount.toLocaleString()}</span>
+                  <span className="text-red-600 font-medium">- {settings.currency_symbol || 'Rs. '}{discountAmount.toLocaleString()}</span>
                 </div>
               )}
 
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500 flex-shrink-0">Tax %</span>
+                <span className="text-sm text-gray-500 flex-shrink-0">
+                  {settings.tax_label || 'VAT / Tax'} %
+                </span>
                 <input
                   type="number"
                   min="0"
@@ -466,14 +470,16 @@ export default function NewInvoice({ onSuccess }: Props) {
 
               {taxAmount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Tax ({taxRate}%)</span>
-                  <span className="font-medium text-gray-900">+ Rs. {taxAmount.toLocaleString()}</span>
+                  <span className="text-gray-500">{settings.tax_label || 'Tax'} ({taxRate}%)</span>
+                  <span className="font-medium text-gray-900">+ {settings.currency_symbol || 'Rs. '}{taxAmount.toLocaleString()}</span>
                 </div>
               )}
 
               <div className="border-t border-gray-100 pt-3 flex justify-between">
                 <span className="font-semibold text-gray-900">Total</span>
-                <span className="text-xl font-bold" style={{ color: '#3c5e27' }}>Rs. {total.toLocaleString()}</span>
+                <span className="text-xl font-bold" style={{ color: '#3c5e27' }}>
+                  {settings.currency_symbol || 'Rs. '}{total.toLocaleString()}
+                </span>
               </div>
             </div>
           </div>

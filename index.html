@@ -1,25 +1,1404 @@
-<!doctype html>
-<html lang="en">
-
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clinsyst | Modern Cloud Dental Practice Management Software</title>
+  <meta name="description" content="Cloud dental clinic management software featuring interactive adult & pediatric odontograms, automated WhatsApp reminders, multi-chair scheduling, and inventory control. Designed for modern private practices worldwide." />
   <link
     rel="icon"
     type="image/svg+xml"
     href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='50%25' y='52%25' font-family='Arial,sans-serif' font-size='44' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3C/svg%3E"
   />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Clinsyst - Clinic Management</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
-    rel="stylesheet" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7', // Login page primary blue
+              700: '#0369a1', // Login page deep blue
+              800: '#075985', // Login page ocean blue
+              900: '#0c4a6e', // Login page navy blue
+              950: '#082f49',
+            },
+            dental: {
+              navy: '#0c4a6e',
+              dark: '#082f49',
+              slate: '#1e293b',
+              sky: '#0284c7',
+              cyan: '#06b6d4',
+              softblue: '#f0f9ff',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glass-card {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    .tooth-box {
+      transition: all 0.15s ease-in-out;
+    }
+    .tooth-box:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+  </style>
 </head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans selection:bg-brand-500 selection:text-white">
 
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
+  <!-- Announcement Bar -->
+  <aside aria-label="Global Announcement" class="bg-dental-navy text-white text-xs sm:text-sm py-2 px-4 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2 mx-auto sm:mx-0">
+        <span class="bg-brand-500/20 text-brand-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-brand-500/30">NEW</span>
+        <span>Global Edition with FDI notation & WhatsApp appointment automation is now live</span>
+      </div>
+      <div class="hidden md:flex items-center gap-4 text-slate-300 text-xs">
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> 99.98% Cloud Uptime</span>
+        <span>•</span>
+        <span>Trusted across UAE, Malaysia, and Global Private Clinics</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Navigation -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-xl bg-[#0284c7] flex items-center justify-center text-white font-bold text-xl font-sans shadow-md shadow-sky-600/25 border border-sky-400/30 group-hover:scale-105 transition-transform">
+          C
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xl font-bold tracking-tight text-dental-navy font-sans">Clinsyst<span class="text-brand-600">.</span></span>
+          <span class="text-[10px] tracking-wider uppercase font-semibold text-slate-400">Dental Practice Cloud</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav class="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
+        <a href="#features" class="hover:text-brand-600 transition-colors">Features</a>
+        <a href="#odontogram" class="hover:text-brand-600 transition-colors flex items-center gap-1.5">
+          <span>Dual Odontogram</span>
+          <span class="bg-brand-100 text-brand-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Interactive</span>
+        </a>
+        <a href="#whatsapp" class="hover:text-brand-600 transition-colors">WhatsApp Workflow</a>
+        <a href="#pricing" class="hover:text-brand-600 transition-colors">Pricing</a>
+        <a href="#faq" class="hover:text-brand-600 transition-colors">FAQ</a>
+      </nav>
+
+      <!-- Currency Switcher & Actions -->
+      <div class="flex items-center gap-3">
+        <!-- Currency Pill with IP auto-detection support -->
+        <div class="hidden sm:flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200 text-xs font-medium text-slate-600">
+          <button onclick="setCurrency('USD')" id="btn-curr-usd" class="px-2 py-1 rounded-md bg-white shadow-sm font-semibold text-slate-900 transition-all">USD ($)</button>
+          <button onclick="setCurrency('PKR')" id="btn-curr-pkr" class="px-2 py-1 rounded-md hover:text-slate-900 transition-all">PKR (Rs)</button>
+          <button onclick="setCurrency('AED')" id="btn-curr-aed" class="px-2 py-1 rounded-md hover:text-slate-900 transition-all">AED</button>
+          <button onclick="setCurrency('SAR')" id="btn-curr-sar" class="px-2 py-1 rounded-md hover:text-slate-900 transition-all">SAR</button>
+          <select onchange="setCurrency(this.value)" id="select-curr-other" class="bg-transparent text-slate-600 font-semibold px-1 py-1 rounded cursor-pointer outline-none border-l border-slate-200 text-[11px]" aria-label="More Currencies">
+            <option value="" disabled selected>More ▾</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="CAD">CAD (CA$)</option>
+            <option value="AUD">AUD (A$)</option>
+          </select>
+        </div>
+
+        <a href="/app/?mode=signin" id="nav-sign-in" class="inline-flex text-sm font-semibold text-slate-700 hover:text-brand-600 px-2 sm:px-3 py-2 transition-colors">
+          Sign In
+        </a>
+
+        <a href="/app/?mode=signup&plan=pro&billing=annual" data-trial-plan="pro" id="nav-start-trial" class="inline-flex items-center justify-center px-4 sm:px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md shadow-brand-600/25 hover:shadow-lg hover:shadow-brand-600/30 transition-all duration-200">
+          <span class="hidden sm:inline">Start 14-Day&nbsp;</span>Free Trial
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="relative pt-12 pb-20 lg:pt-20 lg:pb-32 overflow-hidden bg-gradient-to-b from-sky-50/70 via-white to-slate-50">
+    <!-- Subtle background glows matching Login Page -->
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-sky-200/40 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute top-1/3 -left-24 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="text-center max-w-3xl mx-auto mb-12 lg:mb-16">
+        
+        <!-- Region Badge -->
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200/80 shadow-sm text-xs font-semibold text-slate-600 mb-6">
+          <span class="flex h-2 w-2 rounded-full bg-brand-500"></span>
+          <span>Engineered for Modern Clinics in GCC, Southeast Asia & Worldwide</span>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-dental-navy tracking-tight leading-[1.15]">
+          Dental practice management, <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#0284c7] via-[#0369a1] to-cyan-500">effortless & cloud-native.</span>
+        </h1>
+
+        <!-- Subheadline -->
+        <p class="mt-6 text-lg sm:text-xl text-slate-600 leading-relaxed font-normal">
+          Replace clunky legacy software and complex $400/month subscriptions. Clinsyst delivers interactive adult & pediatric odontograms, 1-click WhatsApp reminders, and multi-chair scheduling from any browser or tablet.
+        </p>
+
+        <!-- CTA Buttons -->
+        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a href="/app/?mode=signup&plan=pro&billing=annual" data-trial-plan="pro" id="hero-start-trial" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-base shadow-lg shadow-brand-600/30 hover:shadow-xl hover:shadow-brand-600/40 hover:-translate-y-0.5 transition-all text-center flex items-center justify-center gap-2">
+            <span>Start Free 14-Day Trial</span>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+          <a href="#odontogram" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-semibold text-base border border-slate-300/80 shadow-sm hover:shadow transition-all text-center flex items-center justify-center gap-2">
+            <svg class="w-5 h-5 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Try Interactive Charting</span>
+          </a>
+        </div>
+
+        <!-- Trust Badges -->
+        <div class="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-500">
+          <span class="flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-brand-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            No credit card required
+          </span>
+          <span class="flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-brand-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            FDI & Universal notation
+          </span>
+          <span class="flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-brand-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+            Free patient data migration
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Hero Dashboard Visual / Interactive Preview Mockup -->
+      <div class="relative max-w-5xl mx-auto">
+        <div class="absolute -inset-1 bg-gradient-to-r from-brand-500 via-sky-500 to-cyan-400 rounded-3xl blur-xl opacity-25"></div>
+        <div class="relative rounded-2xl bg-white border border-slate-200/80 shadow-2xl overflow-hidden">
+          <!-- App Header Mockup -->
+          <div class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between border-b border-slate-800 text-xs">
+            <div class="flex items-center gap-2">
+              <div class="flex gap-1.5">
+                <div class="w-3 h-3 rounded-full bg-rose-500/80"></div>
+                <div class="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                <div class="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+              </div>
+              <span class="text-slate-400 font-mono text-[11px] ml-2">app.clinsyst.com/clinical/charting</span>
+            </div>
+            <div class="flex items-center gap-3 text-slate-300">
+              <span class="bg-slate-800 px-2.5 py-1 rounded text-[11px] font-medium text-emerald-400 flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span> Live Clinic Mode
+              </span>
+              <span class="hidden sm:inline text-slate-400">Dr. Sarah Al-Maktoum (Dental Surgeon)</span>
+            </div>
+          </div>
+
+          <!-- App Body Mockup -->
+          <div class="p-6 bg-slate-50/50">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              
+              <!-- Left Sidebar: Patient & Quick Stats -->
+              <div class="lg:col-span-4 space-y-4">
+                <!-- Patient Card -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-base">
+                      MK
+                    </div>
+                    <div>
+                      <h4 class="text-sm font-bold text-slate-900">Mohammed Khan</h4>
+                      <p class="text-xs text-slate-500">ID: #DX-9241 • Age: 34 • Male</p>
+                    </div>
+                  </div>
+                  <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span class="text-slate-500">Last Visit: 12 days ago</span>
+                    <span class="font-semibold text-sky-700 bg-sky-50 px-2 py-0.5 rounded border border-sky-200">In Chair (Operatory 2)</span>
+                  </div>
+                </div>
+
+                <!-- Quick Treatment Plan Summary -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                  <h5 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Planned Procedures</h5>
+                  <div class="space-y-2 text-xs">
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
+                      <div>
+                        <span class="font-semibold text-slate-800">Tooth 16 (FDI) - Class II Composite</span>
+                        <div class="text-[11px] text-slate-500">MO Surface • Restorative</div>
+                      </div>
+                      <span class="font-bold text-slate-900">$120.00</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 rounded-lg bg-slate-50 border border-slate-100">
+                      <div>
+                        <span class="font-semibold text-slate-800">Full Ultrasonic Scaling & Polish</span>
+                        <div class="text-[11px] text-slate-500">Prophylaxis • Dr. Sarah</div>
+                      </div>
+                      <span class="font-bold text-slate-900">$85.00</span>
+                    </div>
+                  </div>
+                  <button class="mt-3 w-full py-2 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+                    Send Estimate via WhatsApp
+                  </button>
+                </div>
+              </div>
+
+              <!-- Right Area: Interactive Odontogram Snapshot -->
+              <div class="lg:col-span-8 bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div class="flex flex-wrap items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-900 uppercase tracking-wider">Interactive Odontogram Chart</span>
+                    <span class="bg-brand-100 text-brand-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Adult (32 Teeth)</span>
+                  </div>
+                  <div class="flex items-center gap-2 text-xs">
+                    <span class="text-slate-500 font-medium">Notation System:</span>
+                    <span class="font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">FDI Two-Digit</span>
+                  </div>
+                </div>
+
+                <!-- Teeth Grid Preview -->
+                <div class="my-4 space-y-4">
+                  <!-- Maxillary (Upper) -->
+                  <div>
+                    <div class="text-[11px] font-bold text-slate-400 mb-1 text-center uppercase tracking-widest">Maxillary (Upper Arch)</div>
+                    <div class="grid grid-cols-8 sm:grid-cols-16 gap-1 text-center">
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">18</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">17</div>
+                      <div class="tooth-box p-1.5 rounded border-2 border-sky-500 bg-sky-50 text-[11px] font-mono font-bold text-sky-800 shadow-sm">16</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">15</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">14</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">13</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">12</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">11</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">21</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">22</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">23</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">24</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">25</div>
+                      <div class="tooth-box p-1.5 rounded border border-amber-300 bg-amber-50 text-[11px] font-mono font-bold text-amber-800">26</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">27</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">28</div>
+                    </div>
+                  </div>
+
+                  <!-- Mandibular (Lower) -->
+                  <div>
+                    <div class="text-[11px] font-bold text-slate-400 mb-1 text-center uppercase tracking-widest">Mandibular (Lower Arch)</div>
+                    <div class="grid grid-cols-8 sm:grid-cols-16 gap-1 text-center">
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">48</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">47</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">46</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">45</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">44</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">43</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">42</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">41</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">31</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">32</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">33</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">34</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">35</div>
+                      <div class="tooth-box p-1.5 rounded border-2 border-rose-500 bg-rose-50 text-[11px] font-mono font-bold text-rose-800 shadow-sm">36</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">37</div>
+                      <div class="tooth-box p-1.5 rounded border border-slate-200 bg-slate-50 text-[11px] font-mono font-bold text-slate-700">38</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Odontogram Color Legend -->
+                <div class="flex flex-wrap items-center justify-between text-[11px] pt-3 border-t border-slate-100 text-slate-600 gap-2">
+                  <div class="flex items-center gap-3">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-sky-500"></span> Restored</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-rose-500"></span> Caries/Decay</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-500"></span> Crown / Bridge</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-300"></span> Sound</span>
+                  </div>
+                  <span class="text-brand-600 font-semibold">Click any tooth to examine surfaces & history &rarr;</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- International Value Pillars Banner -->
+  <section class="py-12 bg-white border-y border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+        <div class="p-4">
+          <div class="text-3xl font-extrabold text-dental-navy">5 Mins</div>
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-1">Setup Time</div>
+          <p class="text-xs text-slate-500 mt-1">Zero server installs. Log in from any laptop or iPad.</p>
+        </div>
+        <div class="p-4 border-l border-slate-200">
+          <div class="text-3xl font-extrabold text-brand-600">-40%</div>
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-1">No-Show Rate</div>
+          <p class="text-xs text-slate-500 mt-1">Automated WhatsApp reminders patients actually read.</p>
+        </div>
+        <div class="p-4 border-l border-slate-200">
+          <div class="text-3xl font-extrabold text-dental-navy">FDI + Univ</div>
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-1">Dual Charting</div>
+          <p class="text-xs text-slate-500 mt-1">Full support for 11-48 & 1-32 tooth notation.</p>
+        </div>
+        <div class="p-4 border-l border-slate-200">
+          <div class="text-3xl font-extrabold text-dental-sky">1/5th</div>
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-1">The Price</div>
+          <p class="text-xs text-slate-500 mt-1">All features included without $300-$500/mo lock-in.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Dual Odontogram Feature Section -->
+  <section id="odontogram" class="py-20 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-600 mb-2">Next-Gen Clinical Charting</h2>
+        <h3 class="text-3xl sm:text-4xl font-extrabold text-dental-navy tracking-tight">
+          Interactive Dual Odontograms. Adult & Pediatric.
+        </h3>
+        <p class="mt-4 text-base text-slate-600">
+          Effortlessly switch between adult 32-tooth and pediatric 20-tooth charts. Mark surface conditions (Mesial, Distal, Occlusal, Buccal, Lingual) and track treatment progress in real-time.
+        </p>
+
+        <!-- Odontogram Interactive Switcher Controls -->
+        <div class="mt-8 inline-flex flex-wrap items-center justify-center gap-3 p-1.5 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div class="flex items-center rounded-lg bg-slate-100 p-1 text-xs font-semibold">
+            <button id="btn-adult" onclick="setDentition('adult')" class="px-3 py-1.5 rounded-md bg-white text-slate-900 shadow-sm transition-all">Adult (32 Teeth)</button>
+            <button id="btn-pediatric" onclick="setDentition('pediatric')" class="px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition-all">Pediatric (20 Teeth)</button>
+          </div>
+          <div class="h-4 w-px bg-slate-200 hidden sm:block"></div>
+          <div class="flex items-center rounded-lg bg-slate-100 p-1 text-xs font-semibold">
+            <button id="btn-fdi" onclick="setNotation('FDI')" class="px-3 py-1.5 rounded-md bg-white text-brand-700 shadow-sm transition-all">FDI Two-Digit (Int'l)</button>
+            <button id="btn-univ" onclick="setNotation('UNIV')" class="px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition-all">Universal (1-32 / A-T)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Interactive Tooth Explorer Card -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden max-w-4xl mx-auto p-6 sm:p-8">
+        <div class="flex flex-col md:flex-row items-center justify-between pb-6 border-b border-slate-100 gap-4">
+          <div>
+            <div class="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Arch View</div>
+            <div id="arch-label" class="text-lg font-bold text-dental-navy">Permanent Dentition (Adult) • FDI Notation</div>
+          </div>
+          <div class="flex items-center gap-2 text-xs font-medium text-slate-500">
+            <span>Click any tooth to view diagnosis:</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Teeth Display Container -->
+        <div id="teeth-container" class="py-8 space-y-6">
+          <!-- Upper Arch -->
+          <div>
+            <div class="text-xs font-bold text-slate-400 mb-2 text-center uppercase tracking-wider">Upper Arch (Maxillary)</div>
+            <div id="upper-teeth" class="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Lower Arch -->
+          <div>
+            <div class="text-xs font-bold text-slate-400 mb-2 text-center uppercase tracking-wider">Lower Arch (Mandibular)</div>
+            <div id="lower-teeth" class="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Tooth Detail Inspector Panel -->
+        <div id="tooth-inspector" class="p-4 rounded-xl bg-slate-50 border border-slate-200 mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <div id="insp-number" class="w-12 h-12 rounded-xl bg-brand-600 text-white flex items-center justify-center font-mono font-bold text-lg shadow-md">
+              16
+            </div>
+            <div>
+              <div id="insp-title" class="text-sm font-bold text-slate-900">Maxillary Right First Molar</div>
+              <div id="insp-desc" class="text-xs text-slate-500">Condition: Class II Occlusal Composite • Restored 2026-08-14</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold px-2.5 py-1 rounded bg-brand-100 text-brand-800 border border-brand-200">Treatment Complete</span>
+            <button class="text-xs font-semibold text-brand-600 hover:text-brand-700 underline">View History</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature 2: WhatsApp & Automated Patient Workflows -->
+  <section id="whatsapp" class="py-20 bg-white border-t border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <div class="lg:col-span-6 space-y-6">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
+            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z"/></svg>
+            Automated WhatsApp Patient Communications
+          </div>
+          <h3 class="text-3xl sm:text-4xl font-extrabold text-dental-navy tracking-tight leading-tight">
+            Cut patient no-shows in half with instant WhatsApp reminders.
+          </h3>
+          <p class="text-slate-600 text-base leading-relaxed">
+            In modern private practice across Dubai, Kuala Lumpur, and global hubs, SMS is frequently ignored. Clinsyst automates 24-hour and 2-hour appointment reminders directly through WhatsApp with 1-click confirmation buttons.
+          </p>
+
+          <ul class="space-y-3.5 text-sm text-slate-700">
+            <li class="flex items-start gap-3">
+              <div class="w-5 h-5 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <span><strong>Instant Digital Prescriptions:</strong> Send custom-branded PDF prescription slips with dosage regimens directly to patient phones upon discharge.</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="w-5 h-5 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <span><strong>Itemized Invoices & Payment Links:</strong> Deliver official tax invoices with clinic license numbers and online payment triggers.</span>
+            </li>
+            <li class="flex items-start gap-3">
+              <div class="w-5 h-5 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <span><strong>Automated Post-Op Followups:</strong> Scheduled check-in messages after tooth extractions, implants, or root canals.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- WhatsApp Chat Simulation UI -->
+        <div class="lg:col-span-6 max-w-md mx-auto w-full">
+          <div class="rounded-3xl bg-slate-900 p-3 shadow-2xl border-4 border-slate-800">
+            <!-- Phone Notch / Bar -->
+            <div class="bg-emerald-700 text-white px-4 py-3 rounded-t-2xl flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-full bg-white text-emerald-800 font-bold flex items-center justify-center text-xs">
+                  DC
+                </div>
+                <div>
+                  <div class="font-bold text-sm leading-none">Apex Dental Clinic</div>
+                  <div class="text-[10px] text-emerald-200 mt-0.5">Official WhatsApp Business • Verified</div>
+                </div>
+              </div>
+              <span class="text-[11px] text-emerald-200">10:42 AM</span>
+            </div>
+
+            <!-- WhatsApp Message Stream -->
+            <div class="bg-[#efeae2] p-4 rounded-b-2xl space-y-3 min-h-[360px] text-xs">
+              <!-- Clinic Bubble 1 -->
+              <div class="bg-white p-3 rounded-xl rounded-tl-none shadow-sm max-w-[85%] text-slate-800 space-y-1.5">
+                <p class="font-semibold text-emerald-800">Apex Dental Clinic</p>
+                <p>Hello Mr. Mohammed, this is a reminder for your dental appointment tomorrow at <strong>2:30 PM</strong> with Dr. Sarah Al-Maktoum.</p>
+                <div class="bg-slate-50 p-2 rounded border border-slate-200 text-[11px]">
+                  <div class="font-semibold text-slate-700">Procedure: Class II Restoration (Tooth 16)</div>
+                  <div class="text-slate-500">Location: Suite 402, Al-Razi Medical Complex</div>
+                </div>
+                <div class="text-[10px] text-slate-400 text-right">10:40 AM ✓✓</div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="space-y-1.5 max-w-[85%]">
+                <div class="bg-white text-emerald-700 font-bold text-center py-2 rounded-lg shadow-sm border border-slate-200">
+                  ✓ Confirm My Appointment
+                </div>
+                <div class="bg-white text-rose-600 font-medium text-center py-2 rounded-lg shadow-sm border border-slate-200">
+                  Reschedule / Cancel
+                </div>
+              </div>
+
+              <!-- Patient Reply -->
+              <div class="ml-auto bg-[#d9fdd3] p-3 rounded-xl rounded-tr-none shadow-sm max-w-[80%] text-slate-800">
+                <p>Confirmed! I will be there at 2:30 PM.</p>
+                <div class="text-[10px] text-emerald-800/60 text-right mt-1">10:41 AM ✓✓</div>
+              </div>
+
+              <!-- Clinsyst Auto Status Update Notification -->
+              <div class="bg-white/80 backdrop-blur border border-emerald-200 text-emerald-800 p-2 rounded text-[11px] text-center font-medium">
+                ⚡ Clinsyst Live Sync: Status updated to <strong>"Confirmed"</strong> in Clinic Calendar
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Complete Suite Features Grid -->
+  <section id="features" class="py-20 bg-slate-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-600 mb-2">Unified Platform</h2>
+        <h3 class="text-3xl sm:text-4xl font-extrabold text-dental-navy tracking-tight">
+          Everything required to operate a profitable dental clinic.
+        </h3>
+        <p class="mt-4 text-slate-600">
+          From patient check-in to clinical charting, medication dispensing, and revenue analytics.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div class="w-12 h-12 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          </div>
+          <h4 class="text-lg font-bold text-dental-navy mb-2">Multi-Chair Calendar & Queues</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Filter by doctor, treatment chair, or operatory room. Track patient journey across <em>Scheduled</em>, <em>Checked-in</em>, <em>In-Chair</em>, and <em>Completed</em>.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          </div>
+          <h4 class="text-lg font-bold text-dental-navy mb-2">Digital Prescriptions & Slips</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Pre-loaded drug regimens with dosage, frequency, and duration. Generate beautifully branded PDF slips with clinic license numbers and digital signatures.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+          </div>
+          <h4 class="text-lg font-bold text-dental-navy mb-2">Dental Inventory & Batch Expiry</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Track composites, anesthetics, and surgical stock by batch number and expiration date. Get automated alerts before clinical supplies run out.
+          </p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div class="w-12 h-12 rounded-xl bg-cyan-100 text-cyan-700 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+          </div>
+          <h4 class="text-lg font-bold text-dental-navy mb-2">Multi-Currency Invoicing & Tax</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Itemized invoices supporting USD, AED, SAR, and local currencies. Configurable tax rates (e.g. 5% UAE VAT) and instant payment reconciliation.
+          </p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          </div>
+          <h4 class="text-lg font-bold text-dental-navy mb-2">Role-Based Access Control</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Tailored permissions for Principal Dentists, Associate Doctors, Dental Hygienists, Clinic Managers, and Front Desk staff to protect clinical and financial data.
+          </p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center mb-5">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <h4 class="text-lg font-bold text-dental-navy mb-2">Practice Revenue Analytics</h4>
+          <p class="text-sm text-slate-600 leading-relaxed">
+            Track doctor productivity, chair occupancy rates, procedure revenue breakdowns, and collection rates with exportable audit reports.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section (Tailored for International Expansion) -->
+  <section id="pricing" class="py-24 bg-white border-t border-slate-200 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-600 mb-2">Transparent Global Pricing</h2>
+        <h3 class="text-3xl sm:text-5xl font-extrabold text-dental-navy tracking-tight">
+          Predictable plans for modern practices.
+        </h3>
+        <p class="mt-4 text-base text-slate-600">
+          No surprise setup fees. No mandatory expensive training packages. Start your 14-day free trial in under 2 minutes.
+        </p>
+
+        <!-- Billing Toggle -->
+        <div class="mt-8 flex items-center justify-center gap-3">
+          <span id="label-monthly" class="text-sm font-semibold text-slate-900">Monthly Billing</span>
+          <button onclick="toggleBilling()" id="billing-toggle" class="w-14 h-8 rounded-full bg-brand-600 p-1 transition-colors relative flex items-center">
+            <div id="toggle-knob" class="w-6 h-6 rounded-full bg-white shadow-md transform translate-x-6 transition-transform"></div>
+          </button>
+          <span id="label-annual" class="text-sm font-semibold text-brand-700 flex items-center gap-1">
+            Annual Billing
+            <span class="bg-brand-100 text-brand-800 text-[11px] font-bold px-2 py-0.5 rounded-full">Save 20%</span>
+          </span>
+        </div>
+
+        <!-- IP Geolocation indicator pill -->
+        <div id="geo-location-pill" class="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 text-sky-800 text-xs font-semibold border border-sky-200 shadow-xs">
+          <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+          <span id="geo-location-text">Detecting local regional pricing via IP...</span>
+        </div>
+      </div>
+
+      <!-- Pricing Cards Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
+        
+        <!-- Plan 1: Starter -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-8 flex flex-col justify-between hover:shadow-lg transition-all duration-200">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Solo Practice</div>
+            <h4 class="text-2xl font-bold text-dental-navy mt-1">Starter</h4>
+            <p class="text-xs text-slate-500 mt-2">Perfect for solo dentists and single-operatory clinics starting digital charting.</p>
+
+            <div class="mt-6 flex items-baseline gap-1">
+              <span class="text-4xl font-extrabold text-dental-navy" id="price-starter">$24</span>
+              <span class="text-sm font-medium text-slate-500" id="period-starter">/ month</span>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-1" id="annual-note-starter">Billed annually ($288/year)</div>
+
+            <ul class="mt-8 space-y-3.5 text-xs text-slate-700">
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span><strong>1 Doctor Seat</strong> + 2 Front Desk Seats</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Full Adult & Pediatric Odontograms (FDI/Univ)</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Patient Appointment Calendar</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Standard Invoicing & Prescription Slips</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Email Support & Data Backups</span>
+              </li>
+            </ul>
+          </div>
+
+          <a href="/app/?mode=signup&plan=starter&billing=annual" data-trial-plan="starter" id="pricing-trial-starter" class="mt-8 w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs text-center transition">
+            Start 14-Day Free Trial
+          </a>
+        </div>
+
+        <!-- Plan 2: Pro (Most Popular) -->
+        <div class="rounded-2xl border-2 border-brand-600 bg-white p-8 flex flex-col justify-between shadow-xl relative scale-105 z-10">
+          <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-brand-600 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+            Most Popular for Private Clinics
+          </div>
+
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-brand-600">Growing Practice</div>
+            <h4 class="text-2xl font-bold text-dental-navy mt-1">Pro Clinical</h4>
+            <p class="text-xs text-slate-500 mt-2">The complete operating system for modern 2–4 chair dental clinics.</p>
+
+            <div class="mt-6 flex items-baseline gap-1">
+              <span class="text-4xl font-extrabold text-dental-navy" id="price-pro">$64</span>
+              <span class="text-sm font-medium text-slate-500" id="period-pro">/ month</span>
+            </div>
+            <div class="text-[11px] text-brand-700 font-medium mt-1" id="annual-note-pro">Billed annually ($768/year)</div>
+
+            <ul class="mt-8 space-y-3.5 text-xs text-slate-700">
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span><strong>Up to 5 Total Staff Seats</strong> (Dentists + Front Desk)</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span><strong>Automated WhatsApp</strong> Reminders & Slips</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Dental Inventory & Batch Expiry Tracking</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Clinic Custom Branding (Logos & License Headers)</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Financial Analytics & Doctor Productivity Reports</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span><strong>Free White-Glove Data Migration</strong> from Excel</span>
+              </li>
+            </ul>
+          </div>
+
+          <a href="/app/?mode=signup&plan=pro&billing=annual" data-trial-plan="pro" id="pricing-trial-pro" class="mt-8 w-full py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs text-center shadow-lg shadow-brand-600/30 transition">
+            Start 14-Day Free Trial
+          </a>
+        </div>
+
+        <!-- Plan 3: Enterprise / Multi-Branch -->
+        <div class="rounded-2xl border border-slate-200 bg-white p-8 flex flex-col justify-between hover:shadow-lg transition-all duration-200">
+          <div>
+            <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Clinic Group</div>
+            <h4 class="text-2xl font-bold text-dental-navy mt-1">Network Group</h4>
+            <p class="text-xs text-slate-500 mt-2">For multi-branch dental healthcare centers and high-volume specialty clinics.</p>
+
+            <div class="mt-6 flex items-baseline gap-1">
+              <span class="text-4xl font-extrabold text-dental-navy" id="price-ent">$119</span>
+              <span class="text-sm font-medium text-slate-500" id="period-ent">/ month</span>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-1" id="annual-note-ent">Billed annually ($1,428/year)</div>
+
+            <ul class="mt-8 space-y-3.5 text-xs text-slate-700">
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span><strong>Up to 25 Staff Seats</strong> Across Branches</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Multi-Location Centralized Dashboard</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Inter-Branch Stock Transfers</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Dedicated Account Manager & SLA Guarantee</span>
+              </li>
+              <li class="flex items-center gap-2.5">
+                <svg class="w-4 h-4 text-brand-600 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Custom API & Regional Compliance Export</span>
+              </li>
+            </ul>
+          </div>
+
+          <a href="https://clinsyst.com/contact" class="mt-8 w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs text-center transition">
+            Contact Enterprise Sales
+          </a>
+        </div>
+
+      </div>
+
+      <!-- Trust Footer Note with Fast Currency Switcher -->
+      <div class="mt-12 text-center text-xs text-slate-500">
+        * Viewing regional pricing? Switch anytime: 
+        <button onclick="setCurrency('PKR')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">PKR (Pakistan)</button> • 
+        <button onclick="setCurrency('AED')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">AED (UAE)</button> • 
+        <button onclick="setCurrency('SAR')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">SAR (Saudi)</button> • 
+        <button onclick="setCurrency('USD')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">USD ($)</button> • 
+        <button onclick="setCurrency('GBP')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">GBP (£)</button> • 
+        <button onclick="setCurrency('EUR')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">EUR (€)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- International Clinic Testimonials / Social Proof -->
+  <section class="py-20 bg-slate-50 border-t border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-16">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-brand-600 mb-2">Practitioner Experiences</h3>
+        <h4 class="text-3xl font-extrabold text-dental-navy">Built for dentists who value speed & simplicity.</h4>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Testimonial 1 -->
+        <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <p class="text-sm text-slate-600 leading-relaxed italic">
+            "We switched from an outdated on-premise Windows server system. Clinsyst's FDI charting is clean, and the automated WhatsApp reminders immediately eliminated our afternoon no-shows."
+          </p>
+          <div class="mt-6 flex items-center gap-3 pt-4 border-t border-slate-100">
+            <div class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm">
+              TA
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-900">Dr. Tariq Al-Mansoor</div>
+              <div class="text-[11px] text-slate-500">Cosmetic Dental Studio • Dubai, UAE</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Testimonial 2 -->
+        <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <p class="text-sm text-slate-600 leading-relaxed italic">
+            "Having pediatric charting together with adult 32-tooth odontograms in one web app has made our family clinic significantly faster. And setup took less than 15 minutes."
+          </p>
+          <div class="mt-6 flex items-center gap-3 pt-4 border-t border-slate-100">
+            <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-sm">
+              KL
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-900">Dr. Kimberly Lim</div>
+              <div class="text-[11px] text-slate-500">Smiles Dental Practice • Kuala Lumpur</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Testimonial 3 -->
+        <div class="bg-white p-7 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+          <p class="text-sm text-slate-600 leading-relaxed italic">
+            "Other dental cloud platforms wanted $350 per month plus an upfront training charge. Clinsyst gave us everything we needed with zero friction at a fair monthly rate."
+          </p>
+          <div class="mt-6 flex items-center gap-3 pt-4 border-t border-slate-100">
+            <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
+              RA
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-900">Dr. Rania Al-Sayed</div>
+              <div class="text-[11px] text-slate-500">Dental Care Clinic • Doha, Qatar</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section id="faq" class="py-20 bg-white border-t border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-600 mb-2">Got Questions?</h2>
+        <h3 class="text-3xl font-extrabold text-dental-navy">Frequently Asked Questions</h3>
+      </div>
+
+      <div class="space-y-4">
+        <!-- Q1 -->
+        <details class="group bg-slate-50 rounded-xl p-5 border border-slate-200 open:bg-white open:shadow-sm transition-all">
+          <summary class="flex justify-between items-center font-bold text-slate-900 text-sm cursor-pointer list-none">
+            <span>Can I switch between FDI (11–48) and Universal (1–32) tooth notation?</span>
+            <span class="transition group-open:rotate-180">
+              <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </span>
+          </summary>
+          <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+            Yes. In your Clinic Settings, you can set the default notation system to FDI Two-Digit (widely used in the UK, Middle East, Australia, and Asia), Universal Numbering System (standard in North America), or Palmer notation. Individual practitioners can also toggle their preferred view at any time.
+          </p>
+        </details>
+
+        <!-- Q2 -->
+        <details class="group bg-slate-50 rounded-xl p-5 border border-slate-200 open:bg-white open:shadow-sm transition-all">
+          <summary class="flex justify-between items-center font-bold text-slate-900 text-sm cursor-pointer list-none">
+            <span>How does the WhatsApp appointment reminder integration work?</span>
+            <span class="transition group-open:rotate-180">
+              <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </span>
+          </summary>
+          <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+            Clinsyst connects to the official WhatsApp Business Cloud API. When an appointment is scheduled or confirmed, automated interactive messages with 1-click confirmation or rescheduling buttons are delivered directly to the patient's phone. When they reply, their status in your Clinsyst appointment calendar updates automatically.
+          </p>
+        </details>
+
+        <!-- Q3 -->
+        <details class="group bg-slate-50 rounded-xl p-5 border border-slate-200 open:bg-white open:shadow-sm transition-all">
+          <summary class="flex justify-between items-center font-bold text-slate-900 text-sm cursor-pointer list-none">
+            <span>Can we import our existing patient list and records from Excel?</span>
+            <span class="transition group-open:rotate-180">
+              <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </span>
+          </summary>
+          <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+            Yes. You can import patients, historical balances, and inventory spreadsheets via our 1-click CSV importer. On the Pro and Network plans, our customer engineering team provides free, white-glove migration assistance to help transfer your data with zero downtime.
+          </p>
+        </details>
+
+        <!-- Q4 -->
+        <details class="group bg-slate-50 rounded-xl p-5 border border-slate-200 open:bg-white open:shadow-sm transition-all">
+          <summary class="flex justify-between items-center font-bold text-slate-900 text-sm cursor-pointer list-none">
+            <span>Do we need to install servers or purchase specialized hardware?</span>
+            <span class="transition group-open:rotate-180">
+              <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </span>
+          </summary>
+          <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+            No. Clinsyst runs 100% in the cloud. It works smoothly across modern web browsers on Windows PCs, Macs, iPads, and Android tablets. There are no software updates to run or local database backups to manage.
+          </p>
+        </details>
+
+        <!-- Q5 -->
+        <details class="group bg-slate-50 rounded-xl p-5 border border-slate-200 open:bg-white open:shadow-sm transition-all">
+          <summary class="flex justify-between items-center font-bold text-slate-900 text-sm cursor-pointer list-none">
+            <span>What happens after the 14-day free trial?</span>
+            <span class="transition group-open:rotate-180">
+              <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </span>
+          </summary>
+          <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+            You can test all Pro features for 14 days without entering a credit card. At the end of the trial, you can choose the plan that best fits your clinic. If you decide not to continue, your clinical records remain exportable.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA Bar -->
+  <section class="py-20 text-white text-center relative overflow-hidden" style="background: radial-gradient(ellipse at 20% 20%, #0284c7 0%, #0369a1 35%, #075985 75%, #0c4a6e 100%)">
+    <!-- Login page matching background glows -->
+    <div class="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-sky-950/40 text-sky-200 text-xs font-semibold mb-4 border border-sky-400/30">
+        <svg class="w-3.5 h-3.5 text-sky-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <span>Built for Modern Dental & Medical Practices</span>
+      </div>
+
+      <h3 class="text-3xl sm:text-5xl font-extrabold tracking-tight">
+        Modernize your dental practice today.
+      </h3>
+      <p class="mt-4 text-sky-100 text-base max-w-2xl mx-auto leading-relaxed">
+        Join dentists across UAE, Southeast Asia, and around the world who run modern, paperless clinics with Clinsyst.
+      </p>
+
+      <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="/app/?mode=signup&plan=pro&billing=annual" data-trial-plan="pro" id="cta-start-trial" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-white hover:bg-sky-50 text-[#0284c7] font-bold text-base shadow-xl hover:-translate-y-0.5 transition-all">
+          Start 14-Day Free Trial
+        </a>
+        <a href="https://clinsyst.com/contact" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-base border border-white/25 backdrop-blur-sm transition">
+          Schedule a 15-Min Live Demo
+        </a>
+      </div>
+
+      <div class="mt-6 text-xs text-sky-200/90">
+        Questions? Chat with our clinical support team: <span class="text-white font-semibold">support@clinsyst.com</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-[#082f49] text-slate-400 py-12 text-xs border-t border-sky-950/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-3">
+        <div class="w-7 h-7 rounded-lg bg-[#0284c7] text-white flex items-center justify-center font-bold text-xs shadow-sm border border-white/20">
+          C
+        </div>
+        <span class="font-bold text-white text-sm">Clinsyst Dental Cloud</span>
+        <span class="text-slate-600">|</span>
+        <span>© 2026 Clinsyst Technologies. All rights reserved.</span>
+      </div>
+
+      <div class="flex items-center gap-6">
+        <a href="#features" class="hover:text-white transition">Features</a>
+        <a href="#odontogram" class="hover:text-white transition">Odontogram</a>
+        <a href="#pricing" class="hover:text-white transition">Global Pricing</a>
+        <a href="/app/?mode=signin" id="footer-sign-in" class="hover:text-white transition">Sign In</a>
+        <a href="https://clinsyst.com/privacy" class="hover:text-white transition">Privacy & Security</a>
+        <a href="https://clinsyst.com/terms" class="hover:text-white transition">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Interactive JavaScript Engine -->
+  <script>
+    // State management
+    let state = {
+      dentition: 'adult',    // 'adult' or 'pediatric'
+      notation: 'FDI',       // 'FDI' or 'UNIV'
+      billing: 'annual',     // 'annual' or 'monthly'
+      currency: 'USD'        // 'USD', 'AED', 'SAR'
+    };
+
+    const teethData = {
+      adult: {
+        upper: [
+          { fdi: '18', univ: '1', name: 'Maxillary Right Third Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '17', univ: '2', name: 'Maxillary Right Second Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '16', univ: '3', name: 'Maxillary Right First Molar', status: 'Restored (MO Composite)', color: 'border-2 border-sky-500 bg-sky-50 text-sky-800 font-bold' },
+          { fdi: '15', univ: '4', name: 'Maxillary Right Second Premolar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '14', univ: '5', name: 'Maxillary Right First Premolar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '13', univ: '6', name: 'Maxillary Right Canine', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '12', univ: '7', name: 'Maxillary Right Lateral Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '11', univ: '8', name: 'Maxillary Right Central Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '21', univ: '9', name: 'Maxillary Left Central Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '22', univ: '10', name: 'Maxillary Left Lateral Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '23', univ: '11', name: 'Maxillary Left Canine', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '24', univ: '12', name: 'Maxillary Left First Premolar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '25', univ: '13', name: 'Maxillary Left Second Premolar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '26', univ: '14', name: 'Maxillary Left First Molar', status: 'Crown Indicated', color: 'border border-amber-300 bg-amber-50 text-amber-800' },
+          { fdi: '27', univ: '15', name: 'Maxillary Left Second Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '28', univ: '16', name: 'Maxillary Left Third Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' }
+        ],
+        lower: [
+          { fdi: '48', univ: '32', name: 'Mandibular Right Third Molar', status: 'Impacted', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '47', univ: '31', name: 'Mandibular Right Second Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '46', univ: '30', name: 'Mandibular Right First Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '45', univ: '29', name: 'Mandibular Right Second Premolar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '44', univ: '28', name: 'Mandibular Right First Premolar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '43', univ: '27', name: 'Mandibular Right Canine', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '42', univ: '26', name: 'Mandibular Right Lateral Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '41', univ: '25', name: 'Mandibular Right Central Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '31', univ: '24', name: 'Mandibular Left Central Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '32', univ: '23', name: 'Mandibular Left Lateral Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '33', univ: '22', name: 'Mandibular Left Canine', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '34', univ: '21', name: 'Mandibular Left First Premolar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '35', univ: '20', name: 'Mandibular Left Second Premolar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '36', univ: '19', name: 'Mandibular Left First Molar', status: 'Deep Caries (Needs RCT)', color: 'border-2 border-rose-500 bg-rose-50 text-rose-800 font-bold' },
+          { fdi: '37', univ: '18', name: 'Mandibular Left Second Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '38', univ: '17', name: 'Mandibular Left Third Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' }
+        ]
+      },
+      pediatric: {
+        upper: [
+          { fdi: '55', univ: 'A', name: 'Primary Maxillary Right Second Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '54', univ: 'B', name: 'Primary Maxillary Right First Molar', status: 'Restored (Pulpotomy + SSC)', color: 'border-2 border-sky-500 bg-sky-50 text-sky-800 font-bold' },
+          { fdi: '53', univ: 'C', name: 'Primary Maxillary Right Canine', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '52', univ: 'D', name: 'Primary Maxillary Right Lateral Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '51', univ: 'E', name: 'Primary Maxillary Right Central Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '61', univ: 'F', name: 'Primary Maxillary Left Central Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '62', univ: 'G', name: 'Primary Maxillary Left Lateral Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '63', univ: 'H', name: 'Primary Maxillary Left Canine', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '64', univ: 'I', name: 'Primary Maxillary Left First Molar', status: 'Caries Indicated', color: 'border-2 border-rose-500 bg-rose-50 text-rose-800' },
+          { fdi: '65', univ: 'J', name: 'Primary Maxillary Left Second Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' }
+        ],
+        lower: [
+          { fdi: '85', univ: 'T', name: 'Primary Mandibular Right Second Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '84', univ: 'S', name: 'Primary Mandibular Right First Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '83', univ: 'R', name: 'Primary Mandibular Right Canine', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '82', univ: 'Q', name: 'Primary Mandibular Right Lateral Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '81', univ: 'P', name: 'Primary Mandibular Right Central Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '71', univ: 'O', name: 'Primary Mandibular Left Central Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '72', univ: 'N', name: 'Primary Mandibular Left Lateral Incisor', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '73', univ: 'M', name: 'Primary Mandibular Left Canine', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '74', univ: 'L', name: 'Primary Mandibular Left First Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' },
+          { fdi: '75', univ: 'K', name: 'Primary Mandibular Left Second Molar', status: 'Sound', color: 'border-slate-200 bg-slate-50 text-slate-700' }
+        ]
+      }
+    };
+
+    function renderOdontogram() {
+      const data = teethData[state.dentition];
+      const upperEl = document.getElementById('upper-teeth');
+      const lowerEl = document.getElementById('lower-teeth');
+      
+      const archLabel = document.getElementById('arch-label');
+      archLabel.textContent = (state.dentition === 'adult' ? 'Permanent Dentition (Adult)' : 'Primary Dentition (Pediatric)') + ' • ' + (state.notation === 'FDI' ? 'FDI Two-Digit Notation' : 'Universal Numbering');
+
+      upperEl.innerHTML = '';
+      lowerEl.innerHTML = '';
+
+      const makeToothBtn = (item) => {
+        const num = state.notation === 'FDI' ? item.fdi : item.univ;
+        const btn = document.createElement('button');
+        btn.className = 'tooth-box w-9 h-11 sm:w-11 sm:h-13 rounded-lg border flex flex-col items-center justify-center font-mono font-bold text-xs sm:text-sm cursor-pointer ' + item.color;
+        btn.innerHTML = '<span>' + num + '</span>';
+        btn.onclick = () => selectTooth(item, num);
+        return btn;
+      };
+
+      data.upper.forEach(item => upperEl.appendChild(makeToothBtn(item)));
+      data.lower.forEach(item => lowerEl.appendChild(makeToothBtn(item)));
+    }
+
+    function selectTooth(item, num) {
+      document.getElementById('insp-number').textContent = num;
+      document.getElementById('insp-title').textContent = item.name;
+      document.getElementById('insp-desc').textContent = 'Condition: ' + item.status;
+    }
+
+    function setDentition(type) {
+      state.dentition = type;
+      document.getElementById('btn-adult').className = type === 'adult' ? 'px-3 py-1.5 rounded-md bg-white text-slate-900 shadow-sm transition-all' : 'px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition-all';
+      document.getElementById('btn-pediatric').className = type === 'pediatric' ? 'px-3 py-1.5 rounded-md bg-white text-slate-900 shadow-sm transition-all' : 'px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition-all';
+      renderOdontogram();
+    }
+
+    function setNotation(notation) {
+      state.notation = notation;
+      document.getElementById('btn-fdi').className = notation === 'FDI' ? 'px-3 py-1.5 rounded-md bg-white text-brand-700 shadow-sm transition-all' : 'px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition-all';
+      document.getElementById('btn-univ').className = notation === 'UNIV' ? 'px-3 py-1.5 rounded-md bg-white text-brand-700 shadow-sm transition-all' : 'px-3 py-1.5 rounded-md text-slate-600 hover:text-slate-900 transition-all';
+      renderOdontogram();
+    }
+
+    // Multi-Currency Pricing Table (Synced with Clinsyst International Standards)
+    const pricingRates = {
+      USD: { starter: { monthly: 29, annual: 24, totalAnnual: 288, sym: '$' }, pro: { monthly: 79, annual: 64, totalAnnual: 768, sym: '$' }, ent: { monthly: 149, annual: 119, totalAnnual: 1428, sym: '$' }, country: 'United States', flag: '🇺🇸' },
+      PKR: { starter: { monthly: 1799, annual: 1499, totalAnnual: 17988, sym: 'Rs. ' }, pro: { monthly: 3499, annual: 2899, totalAnnual: 34788, sym: 'Rs. ' }, ent: { monthly: 5999, annual: 4999, totalAnnual: 59988, sym: 'Rs. ' }, country: 'Pakistan', flag: '🇵🇰' },
+      AED: { starter: { monthly: 109, annual: 89, totalAnnual: 1068, sym: 'AED ' }, pro: { monthly: 289, annual: 235, totalAnnual: 2820, sym: 'AED ' }, ent: { monthly: 549, annual: 439, totalAnnual: 5268, sym: 'AED ' }, country: 'United Arab Emirates', flag: '🇦🇪' },
+      SAR: { starter: { monthly: 110, annual: 90, totalAnnual: 1080, sym: 'SAR ' }, pro: { monthly: 295, annual: 240, totalAnnual: 2880, sym: 'SAR ' }, ent: { monthly: 560, annual: 449, totalAnnual: 5388, sym: 'SAR ' }, country: 'Saudi Arabia', flag: '🇸🇦' },
+      GBP: { starter: { monthly: 24, annual: 19, totalAnnual: 228, sym: '£' }, pro: { monthly: 64, annual: 52, totalAnnual: 624, sym: '£' }, ent: { monthly: 129, annual: 99, totalAnnual: 1188, sym: '£' }, country: 'United Kingdom', flag: '🇬🇧' },
+      EUR: { starter: { monthly: 28, annual: 22, totalAnnual: 264, sym: '€' }, pro: { monthly: 72, annual: 59, totalAnnual: 708, sym: '€' }, ent: { monthly: 139, annual: 109, totalAnnual: 1308, sym: '€' }, country: 'European Union', flag: '🇪🇺' },
+      CAD: { starter: { monthly: 39, annual: 32, totalAnnual: 384, sym: 'CA$' }, pro: { monthly: 105, annual: 86, totalAnnual: 1032, sym: 'CA$' }, ent: { monthly: 199, annual: 159, totalAnnual: 1908, sym: 'CA$' }, country: 'Canada', flag: '🇨🇦' },
+      AUD: { starter: { monthly: 45, annual: 36, totalAnnual: 432, sym: 'A$' }, pro: { monthly: 119, annual: 96, totalAnnual: 1152, sym: 'A$' }, ent: { monthly: 225, annual: 179, totalAnnual: 2148, sym: 'A$' }, country: 'Australia', flag: '🇦🇺' }
+    };
+
+    const COUNTRY_TO_CURRENCY = {
+      PK: 'PKR',
+      AE: 'AED',
+      SA: 'SAR',
+      GB: 'GBP',
+      CA: 'CAD',
+      AU: 'AUD',
+      NZ: 'AUD',
+      DE: 'EUR', FR: 'EUR', IT: 'EUR', ES: 'EUR', NL: 'EUR',
+      BE: 'EUR', AT: 'EUR', IE: 'EUR', PT: 'EUR', FI: 'EUR',
+      GR: 'EUR', LU: 'EUR', CY: 'EUR', MT: 'EUR', SK: 'EUR',
+      SI: 'EUR', EE: 'EUR', LV: 'EUR', LT: 'EUR'
+    };
+
+    const COUNTRY_NAMES = {
+      PK: 'Pakistan',
+      AE: 'United Arab Emirates',
+      SA: 'Saudi Arabia',
+      GB: 'United Kingdom',
+      CA: 'Canada',
+      AU: 'Australia',
+      NZ: 'New Zealand',
+      US: 'United States',
+      DE: 'Germany',
+      FR: 'France',
+      IT: 'Italy',
+      ES: 'Spain',
+      NL: 'Netherlands'
+    };
+
+    function formatPrice(num, sym) {
+      return sym + Number(num).toLocaleString();
+    }
+
+    // Keep every "Start 14-Day Free Trial" link pointed at the React app's signup form
+    // with the chosen plan, billing cycle, and localized currency pre-selected.
+    const APP_URL = '/app/';
+    function updateTrialLinks() {
+      document.querySelectorAll('[data-trial-plan]').forEach(link => {
+        const params = new URLSearchParams({
+          mode: 'signup',
+          plan: link.getAttribute('data-trial-plan') || 'pro',
+          billing: state.billing,
+          currency: state.currency
+        });
+        link.setAttribute('href', APP_URL + '?' + params.toString());
+      });
+    }
+
+    function updatePricingDisplay() {
+      updateTrialLinks();
+      const p = pricingRates[state.currency] || pricingRates.USD;
+      const isAnn = state.billing === 'annual';
+
+      const starterRate = isAnn ? p.starter.annual : p.starter.monthly;
+      const proRate = isAnn ? p.pro.annual : p.pro.monthly;
+      const entRate = isAnn ? p.ent.annual : p.ent.monthly;
+
+      document.getElementById('price-starter').textContent = formatPrice(starterRate, p.starter.sym);
+      document.getElementById('period-starter').textContent = '/ month';
+      document.getElementById('annual-note-starter').textContent = isAnn 
+        ? 'Billed annually (' + formatPrice(p.starter.totalAnnual, p.starter.sym) + '/year)' 
+        : 'Billed monthly';
+
+      document.getElementById('price-pro').textContent = formatPrice(proRate, p.pro.sym);
+      document.getElementById('period-pro').textContent = '/ month';
+      document.getElementById('annual-note-pro').textContent = isAnn 
+        ? 'Billed annually (' + formatPrice(p.pro.totalAnnual, p.pro.sym) + '/year)' 
+        : 'Billed monthly';
+
+      document.getElementById('price-ent').textContent = formatPrice(entRate, p.ent.sym);
+      document.getElementById('period-ent').textContent = '/ month';
+      document.getElementById('annual-note-ent').textContent = isAnn 
+        ? 'Billed annually (' + formatPrice(p.ent.totalAnnual, p.ent.sym) + '/year)' 
+        : 'Billed monthly';
+    }
+
+    function toggleBilling() {
+      state.billing = state.billing === 'annual' ? 'monthly' : 'annual';
+      const knob = document.getElementById('toggle-knob');
+      const lMonthly = document.getElementById('label-monthly');
+      const lAnnual = document.getElementById('label-annual');
+
+      if (state.billing === 'annual') {
+        knob.style.transform = 'translateX(24px)';
+        lAnnual.className = 'text-sm font-semibold text-brand-700 flex items-center gap-1';
+        lMonthly.className = 'text-sm font-medium text-slate-500';
+      } else {
+        knob.style.transform = 'translateX(0px)';
+        lMonthly.className = 'text-sm font-semibold text-slate-900';
+        lAnnual.className = 'text-sm font-medium text-slate-500 flex items-center gap-1';
+      }
+      updatePricingDisplay();
+    }
+
+    function setCurrency(curr, isManual = true, detectionSource = '', countryName = '') {
+      if (!pricingRates[curr]) curr = 'USD';
+      state.currency = curr;
+
+      if (isManual) {
+        try {
+          localStorage.setItem('clinsyst_manual_currency', curr);
+        } catch (e) {}
+      }
+
+      // Update prominent header buttons
+      ['usd', 'pkr', 'aed', 'sar'].forEach(c => {
+        const btn = document.getElementById('btn-curr-' + c);
+        if (!btn) return;
+        if (c.toUpperCase() === curr) {
+          btn.className = 'px-2 py-1 rounded-md bg-white shadow-sm font-semibold text-slate-900 transition-all';
+        } else {
+          btn.className = 'px-2 py-1 rounded-md hover:text-slate-900 transition-all';
+        }
+      });
+
+      // Update select dropdown if present
+      const sel = document.getElementById('select-curr-other');
+      if (sel) {
+        if (['GBP', 'EUR', 'CAD', 'AUD'].includes(curr)) {
+          sel.value = curr;
+        } else {
+          sel.value = '';
+        }
+      }
+
+      // Update Geolocation pill indicator
+      const p = pricingRates[curr];
+      const geoText = document.getElementById('geo-location-text');
+      if (geoText) {
+        const regionLabel = countryName || p.country || 'your region';
+        if (isManual) {
+          geoText.innerHTML = `Viewing pricing in <strong>${curr} (${p.sym.trim()})</strong> • Click any currency above to switch`;
+        } else {
+          geoText.innerHTML = `📍 Local pricing for <strong>${regionLabel} (${curr})</strong> applied automatically based on your IP`;
+        }
+      }
+
+      updatePricingDisplay();
+    }
+
+    // Fast, non-blocking IP Geolocation & Regional Pricing Detection
+    async function detectRegionalPricing() {
+      // 1. Check URL override (?currency=PKR or ?country=PK)
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryCurr = urlParams.get('currency')?.toUpperCase();
+      if (queryCurr && pricingRates[queryCurr]) {
+        setCurrency(queryCurr, false, 'URL parameter', urlParams.get('country') || '');
+        return;
+      }
+
+      // 2. Check localStorage for manual choice
+      try {
+        const manualCurr = localStorage.getItem('clinsyst_manual_currency');
+        if (manualCurr && pricingRates[manualCurr]) {
+          setCurrency(manualCurr, false, 'saved preference', '');
+          return;
+        }
+      } catch (e) {}
+
+      // 3. Check localStorage for previously detected IP currency
+      try {
+        const cachedCurr = localStorage.getItem('clinsyst_detected_currency');
+        const cachedCountry = localStorage.getItem('clinsyst_detected_country');
+        if (cachedCurr && pricingRates[cachedCurr]) {
+          setCurrency(cachedCurr, false, 'cached IP', cachedCountry);
+          return;
+        }
+      } catch (e) {}
+
+      // 4. Async IP Geolocation API with fast timeout
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          const countryCode = (data.country_code || data.country || '').toUpperCase();
+          const countryName = data.country_name || COUNTRY_NAMES[countryCode] || countryCode;
+          const mappedCurr = COUNTRY_TO_CURRENCY[countryCode] || (pricingRates[data.currency] ? data.currency : 'USD');
+
+          if (pricingRates[mappedCurr]) {
+            try {
+              localStorage.setItem('clinsyst_detected_currency', mappedCurr);
+              localStorage.setItem('clinsyst_detected_country', countryName);
+            } catch (e) {}
+            setCurrency(mappedCurr, false, 'IP detection', countryName);
+            return;
+          }
+        }
+      } catch (err) {
+        // Fallback to secondary country.is endpoint
+        try {
+          const controller2 = new AbortController();
+          const timeoutId2 = setTimeout(() => controller2.abort(), 1500);
+          const res2 = await fetch('https://api.country.is', { signal: controller2.signal });
+          clearTimeout(timeoutId2);
+
+          if (res2.ok) {
+            const data2 = await res2.json();
+            const countryCode = (data2.country || '').toUpperCase();
+            const countryName = COUNTRY_NAMES[countryCode] || countryCode;
+            const mappedCurr = COUNTRY_TO_CURRENCY[countryCode] || 'USD';
+
+            if (pricingRates[mappedCurr]) {
+              try {
+                localStorage.setItem('clinsyst_detected_currency', mappedCurr);
+                localStorage.setItem('clinsyst_detected_country', countryName);
+              } catch (e) {}
+              setCurrency(mappedCurr, false, 'IP detection', countryName);
+              return;
+            }
+          }
+        } catch (e2) {}
+      }
+
+      // 5. Timezone heuristic fallback (reliable offline & adblocker resistant)
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        if (tz.includes('Karachi')) {
+          setCurrency('PKR', false, 'timezone heuristic', 'Pakistan');
+          return;
+        }
+        if (tz.includes('Dubai') || tz.includes('Muscat')) {
+          setCurrency('AED', false, 'timezone heuristic', 'UAE');
+          return;
+        }
+        if (tz.includes('Riyadh')) {
+          setCurrency('SAR', false, 'timezone heuristic', 'Saudi Arabia');
+          return;
+        }
+        if (tz.includes('London')) {
+          setCurrency('GBP', false, 'timezone heuristic', 'United Kingdom');
+          return;
+        }
+        if (tz.includes('Toronto') || tz.includes('Vancouver') || tz.includes('Montreal')) {
+          setCurrency('CAD', false, 'timezone heuristic', 'Canada');
+          return;
+        }
+        if (tz.includes('Sydney') || tz.includes('Melbourne') || tz.includes('Brisbane')) {
+          setCurrency('AUD', false, 'timezone heuristic', 'Australia');
+          return;
+        }
+        if (tz.includes('Berlin') || tz.includes('Paris') || tz.includes('Madrid') || tz.includes('Rome') || tz.includes('Amsterdam')) {
+          setCurrency('EUR', false, 'timezone heuristic', 'Europe');
+          return;
+        }
+      } catch (e) {}
+
+      // Default fallback
+      setCurrency('USD', false, 'default', 'International');
+    }
+
+    // Initial render
+    window.addEventListener('DOMContentLoaded', () => {
+      renderOdontogram();
+      updatePricingDisplay();
+      detectRegionalPricing();
+    });
+  </script>
 </body>
-
 </html>

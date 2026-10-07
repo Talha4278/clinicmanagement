@@ -293,8 +293,8 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
                     </span>
                   </td>
                   <td className="py-3.5 text-right text-sm text-gray-600">{Number(item.quantity)}</td>
-                  <td className="py-3.5 text-right text-sm text-gray-600">Rs. {Number(item.unit_price).toLocaleString()}</td>
-                  <td className="py-3.5 text-right text-sm font-semibold text-gray-900">Rs. {Number(item.total).toLocaleString()}</td>
+                  <td className="py-3.5 text-right text-sm text-gray-600">{clinic.currency_symbol || 'AED '}{Number(item.unit_price).toLocaleString()}</td>
+                  <td className="py-3.5 text-right text-sm font-semibold text-gray-900">{clinic.currency_symbol || 'AED '}{Number(item.total).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>
@@ -306,25 +306,25 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
           <div className="ml-auto max-w-xs space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Subtotal</span>
-              <span className="text-gray-900">Rs. {Number(invoice.subtotal).toLocaleString()}</span>
+              <span className="text-gray-900">{clinic.currency_symbol || 'AED '}{Number(invoice.subtotal).toLocaleString()}</span>
             </div>
             {Number(invoice.discount_amount) > 0 && (
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">
                   Discount {invoice.discount_type === 'percentage' ? `(${invoice.discount_value}%)` : ''}
                 </span>
-                <span className="text-red-600">- Rs. {Number(invoice.discount_amount).toLocaleString()}</span>
+                <span className="text-red-600">- {clinic.currency_symbol || 'AED '}{Number(invoice.discount_amount).toLocaleString()}</span>
               </div>
             )}
             {Number(invoice.tax_amount) > 0 && (
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Tax ({invoice.tax_rate}%)</span>
-                <span className="text-gray-900">+ Rs. {Number(invoice.tax_amount).toLocaleString()}</span>
+                <span className="text-gray-500">{clinic.tax_label || 'VAT / Tax'} ({invoice.tax_rate}%)</span>
+                <span className="text-gray-900">+ {clinic.currency_symbol || 'AED '}{Number(invoice.tax_amount).toLocaleString()}</span>
               </div>
             )}
             <div className="border-t-2 border-gray-200 pt-2 flex justify-between">
               <span className="font-bold text-gray-900 text-base">Total</span>
-              <span className="font-bold text-xl" style={{ color: '#3c5e27' }}>Rs. {Number(invoice.total).toLocaleString()}</span>
+              <span className="font-bold text-xl" style={{ color: '#3c5e27' }}>{clinic.currency_symbol || 'AED '}{Number(invoice.total).toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm pt-1">
               <span className="text-gray-500">Payment Method</span>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ADULT_TEETH_UPPER_RIGHT,
   ADULT_TEETH_UPPER_LEFT,
@@ -11,13 +11,17 @@ import {
   FINDINGS_CONFIG,
   TOOTH_SURFACES,
   ToothInfo,
+  FDI_TO_UNIVERSAL_MAP,
+  getToothDisplayName,
 } from '../lib/dentalData';
 import {
   DentitionType,
   ToothCondition,
   ToothFinding,
   ToothSurface,
+  ToothNotation,
 } from '../lib/types';
+import { useClinicSettings } from '../lib/clinicSettings';
 import { X, Check, Info, ShieldCheck, Stethoscope, Sparkles } from 'lucide-react';
 
 interface DentalChartProps {
@@ -27,6 +31,7 @@ interface DentalChartProps {
   onChangeTeethFindings?: (findings: Record<number, ToothCondition>) => void;
   readOnly?: boolean;
   onQuickTreatment?: (toothNum: number, toothName: string, suggestedProcedure: string) => void;
+  notation?: ToothNotation;
 }
 
 export default function DentalChart({
@@ -36,7 +41,21 @@ export default function DentalChart({
   onChangeTeethFindings,
   readOnly = false,
   onQuickTreatment,
+  notation,
 }: DentalChartProps) {
+  const { settings } = useClinicSettings();
+  const [activeNotation, setActiveNotation] = useState<ToothNotation>(
+    notation || settings.tooth_notation || 'fdi'
+  );
+
+  useEffect(() => {
+    if (notation) {
+      setActiveNotation(notation);
+    } else if (settings.tooth_notation) {
+      setActiveNotation(settings.tooth_notation);
+    }
+  }, [notation, settings.tooth_notation]);
+
   const [selectedTooth, setSelectedTooth] = useState<ToothInfo | null>(null);
   const [hoveredTooth, setHoveredTooth] = useState<ToothInfo | null>(null);
 
@@ -88,13 +107,13 @@ export default function DentalChart({
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 card-shadow p-5 space-y-5">
-      {/* Header & Dentition Switch */}
+      {/* Header & Dentition / Notation Switch */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Stethoscope className="text-emerald-700" size={18} />
-              Interactive Dental Chart (FDI System)
+              Interactive Dental Chart ({activeNotation === 'fdi' ? 'FDI Two-Digit 11–48' : 'Universal 1–32'})
             </h3>
             <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
               {dentitionType === 'adult' ? 'Permanent 32 Teeth' : 'Primary 20 Teeth'}
@@ -105,33 +124,64 @@ export default function DentalChart({
           </p>
         </div>
 
-        {/* Dentition Toggle */}
-        {onChangeDentitionType && (
-          <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+        {/* Toggles: Dentition + Notation */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Notation Toggle */}
+          <div className="flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200">
             <button
               type="button"
-              onClick={() => onChangeDentitionType('adult')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                dentitionType === 'adult'
-                  ? 'bg-white text-emerald-800 shadow-sm'
+              onClick={() => setActiveNotation('fdi')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                activeNotation === 'fdi'
+                  ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
+              title="FDI Two-Digit notation (Standard in UAE, GCC, UK, Europe, Southeast Asia)"
             >
-              Adult Dentition
+              FDI (11–48)
             </button>
             <button
               type="button"
-              onClick={() => onChangeDentitionType('child')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                dentitionType === 'child'
-                  ? 'bg-white text-emerald-800 shadow-sm'
+              onClick={() => setActiveNotation('universal')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                activeNotation === 'universal'
+                  ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
+              title="Universal numbering system (1–32 / A–T, US Standard)"
             >
-              Pediatric (Child)
+              Universal (1–32)
             </button>
           </div>
-        )}
+
+          {/* Dentition Toggle */}
+          {onChangeDentitionType && (
+            <div className="flex items-center bg-gray-100 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => onChangeDentitionType('adult')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  dentitionType === 'adult'
+                    ? 'bg-white text-emerald-800 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Adult (32)
+              </button>
+              <button
+                type="button"
+                onClick={() => onChangeDentitionType('child')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  dentitionType === 'child'
+                    ? 'bg-white text-emerald-800 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Pediatric (20)
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Summary Findings Badges */}
@@ -205,6 +255,7 @@ export default function DentalChart({
                   onClick={() => handleToothClick(tooth)}
                   onHover={(t) => setHoveredTooth(t)}
                   readOnly={readOnly}
+                  notation={activeNotation}
                 />
               ))}
             </div>
@@ -226,6 +277,7 @@ export default function DentalChart({
                   onClick={() => handleToothClick(tooth)}
                   onHover={(t) => setHoveredTooth(t)}
                   readOnly={readOnly}
+                  notation={activeNotation}
                 />
               ))}
             </div>
@@ -251,6 +303,7 @@ export default function DentalChart({
                   onClick={() => handleToothClick(tooth)}
                   onHover={(t) => setHoveredTooth(t)}
                   readOnly={readOnly}
+                  notation={activeNotation}
                 />
               ))}
             </div>
@@ -272,6 +325,7 @@ export default function DentalChart({
                   onClick={() => handleToothClick(tooth)}
                   onHover={(t) => setHoveredTooth(t)}
                   readOnly={readOnly}
+                  notation={activeNotation}
                 />
               ))}
             </div>
@@ -293,7 +347,7 @@ export default function DentalChart({
         {hoveredTooth ? (
           <div className="flex items-center gap-2">
             <span className="font-bold text-emerald-800 text-sm">
-              Tooth #{hoveredTooth.number}
+              {getToothDisplayName(hoveredTooth.number, activeNotation, true)}
             </span>
             <span className="text-gray-800 font-medium">
               {hoveredTooth.name} ({hoveredTooth.quadrant})
@@ -320,7 +374,7 @@ export default function DentalChart({
           </div>
         ) : (
           <p className="text-gray-400 italic">
-            Hover over any tooth to view anatomical name & findings. Click tooth to edit condition.
+            Hover over any tooth to view anatomical name & findings in {activeNotation.toUpperCase()} notation. Click tooth to edit condition.
           </p>
         )}
       </div>
@@ -350,6 +404,7 @@ export default function DentalChart({
         <ToothDetailModal
           tooth={selectedTooth}
           condition={getCondition(selectedTooth.number)}
+          notation={activeNotation}
           onClose={() => setSelectedTooth(null)}
           onSave={(cond) => {
             handleSaveToothCondition(selectedTooth.number, cond);
@@ -373,12 +428,14 @@ function ToothItem({
   onClick,
   onHover,
   readOnly,
+  notation = 'fdi',
 }: {
   tooth: ToothInfo;
   condition?: ToothCondition;
   onClick: () => void;
   onHover: (t: ToothInfo | null) => void;
   readOnly?: boolean;
+  notation?: ToothNotation;
 }) {
   const findings = condition?.findings || [];
   const hasCaries = findings.includes('caries');
@@ -424,6 +481,11 @@ function ToothItem({
     badgeColor = '#0284c7';
   }
 
+  const displayNumber =
+    notation === 'universal'
+      ? FDI_TO_UNIVERSAL_MAP[tooth.number] ?? tooth.number
+      : tooth.number;
+
   return (
     <button
       type="button"
@@ -441,12 +503,13 @@ function ToothItem({
         borderWidth: findings.length > 0 ? '2px' : '1px',
       }}
     >
-      {/* FDI Tooth Number */}
+      {/* Notation Tooth Number Badge */}
       <span
-        className="text-[11px] font-bold px-1 rounded-t-lg w-full text-center mt-0.5"
+        className="text-[11px] font-bold px-1 rounded-t-lg w-full text-center mt-0.5 tracking-tight"
         style={{ color: badgeColor }}
+        title={`${tooth.name} (${notation === 'universal' ? `Universal #${displayNumber}` : `FDI #${displayNumber}`})`}
       >
-        {tooth.number}
+        {displayNumber}
       </span>
 
       {/* Anatomical Tooth SVG / Representation */}
@@ -515,12 +578,14 @@ function ToothItem({
 function ToothDetailModal({
   tooth,
   condition,
+  notation = 'fdi',
   onClose,
   onSave,
   onQuickTreatment,
 }: {
   tooth: ToothInfo;
   condition?: ToothCondition;
+  notation?: ToothNotation;
   onClose: () => void;
   onSave: (cond: ToothCondition | null) => void;
   onQuickTreatment: (suggestedProcedure: string) => void;
@@ -578,15 +643,22 @@ function ToothDetailModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-slate-50/70">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white font-bold text-base flex items-center justify-center shadow-xs">
-              #{tooth.number}
+            <div className="w-11 h-11 rounded-xl bg-emerald-700 text-white font-bold text-base flex flex-col items-center justify-center shadow-xs">
+              <span className="text-xs font-medium opacity-80 uppercase leading-none">
+                {notation === 'universal' ? 'Univ' : 'FDI'}
+              </span>
+              <span className="text-sm font-black leading-tight">
+                #{notation === 'universal' ? (FDI_TO_UNIVERSAL_MAP[tooth.number] ?? tooth.number) : tooth.number}
+              </span>
             </div>
             <div>
               <h4 className="font-semibold text-gray-900 text-base leading-tight">
                 {tooth.name}
               </h4>
               <p className="text-xs text-gray-500 mt-0.5">
-                {tooth.quadrant} Quadrant · {tooth.type} · {tooth.arch} Arch
+                {notation === 'universal'
+                  ? `Universal #${FDI_TO_UNIVERSAL_MAP[tooth.number]} (FDI #${tooth.number})`
+                  : `FDI #${tooth.number} (Universal #${FDI_TO_UNIVERSAL_MAP[tooth.number] || 'N/A'})`} · {tooth.quadrant} Quadrant · {tooth.type} · {tooth.arch} Arch
               </p>
             </div>
           </div>
@@ -709,7 +781,7 @@ function ToothDetailModal({
               {findings.includes('caries') && (
                 <button
                   type="button"
-                  onClick={() => onQuickTreatment(`Composite Restoration (#${tooth.number})`)}
+                  onClick={() => onQuickTreatment(`Composite Restoration (${getToothDisplayName(tooth.number, notation, false)})`)}
                   className="text-[11px] px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-medium"
                 >
                   + Plan Composite Filling
@@ -718,7 +790,7 @@ function ToothDetailModal({
               {(findings.includes('caries') || findings.includes('rct')) && (
                 <button
                   type="button"
-                  onClick={() => onQuickTreatment(`Root Canal Treatment (#${tooth.number})`)}
+                  onClick={() => onQuickTreatment(`Root Canal Treatment (${getToothDisplayName(tooth.number, notation, false)})`)}
                   className="text-[11px] px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 font-medium"
                 >
                   + Plan RCT
@@ -727,7 +799,7 @@ function ToothDetailModal({
               {findings.includes('crown') || findings.includes('rct') ? (
                 <button
                   type="button"
-                  onClick={() => onQuickTreatment(`Ceramic/Zirconia Crown (#${tooth.number})`)}
+                  onClick={() => onQuickTreatment(`Ceramic/Zirconia Crown (${getToothDisplayName(tooth.number, notation, false)})`)}
                   className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 font-medium"
                 >
                   + Plan Crown
@@ -736,7 +808,7 @@ function ToothDetailModal({
               {findings.includes('extraction') && (
                 <button
                   type="button"
-                  onClick={() => onQuickTreatment(`Surgical Extraction (#${tooth.number})`)}
+                  onClick={() => onQuickTreatment(`Surgical Extraction (${getToothDisplayName(tooth.number, notation, false)})`)}
                   className="text-[11px] px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-medium"
                 >
                   + Plan Extraction
@@ -745,7 +817,7 @@ function ToothDetailModal({
               {findings.includes('missing') && (
                 <button
                   type="button"
-                  onClick={() => onQuickTreatment(`Dental Implant Placement (#${tooth.number})`)}
+                  onClick={() => onQuickTreatment(`Dental Implant Placement (${getToothDisplayName(tooth.number, notation, false)})`)}
                   className="text-[11px] px-2.5 py-1 rounded-lg bg-cyan-50 text-cyan-700 border border-cyan-200 hover:bg-cyan-100 font-medium"
                 >
                   + Plan Implant

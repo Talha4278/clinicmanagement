@@ -7,6 +7,7 @@ import {
   setActiveClinic,
   registerNewClinic,
   findTenantUser,
+  syncClinicFromDatabase,
   CLINIC_TENANT_EVENT,
 } from '../lib/tenancy';
 import {
@@ -258,15 +259,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     refreshSessions();
-    const interval = setInterval(() => {
+    const interval = setInterval(async () => {
       const isAlive = heartbeatSession();
       if (!isAlive && !localStorage.getItem('dentivista_demo_role')) {
         // Current session was removed / invalidated externally
         setTerminatedNotice('Your session has ended because another device signed in or session limit was exceeded.');
         signOut();
-      } else {
-        refreshSessions();
+        return;
       }
+
+      // Check if clinic was deactivated/suspended in database
+      const dbClinic = await syncClinicFromDatabase(activeClinic.id);
+      const currentStatus = dbClinic?.status || getActiveClinic().status;
+      if (currentStatus === 'suspended') {
+        setTerminatedNotice('Your clinic membership access has been suspended/deactivated. Please send your subscription payment receipt on WhatsApp (03093622732) to reactivate access.');
+        signOut();
+        return;
+      }
+
+      refreshSessions();
     }, 15000);
 
     return () => clearInterval(interval);
@@ -344,8 +355,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: 'Invalid password. Please check your credentials.' };
       }
 
-      // Check session limits for this clinic
-      const clinic = setActiveClinic(tenantUser.clinicId);
+      // Sync latest status from database
+      const dbClinic = await syncClinicFromDatabase(tenantUser.clinicId);
+      const clinic = dbClinic || setActiveClinic(tenantUser.clinicId);
+
+      if (clinic.status === 'suspended') {
+        return { error: 'Your clinic membership access is currently suspended/deactivated. Please send your subscription payment receipt on WhatsApp (03093622732) to reactivate access.' };
+      }
+
+      if (clinic.status === 'trial' && clinic.trial_ends_at && new Date() > new Date(clinic.trial_ends_at)) {
+        return { error: 'Your 14-day free trial has expired. Please send your subscription payment receipt on WhatsApp (03093622732) to activate full membership access.' };
+      }
+
       setActiveClinicState(clinic);
 
       const staffObj: Staff = {

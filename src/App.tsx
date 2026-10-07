@@ -16,10 +16,35 @@ import Reports from './pages/Reports';
 import Staff from './pages/Staff';
 import ClinicSetup from './pages/ClinicSetup';
 import PatientDossierModal from './components/PatientDossierModal';
+import { SubscriptionPlan } from './lib/types';
+
+/** Static marketing landing page (root index.html). The React app lives at /app/. */
+const LANDING_URL = '/';
+
+interface AuthEntryParams {
+  mode: 'signin' | 'signup';
+  plan: SubscriptionPlan;
+  billing: 'monthly' | 'annual';
+}
+
+/**
+ * Reads ?mode=signin|signup&plan=starter|pro|enterprise&billing=monthly|annual
+ * set by the landing page "Sign In" / "Start 14-Day Free Trial" buttons.
+ */
+function readAuthEntryParams(): AuthEntryParams {
+  const params = new URLSearchParams(window.location.search);
+  const plan = params.get('plan');
+  return {
+    mode: params.get('mode') === 'signup' ? 'signup' : 'signin',
+    plan: plan === 'starter' || plan === 'pro' || plan === 'enterprise' ? plan : 'pro',
+    billing: params.get('billing') === 'monthly' ? 'monthly' : 'annual',
+  };
+}
 
 function AppContent() {
   const { user, staff, loading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
+  const [authEntry] = useState<AuthEntryParams>(readAuthEntryParams);
 
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
   const [viewPatientId, setViewPatientId] = useState<string | null>(null);
@@ -44,7 +69,14 @@ function AppContent() {
   }
 
   if (!user) {
-    return <LoginPage />;
+    return (
+      <LoginPage
+        initialMode={authEntry.mode}
+        initialPlan={authEntry.plan}
+        initialBilling={authEntry.billing}
+        onBackToLanding={() => { window.location.href = LANDING_URL; }}
+      />
+    );
   }
 
   function navigate(p: string, extraId?: string) {
@@ -163,7 +195,10 @@ function AppContent() {
   const layoutPage = viewInvoiceId ? 'invoices' : page;
 
   return (
-    <Layout currentPage={layoutPage} onNavigate={navigate}>
+    <Layout
+      currentPage={layoutPage}
+      onNavigate={navigate}
+    >
       {renderPage()}
 
       {/* Patient Dossier Modal (All related records & research timeline) */}

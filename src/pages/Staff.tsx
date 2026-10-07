@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, Lock, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, Lock, ArrowUpRight, CheckCircle2, Landmark, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Staff as StaffType, StaffRole, SubscriptionPlan } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -188,6 +188,7 @@ export default function Staff() {
 
       const { error } = await supabase.from('staff').insert({
         ...payload,
+        clinic_id: activeClinic?.id || 'clinic-dentivista-01',
         user_id: authData.user.id,
         active: true,
       });
@@ -610,6 +611,77 @@ export default function Staff() {
                   </div>
                 );
               })}
+            </div>
+
+            {/* Direct Bank Payment Details for Local Pakistan Clinics */}
+            <div className="mb-5 p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Landmark className="w-4 h-4 text-emerald-800" />
+                  <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wide">
+                    Direct Bank, NayaPay & Raast Settlement (Pakistan Local Clinics)
+                  </h4>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900">
+                  Verification Active Mode
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-900/90 leading-relaxed">
+                While global credit/debit card processing is coming soon, local Pakistani clinics can transfer subscription payments directly via NayaPay, UBL, Raast, JazzCash, or EasyPaisa:
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium text-emerald-950 bg-white/90 p-3 rounded-xl border border-emerald-100">
+                <div>
+                  <span className="text-gray-500 text-[10px] block">Bank Names</span>
+                  <span className="font-bold">NayaPay / UBL (United Bank Limited)</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-[10px] block">Account Title</span>
+                  <span className="font-bold">Talha Sarfraz Malik</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-[10px] block">IBAN (UBL)</span>
+                  <span className="font-mono text-[11px] font-bold select-all">PK66 UNIL 0109 0003 6725 1495</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-[10px] block">Raast / NayaPay / EasyPaisa / JazzCash</span>
+                  <span className="font-mono text-[11px] font-bold select-all">0334 634278</span>
+                </div>
+              </div>
+
+              {/* QR Code Images */}
+              <div className="pt-2">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 block mb-1.5">
+                  Scan & Pay QR Codes (NayaPay & UBL Digital)
+                </span>
+                <div className="grid grid-cols-2 gap-3 max-w-sm">
+                  <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
+                    <img src="/payments/nayapay_qr.jpg" alt="NayaPay QR Code" className="w-full h-32 object-contain rounded-lg" />
+                    <span className="text-[10px] font-bold text-gray-700 block">NayaPay QR</span>
+                  </div>
+                  <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
+                    <img src="/payments/ubl_qr.jpg" alt="UBL Digital QR Code" className="w-full h-32 object-contain rounded-lg" />
+                    <span className="text-[10px] font-bold text-gray-700 block">UBL Bank QR</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-emerald-200/60">
+                <span className="text-[10px] text-emerald-800 italic">
+                  Instant subscription activation upon sending receipt screenshot to <strong>03093622732</strong>.
+                </span>
+                <a
+                  href={`https://wa.me/923093622732?text=${encodeURIComponent(
+                    `Hi, I have transferred the subscription payment for ${activeClinic?.name || 'my clinic'} for the ${PLAN_SPECS[selectedPlan].name} (${planBillingCycle} billing). Here is my bank transfer receipt screenshot.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                >
+                  <MessageSquare size={14} />
+                  <span>Send Receipt on WhatsApp (03093622732)</span>
+                </a>
+              </div>
             </div>
 
             {/* Success message */}

@@ -8,9 +8,22 @@ import { useAuth } from '../contexts/AuthContext';
 import { ClinicSignUpData, SubscriptionPlan } from '../lib/types';
 import { PLAN_SPECS } from '../lib/tenancy';
 
-export default function LoginPage() {
+interface LoginPageProps {
+  onBackToLanding?: () => void;
+  initialMode?: 'signin' | 'signup';
+  /** Plan pre-selected from the landing page "Start 14-Day Free Trial" buttons */
+  initialPlan?: SubscriptionPlan;
+  initialBilling?: 'monthly' | 'annual';
+}
+
+export default function LoginPage({
+  onBackToLanding,
+  initialMode = 'signin',
+  initialPlan = 'pro',
+  initialBilling = 'annual',
+}: LoginPageProps) {
   const { signIn, registerClinic, signInAsDemo, terminatedNotice, clearTerminatedNotice } = useAuth();
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>(initialMode);
 
   // Sign In State
   const [email, setEmail] = useState('');
@@ -29,9 +42,9 @@ export default function LoginPage() {
     password: '',
     phone: '',
     address: '',
-    plan: 'pro',
+    plan: initialPlan,
   });
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialBilling);
 
   async function handleSignInSubmit(e?: React.FormEvent, forceTerminateOldest: boolean = false) {
     if (e) e.preventDefault();
@@ -220,6 +233,20 @@ export default function LoginPage() {
               <p className="text-xs text-sky-700 font-medium mt-0.5">Clinic Management System</p>
             </div>
           </div>
+
+          {/* Back to Landing Page */}
+          {onBackToLanding && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={onBackToLanding}
+                className="text-xs font-semibold text-sky-700 hover:text-sky-900 inline-flex items-center gap-1.5 transition-colors group"
+              >
+                <span className="group-hover:-translate-x-0.5 transition-transform">←</span>
+                <span>Back to Overview & Pricing</span>
+              </button>
+            </div>
+          )}
 
           {/* Mode Switcher Tabs (Sign In vs Register New Clinic) */}
           <div className="flex p-1 bg-slate-100 rounded-2xl mb-6 border border-slate-200/80">

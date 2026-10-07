@@ -206,3 +206,46 @@ export const TOOTH_SURFACES: { code: ToothSurface; label: string; full: string }
   { code: 'B', label: 'B', full: 'Buccal / Facial' },
   { code: 'L', label: 'L', full: 'Lingual / Palatal' },
 ];
+
+// ─── DUAL NOTATION ENGINE: FDI (11–48 / 51–85) <-> UNIVERSAL (1–32 / A–T) ───
+export const FDI_TO_UNIVERSAL_MAP: Record<number, string> = {
+  // Adult Upper Right (Quad 1): 18..11 -> 1..8
+  18: '1', 17: '2', 16: '3', 15: '4', 14: '5', 13: '6', 12: '7', 11: '8',
+  // Adult Upper Left (Quad 2): 21..28 -> 9..16
+  21: '9', 22: '10', 23: '11', 24: '12', 25: '13', 26: '14', 27: '15', 28: '16',
+  // Adult Lower Left (Quad 3): 38..31 -> 17..24
+  38: '17', 37: '18', 36: '19', 35: '20', 34: '21', 33: '22', 32: '23', 31: '24',
+  // Adult Lower Right (Quad 4): 41..48 -> 25..32
+  41: '25', 42: '26', 43: '27', 44: '28', 45: '29', 46: '30', 47: '31', 48: '32',
+
+  // Pediatric Upper Right (Quad 5): 55..51 -> A..E
+  55: 'A', 54: 'B', 53: 'C', 52: 'D', 51: 'E',
+  // Pediatric Upper Left (Quad 6): 61..65 -> F..J
+  61: 'F', 62: 'G', 63: 'H', 64: 'I', 65: 'J',
+  // Pediatric Lower Left (Quad 7): 75..71 -> K..O
+  75: 'K', 74: 'L', 73: 'M', 72: 'N', 71: 'O',
+  // Pediatric Lower Right (Quad 8): 81..85 -> P..T
+  81: 'P', 82: 'Q', 83: 'R', 84: 'S', 85: 'T',
+};
+
+export const UNIVERSAL_TO_FDI_MAP: Record<string, number> = Object.fromEntries(
+  Object.entries(FDI_TO_UNIVERSAL_MAP).map(([fdi, univ]) => [univ, Number(fdi)])
+);
+
+/**
+ * Get formatted tooth name adapting to clinic's notation setting
+ */
+export function getToothDisplayName(
+  fdiNumber: number,
+  notation: 'fdi' | 'universal' = 'fdi',
+  includeBoth: boolean = false
+): string {
+  const univ = FDI_TO_UNIVERSAL_MAP[fdiNumber] || String(fdiNumber);
+  if (includeBoth) {
+    return notation === 'fdi'
+      ? `Tooth ${fdiNumber} (Univ #${univ})`
+      : `Tooth #${univ} (FDI ${fdiNumber})`;
+  }
+  return notation === 'fdi' ? `${fdiNumber}` : `#${univ}`;
+}
+

@@ -221,6 +221,8 @@ export interface PatientActivityEvent {
 }
 
 // ─── CLINIC SETUP & SETTINGS ─────────────────────────────────────────
+export type ToothNotation = 'fdi' | 'universal';
+
 export type WhatsAppProvider = 'direct_web' | 'cloud_api' | 'twilio' | 'ultramsg';
 
 export interface WhatsAppConfig {
@@ -230,9 +232,38 @@ export interface WhatsAppConfig {
   api_endpoint?: string;
   api_key?: string;
   phone_number_id?: string;
+  waba_id?: string;
   account_sid?: string;
+  auth_token?: string;
+  twilio_phone_number?: string;
   webhook_url?: string;
+  webhook_verify_token?: string;
   auto_remind_hours_before?: number;
+}
+
+export type PaymentGatewayProvider = 'lemon_squeezy' | 'manual';
+
+export interface PaymentPlanPriceIds {
+  starter_monthly?: string;
+  starter_annual?: string;
+  pro_monthly?: string;
+  pro_annual?: string;
+  network_monthly?: string;
+  network_annual?: string;
+}
+
+export interface PaymentGatewayConfig {
+  enabled: boolean;
+  provider: PaymentGatewayProvider;
+  publishable_key?: string;
+  secret_key?: string;
+  webhook_secret?: string;
+  test_mode?: boolean;
+  lemon_squeezy_store_id?: string;
+  currency?: string;
+  price_ids?: PaymentPlanPriceIds;
+  return_url?: string;
+  cancel_url?: string;
 }
 
 export interface AttendingDoctorSetting {
@@ -253,8 +284,13 @@ export interface ClinicSettings {
   phone: string;
   website?: string | null;
   tax_number?: string | null;
+  tax_rate?: number;
+  tax_label?: string;
+  timezone?: string;
+  tooth_notation?: ToothNotation;
   currency_symbol?: string;
   whatsapp_config?: WhatsAppConfig;
+  payment_gateway_config?: PaymentGatewayConfig;
   procedures?: string[];
 }
 

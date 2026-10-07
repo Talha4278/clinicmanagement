@@ -7,4 +7,15 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
+  build: {
+    rollupOptions: {
+      // Multi-page build:
+      //   /        -> index.html      (static marketing landing page)
+      //   /app/    -> app/index.html  (React clinic app: sign in, trial signup, dashboard)
+      input: {
+        main: 'index.html',
+        app: 'app/index.html',
+      },
+    },
+  },
 });
