@@ -10,6 +10,7 @@ import {
   deleteInventoryItem,
   adjustInventoryStock,
 } from '../lib/clinicStorage';
+import { useAuth } from '../contexts/AuthContext';
 
 const CATEGORIES: InventoryCategory[] = [
   'Dental Materials',
@@ -50,6 +51,7 @@ const emptyItemForm: {
 };
 
 export default function Inventory() {
+  const { activeClinic } = useAuth();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -70,11 +72,12 @@ export default function Inventory() {
 
   useEffect(() => {
     loadItems();
-  }, []);
+  }, [activeClinic?.id]);
 
   async function loadItems() {
     setLoading(true);
-    const data = await getInventoryItems();
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    const data = await getInventoryItems(clinicId);
     setItems(data);
     setLoading(false);
   }
@@ -138,10 +141,12 @@ export default function Inventory() {
 
     setSaving(true);
     setError('');
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
 
     try {
       await saveInventoryItem({
         id: editingItem?.id,
+        clinic_id: clinicId,
         name: form.name.trim(),
         category: form.category,
         sku: form.sku.trim(),
@@ -155,7 +160,7 @@ export default function Inventory() {
         supplier: form.supplier.trim() || null,
         location: form.location.trim() || null,
         notes: form.notes.trim() || null,
-      });
+      }, clinicId);
 
       await loadItems();
       setShowModal(false);
@@ -168,14 +173,16 @@ export default function Inventory() {
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Are you sure you want to delete "${name}" from inventory?`)) return;
-    await deleteInventoryItem(id);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    await deleteInventoryItem(id, clinicId);
     await loadItems();
   }
 
   async function handleConfirmAdjust() {
     if (!adjustItem) return;
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     const delta = adjustType === 'add' ? adjustQty : -adjustQty;
-    await adjustInventoryStock(adjustItem.id, delta);
+    await adjustInventoryStock(adjustItem.id, delta, clinicId);
     setAdjustItem(null);
     await loadItems();
   }

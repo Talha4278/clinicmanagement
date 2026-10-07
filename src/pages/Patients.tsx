@@ -3,6 +3,8 @@ import { Search, Plus, Phone, Mail, Calendar, ChevronRight, X, AlertCircle } fro
 import { supabase } from '../lib/supabase';
 import { Patient, GenderType } from '../lib/types';
 import { isDemoMode, getDemoPatients, saveDemoPatient } from '../lib/demoData';
+import { useAuth } from '../contexts/AuthContext';
+import { getClinicPatients, saveClinicPatient } from '../lib/clinicStorage';
 
 interface Props {
   onViewPatient?: (id: string) => void;
@@ -15,6 +17,7 @@ const emptyForm = {
 };
 
 export default function Patients({ onViewPatient, onBookAppointment }: Props) {
+  const { activeClinic } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -24,7 +27,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => { fetchPatients(); }, []);
+  useEffect(() => { fetchPatients(); }, [activeClinic?.id]);
 
   async function fetchPatients() {
     setLoading(true);
@@ -33,11 +36,27 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
       setLoading(false);
       return;
     }
-    const { data } = await supabase
-      .from('patients')
-      .select('*')
-      .order('created_at', { ascending: false });
-    setPatients(data ?? []);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    let remotePatients: Patient[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('clinic_id', clinicId)
+        .order('created_at', { ascending: false });
+      if (data && !error) {
+        remotePatients = data;
+      }
+    } catch (e) {
+      console.warn('Could not fetch patients from Supabase:', e);
+    }
+
+    const localPatients = getClinicPatients(clinicId);
+    const patMap = new Map<string, Patient>();
+    localPatients.forEach(p => patMap.set(p.id, p));
+    remotePatients.forEach(p => patMap.set(p.id, p));
+
+    setPatients(Array.from(patMap.values()));
     setLoading(false);
   }
 
@@ -79,7 +98,9 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
     setSaving(true);
     setError('');
 
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     const payload = {
+      clinic_id: clinicId,
       name: form.name.trim(),
       phone: form.phone.trim(),
       email: form.email.trim() || null,
@@ -101,13 +122,21 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
       return;
     }
 
+    let savedId = editPatient?.id;
     if (editPatient) {
-      const { error } = await supabase.from('patients').update(payload).eq('id', editPatient.id);
+      const { error } = await supabase.from('patients').update(payload).eq('id', editPatient.id).eq('clinic_id', clinicId);
       if (error) { setError(error.message); setSaving(false); return; }
     } else {
-      const { error } = await supabase.from('patients').insert(payload);
+      const { data: inserted, error } = await supabase.from('patients').insert(payload).select().maybeSingle();
       if (error) { setError(error.message); setSaving(false); return; }
+      if (inserted) savedId = inserted.id;
     }
+
+    saveClinicPatient({
+      ...payload,
+      id: savedId || `pat-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    }, clinicId);
 
     await fetchPatients();
     setShowForm(false);

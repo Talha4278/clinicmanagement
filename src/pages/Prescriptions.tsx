@@ -60,17 +60,18 @@ export default function Prescriptions({
   // Slip preview modal
   const [previewRx, setPreviewRx] = useState<Prescription | null>(null);
 
-  const { staff: currentStaff } = useAuth();
+  const { staff: currentStaff, activeClinic } = useAuth();
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeClinic?.id]);
 
   async function loadData() {
     setLoading(true);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
 
     if (isDemoMode()) {
-      const rxs = await getPrescriptions();
+      const rxs = await getPrescriptions(undefined, clinicId);
       const demoPats = getDemoPatients();
       const demoDocs = getDemoStaff().filter((s) => s.role === 'doctor' && s.active !== false);
       setPrescriptions(rxs);
@@ -87,9 +88,9 @@ export default function Prescriptions({
     }
 
     const [rxs, patRes, docRes] = await Promise.all([
-      getPrescriptions(),
-      supabase.from('patients').select('*').order('name'),
-      supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true),
+      getPrescriptions(undefined, clinicId),
+      supabase.from('patients').select('*').eq('clinic_id', clinicId).order('name'),
+      supabase.from('staff').select('*').eq('clinic_id', clinicId).eq('role', 'doctor').eq('active', true),
     ]);
 
     setPrescriptions(rxs);
@@ -175,10 +176,12 @@ export default function Prescriptions({
 
     setSaving(true);
     setError('');
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
 
     try {
       const saved = await savePrescription(
         {
+          clinic_id: clinicId,
           patient_id: selectedPatientId,
           doctor_id: selectedDoctorId || null,
           prescription_date: rxDate,
@@ -186,10 +189,11 @@ export default function Prescriptions({
           advice: advice.trim() || null,
           follow_up_date: followUpDate || null,
         },
-        medItems.filter((m) => m.medicine_name.trim().length > 0)
+        medItems.filter((m) => m.medicine_name.trim().length > 0),
+        clinicId
       );
 
-      const updated = await getPrescriptions();
+      const updated = await getPrescriptions(undefined, clinicId);
       setPrescriptions(updated);
       setShowModal(false);
 
@@ -210,8 +214,9 @@ export default function Prescriptions({
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to delete this prescription?')) return;
-    await deletePrescription(id);
-    const updated = await getPrescriptions();
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    await deletePrescription(id, clinicId);
+    const updated = await getPrescriptions(undefined, clinicId);
     setPrescriptions(updated);
   }
 

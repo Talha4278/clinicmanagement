@@ -27,7 +27,7 @@ export default function Examinations({
   onNavigateToTreatment,
   onViewPatientDossier,
 }: Props) {
-  const { staff: currentStaff } = useAuth();
+  const { staff: currentStaff, activeClinic } = useAuth();
   const [examinations, setExaminations] = useState<Examination[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Staff[]>([]);
@@ -55,13 +55,14 @@ export default function Examinations({
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeClinic?.id]);
 
   async function loadData() {
     setLoading(true);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
 
     if (isDemoMode()) {
-      const exams = await getExaminations();
+      const exams = await getExaminations(undefined, clinicId);
       const demoPats = getDemoPatients();
       const demoDocs = getDemoStaff().filter((s) => s.role === 'doctor' && s.active !== false);
       setExaminations(exams);
@@ -78,9 +79,9 @@ export default function Examinations({
     }
 
     const [exams, patientsRes, staffRes] = await Promise.all([
-      getExaminations(),
-      supabase.from('patients').select('*').order('name'),
-      supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true),
+      getExaminations(undefined, clinicId),
+      supabase.from('patients').select('*').eq('clinic_id', clinicId).order('name'),
+      supabase.from('staff').select('*').eq('clinic_id', clinicId).eq('role', 'doctor').eq('active', true),
     ]);
 
     setExaminations(exams);
@@ -125,9 +126,11 @@ export default function Examinations({
 
     setSaving(true);
     setError('');
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
 
     try {
       const saved = await saveExamination({
+        clinic_id: clinicId,
         patient_id: selectedPatient.id,
         doctor_id: selectedDoctorId || null,
         examination_date: examDate,
@@ -139,7 +142,7 @@ export default function Examinations({
         teeth_findings: teethFindings,
         clinical_notes: clinicalNotes.trim() || null,
         treatment_plan_notes: treatmentPlanNotes.trim() || null,
-      });
+      }, clinicId);
 
       const updated = [saved, ...examinations.filter((ex) => ex.id !== saved.id)];
       setExaminations(updated);

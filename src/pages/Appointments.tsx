@@ -55,7 +55,7 @@ const commonProcedures = [
 ];
 
 export default function Appointments({ onNewInvoiceForPatient, preselectedPatientId }: Props) {
-  const { staff } = useAuth();
+  const { staff, activeClinic } = useAuth();
   const { settings: clinic } = useClinicSettings();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -177,40 +177,52 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
       setLoading(false);
       return;
     }
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    let remoteApts: Appointment[] = [];
     const { data, error } = await supabase
       .from('appointments')
       .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
+      .eq('clinic_id', clinicId)
       .order('appointment_date', { ascending: false })
       .order('appointment_time', { ascending: true });
 
     if (!error && data) {
-      setAppointments(data as Appointment[]);
+      remoteApts = data as Appointment[];
     }
+
+    setAppointments(remoteApts);
     setLoading(false);
-  }, []);
+  }, [activeClinic?.id]);
 
   const fetchPatients = useCallback(async () => {
     if (isDemoMode()) {
       setPatients(getDemoPatients());
       return;
     }
-    const { data } = await supabase.from('patients').select('*').order('name');
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    const { data } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('clinic_id', clinicId)
+      .order('name');
     setPatients(data ?? []);
-  }, []);
+  }, [activeClinic?.id]);
 
   const fetchDoctors = useCallback(async () => {
     if (isDemoMode()) {
       setDoctors(getDemoStaff().filter(s => s.role === 'doctor' && s.active !== false));
       return;
     }
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     const { data } = await supabase
       .from('staff')
       .select('*')
+      .eq('clinic_id', clinicId)
       .eq('role', 'doctor')
       .eq('active', true)
       .order('name');
     setDoctors(data ?? []);
-  }, []);
+  }, [activeClinic?.id]);
 
   useEffect(() => {
     fetchAppointments();
@@ -319,7 +331,9 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
         return;
       }
 
+      const clinicId = activeClinic?.id || 'clinic-dentivista-01';
       const patientPayload = {
+        clinic_id: clinicId,
         name,
         phone,
         email: newPatientForm.email.trim() || null,
@@ -379,7 +393,9 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
       ? (staff?.id ?? null)
       : (isValidUuid(staff?.id) ? staff.id : null);
 
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     const payload = {
+      clinic_id: clinicId,
       patient_id: finalPatientId,
       doctor_id: doctorIdToUse,
       created_by: createdByToUse,
@@ -405,7 +421,8 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
       const { error: err } = await supabase
         .from('appointments')
         .update(payload)
-        .eq('id', editingAppointment.id);
+        .eq('id', editingAppointment.id)
+        .eq('clinic_id', clinicId);
 
       if (err) {
         setError(err.message);
@@ -436,10 +453,12 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
       return;
     }
 
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     const { error: err } = await supabase
       .from('appointments')
       .update({ status: newStatus })
-      .eq('id', aptId);
+      .eq('id', aptId)
+      .eq('clinic_id', clinicId);
 
     if (!err) {
       setAppointments(prev =>

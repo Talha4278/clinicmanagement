@@ -6,6 +6,8 @@ import { useClinicSettings } from '../lib/clinicSettings';
 import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 import { isDemoMode, getDemoInvoices, updateDemoInvoicePayment } from '../lib/demoData';
+import { useAuth } from '../contexts/AuthContext';
+import { getClinicInvoices, saveClinicInvoice } from '../lib/clinicStorage';
 
 interface Props {
   invoiceId: string;
@@ -26,6 +28,7 @@ const statusIcons: Record<string, React.ReactNode> = {
 };
 
 export default function InvoiceView({ invoiceId, onBack }: Props) {
+  const { activeClinic } = useAuth();
   const { settings: clinic } = useClinicSettings();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -88,9 +91,12 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
     });
   }
 
-  useEffect(() => { fetchInvoice(); }, [invoiceId]);
+  useEffect(() => { fetchInvoice(); }, [invoiceId, activeClinic?.id]);
 
   async function fetchInvoice() {
+    setLoading(true);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+
     if (isDemoMode()) {
       const demoInvoices = getDemoInvoices();
       const match = demoInvoices.find((i) => i.id === invoiceId) || demoInvoices[0];
@@ -102,34 +108,70 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
       return;
     }
 
-    const [invRes, itemsRes] = await Promise.all([
-      supabase
-        .from('invoices')
-        .select('*, patient:patients(*), doctor:staff!invoices_doctor_id_fkey(name, specialization, phone), creator:staff!invoices_created_by_fkey(name)')
-        .eq('id', invoiceId)
-        .maybeSingle(),
-      supabase
-        .from('invoice_items')
-        .select('*')
-        .eq('invoice_id', invoiceId)
-        .order('created_at'),
-    ]);
-    setInvoice(invRes.data as Invoice);
-    setItems(itemsRes.data ?? []);
+    let loadedInvoice: Invoice | null = null;
+    let loadedItems: InvoiceItem[] = [];
+
+    try {
+      const [invRes, itemsRes] = await Promise.all([
+        supabase
+          .from('invoices')
+          .select('*, patient:patients(*), doctor:staff!invoices_doctor_id_fkey(name, specialization, phone), creator:staff!invoices_created_by_fkey(name)')
+          .eq('id', invoiceId)
+          .eq('clinic_id', clinicId)
+          .maybeSingle(),
+        supabase
+          .from('invoice_items')
+          .select('*')
+          .eq('invoice_id', invoiceId)
+          .order('created_at'),
+      ]);
+      if (invRes.data) {
+        loadedInvoice = invRes.data as Invoice;
+        loadedItems = itemsRes.data ?? [];
+      }
+    } catch {
+      // ignore
+    }
+
+    if (!loadedInvoice) {
+      const localInvs = getClinicInvoices(clinicId);
+      const match = localInvs.find((i) => i.id === invoiceId);
+      if (match) {
+        loadedInvoice = match;
+        loadedItems = match.items || [];
+      }
+    }
+
+    setInvoice(loadedInvoice);
+    setItems(loadedItems);
     setLoading(false);
   }
 
   async function markPaid() {
     if (!invoice) return;
     setUpdating(true);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+
     if (isDemoMode()) {
       updateDemoInvoicePayment(invoice.id, invoice.total);
       setInvoice({ ...invoice, payment_status: 'paid', paid_amount: invoice.total });
       setUpdating(false);
       return;
     }
-    await supabase.from('invoices').update({ payment_status: 'paid' }).eq('id', invoice.id);
-    setInvoice({ ...invoice, payment_status: 'paid' });
+
+    try {
+      await supabase
+        .from('invoices')
+        .update({ payment_status: 'paid' })
+        .eq('id', invoice.id)
+        .eq('clinic_id', clinicId);
+    } catch {
+      // ignore
+    }
+
+    const updated = { ...invoice, payment_status: 'paid' as const, paid_amount: invoice.total };
+    saveClinicInvoice(updated, clinicId);
+    setInvoice(updated);
     setUpdating(false);
   }
 

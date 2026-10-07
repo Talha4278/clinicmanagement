@@ -13,6 +13,8 @@ import { formatFriendlyTime } from '../lib/whatsapp';
 import DentalChart from './DentalChart';
 import PrescriptionSlip from './PrescriptionSlip';
 
+import { useAuth } from '../contexts/AuthContext';
+
 interface PatientDossierModalProps {
   patientId: string;
   onClose: () => void;
@@ -28,6 +30,7 @@ export default function PatientDossierModal({
   onNavigatePage,
   onViewInvoice,
 }: PatientDossierModalProps) {
+  const { activeClinic } = useAuth();
   const [data, setData] = useState<PatientDossierData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -41,11 +44,12 @@ export default function PatientDossierModal({
 
   useEffect(() => {
     loadDossier();
-  }, [patientId]);
+  }, [patientId, activeClinic?.id]);
 
   async function loadDossier() {
-    setLoading(false);
-    const dossier = await getPatientDossier(patientId);
+    setLoading(true);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    const dossier = await getPatientDossier(patientId, clinicId);
     setData(dossier);
     setLoading(false);
   }

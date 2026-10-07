@@ -7,6 +7,7 @@ import { useClinicSettings } from '../lib/clinicSettings';
 import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 import { isDemoMode, getDemoInvoices } from '../lib/demoData';
+import { getClinicInvoices } from '../lib/clinicStorage';
 
 interface Props {
   onNewInvoice: () => void;
@@ -26,7 +27,7 @@ const methodLabel: Record<string, string> = {
 };
 
 export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
-  const { staff } = useAuth();
+  const { staff, activeClinic } = useAuth();
   const { settings: clinic } = useClinicSettings();
   const isReceptionist = staff?.role === 'receptionist';
 
@@ -90,20 +91,39 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
     });
   }
 
-  useEffect(() => { fetchInvoices(); }, []);
+  useEffect(() => { fetchInvoices(); }, [activeClinic?.id]);
 
   async function fetchInvoices() {
     setLoading(true);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+
     if (isDemoMode()) {
       setInvoices(getDemoInvoices());
       setLoading(false);
       return;
     }
-    const { data } = await supabase
-      .from('invoices')
-      .select('*, patient:patients(name, phone), doctor:staff!invoices_doctor_id_fkey(name)')
-      .order('created_at', { ascending: false });
-    setInvoices((data as Invoice[]) ?? []);
+
+    let remoteInvoices: Invoice[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('*, patient:patients(name, phone), doctor:staff!invoices_doctor_id_fkey(name)')
+        .eq('clinic_id', clinicId)
+        .order('created_at', { ascending: false });
+
+      if (data && !error) {
+        remoteInvoices = data as Invoice[];
+      }
+    } catch {
+      // fallback
+    }
+
+    const localInvoices = getClinicInvoices(clinicId);
+    const invMap = new Map<string, Invoice>();
+    localInvoices.forEach(i => invMap.set(i.id, i));
+    remoteInvoices.forEach(i => invMap.set(i.id, i));
+
+    setInvoices(Array.from(invMap.values()));
     setLoading(false);
   }
 

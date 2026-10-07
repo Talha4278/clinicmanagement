@@ -148,8 +148,10 @@ export default function Staff() {
       specialization: form.specialization.trim() || null,
     };
 
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+
     if (editStaff) {
-      const { error } = await supabase.from('staff').update(payload).eq('id', editStaff.id);
+      const { error } = await supabase.from('staff').update(payload).eq('id', editStaff.id).eq('clinic_id', clinicId);
       if (error) {
         console.warn('Supabase staff update warning:', error.message);
       }
@@ -293,8 +295,9 @@ export default function Staff() {
 
   async function toggleActive(s: StaffType) {
     if (!isAdmin || s.id === currentStaff?.id) return;
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     try {
-      await supabase.from('staff').update({ active: !s.active }).eq('id', s.id);
+      await supabase.from('staff').update({ active: !s.active }).eq('id', s.id).eq('clinic_id', clinicId);
     } catch {}
     const updated = { ...s, active: !s.active };
     saveTenantStaff(updated);

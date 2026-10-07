@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { isDemoMode, getDemoInvoices, getDemoPatients } from '../lib/demoData';
+import { useAuth } from '../contexts/AuthContext';
 
 interface DailyRevenue {
   date: string;
@@ -25,6 +26,7 @@ interface OutstandingInvoice {
 }
 
 export default function Reports() {
+  const { activeClinic } = useAuth();
   const [period, setPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [daily, setDaily] = useState<DailyRevenue[]>([]);
   const [doctorStats, setDoctorStats] = useState<DoctorStat[]>([]);
@@ -32,7 +34,7 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState({ totalRevenue: 0, totalPending: 0, totalInvoices: 0, totalPatients: 0 });
 
-  useEffect(() => { fetchReports(); }, [period]);
+  useEffect(() => { fetchReports(); }, [period, activeClinic?.id]);
 
   async function fetchReports() {
     setLoading(true);
@@ -85,6 +87,7 @@ export default function Reports() {
       return;
     }
 
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     const now = new Date();
     let startDate: Date;
     if (period === 'week') {
@@ -98,12 +101,12 @@ export default function Reports() {
     const startStr = startDate.toISOString();
 
     const [paidRes, pendingRes, countRes, patientRes, dailyRes, outstandingRes] = await Promise.all([
-      supabase.from('invoices').select('total').gte('created_at', startStr).eq('payment_status', 'paid'),
-      supabase.from('invoices').select('total').gte('created_at', startStr).neq('payment_status', 'paid'),
-      supabase.from('invoices').select('id', { count: 'exact', head: true }).gte('created_at', startStr),
-      supabase.from('patients').select('id', { count: 'exact', head: true }).gte('created_at', startStr),
-      supabase.from('invoices').select('created_at, total, payment_status').gte('created_at', startStr).order('created_at'),
-      supabase.from('invoices').select('invoice_number, total, payment_status, created_at, patient:patients(name, phone)').in('payment_status', ['pending', 'partial']).order('created_at', { ascending: false }).limit(20),
+      supabase.from('invoices').select('total').eq('clinic_id', clinicId).gte('created_at', startStr).eq('payment_status', 'paid'),
+      supabase.from('invoices').select('total').eq('clinic_id', clinicId).gte('created_at', startStr).neq('payment_status', 'paid'),
+      supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('clinic_id', clinicId).gte('created_at', startStr),
+      supabase.from('patients').select('id', { count: 'exact', head: true }).eq('clinic_id', clinicId).gte('created_at', startStr),
+      supabase.from('invoices').select('created_at, total, payment_status').eq('clinic_id', clinicId).gte('created_at', startStr).order('created_at'),
+      supabase.from('invoices').select('invoice_number, total, payment_status, created_at, patient:patients(name, phone)').eq('clinic_id', clinicId).in('payment_status', ['pending', 'partial']).order('created_at', { ascending: false }).limit(20),
     ]);
 
     // Aggregate daily revenue

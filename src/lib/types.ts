@@ -22,15 +22,20 @@ export interface Staff {
 
 export interface Patient {
   id: string;
+  clinic_id?: string | null;
   name: string;
   phone: string;
   email: string | null;
   date_of_birth: string | null;
   gender: GenderType | null;
+  blood_group?: string | null;
   address: string | null;
+  emergency_contact?: string | null;
   medical_history: string | null;
   allergies: string | null;
+  notes?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface InvoiceItem {
@@ -46,6 +51,7 @@ export interface InvoiceItem {
 
 export interface Invoice {
   id: string;
+  clinic_id?: string | null;
   invoice_number: string;
   patient_id: string;
   doctor_id: string | null;
@@ -57,14 +63,19 @@ export interface Invoice {
   tax_rate: number;
   tax_amount: number;
   total: number;
+  paid_amount?: number;
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
   notes: string | null;
   created_at: string;
+  updated_at?: string;
+  issue_date?: string;
+  due_date?: string;
   patient?: Patient;
   doctor?: Staff;
   creator?: Staff;
   invoice_items?: InvoiceItem[];
+  items?: InvoiceItem[];
 }
 
 export interface DashboardStats {
@@ -77,15 +88,18 @@ export interface DashboardStats {
 
 export interface Appointment {
   id: string;
+  clinic_id?: string | null;
   patient_id: string;
   doctor_id: string | null;
   created_by: string | null;
   appointment_date: string;
   appointment_time: string;
+  duration_minutes?: number;
   status: AppointmentStatus;
   procedure: string | null;
   notes: string | null;
   created_at: string;
+  updated_at?: string;
   patient?: Patient;
   doctor?: Staff;
   creator?: Staff;
@@ -101,6 +115,7 @@ export type InventoryCategory =
 
 export interface InventoryItem {
   id: string;
+  clinic_id?: string | null;
   name: string;
   category: InventoryCategory;
   sku: string;
@@ -142,6 +157,7 @@ export interface ToothCondition {
 
 export interface Examination {
   id: string;
+  clinic_id?: string | null;
   patient_id: string;
   doctor_id: string | null;
   examination_date: string;
@@ -163,6 +179,7 @@ export type TreatmentStatus = 'planned' | 'in_progress' | 'completed' | 'cancell
 
 export interface Treatment {
   id: string;
+  clinic_id?: string | null;
   patient_id: string;
   doctor_id: string | null;
   treatment_date: string;
@@ -191,6 +208,7 @@ export interface PrescriptionItem {
 
 export interface Prescription {
   id: string;
+  clinic_id?: string | null;
   patient_id: string;
   doctor_id: string | null;
   prescription_date: string;

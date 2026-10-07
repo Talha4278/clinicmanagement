@@ -50,7 +50,7 @@ export default function Treatments({
   onNewInvoice,
   onViewPatientDossier,
 }: Props) {
-  const { staff: currentStaff } = useAuth();
+  const { staff: currentStaff, activeClinic } = useAuth();
   const { settings: clinic } = useClinicSettings();
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -72,13 +72,14 @@ export default function Treatments({
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [activeClinic?.id]);
 
   async function loadData() {
     setLoading(true);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
 
     if (isDemoMode()) {
-      const trts = await getTreatments();
+      const trts = await getTreatments(undefined, clinicId);
       const demoPats = getDemoPatients();
       const demoDocs = getDemoStaff().filter((s) => s.role === 'doctor' && s.active !== false);
       setTreatments(trts);
@@ -95,9 +96,9 @@ export default function Treatments({
     }
 
     const [trts, patRes, docRes] = await Promise.all([
-      getTreatments(),
-      supabase.from('patients').select('*').order('name'),
-      supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true),
+      getTreatments(undefined, clinicId),
+      supabase.from('patients').select('*').eq('clinic_id', clinicId).order('name'),
+      supabase.from('staff').select('*').eq('clinic_id', clinicId).eq('role', 'doctor').eq('active', true),
     ]);
 
     setTreatments(trts);
@@ -159,7 +160,7 @@ export default function Treatments({
     }
 
     setSaving(true);
-    setError('');
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
 
     const isValidUuid = (val?: string | null) =>
       typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
@@ -171,6 +172,7 @@ export default function Treatments({
     try {
       await saveTreatment({
         id: editingTreatment?.id,
+        clinic_id: clinicId,
         patient_id: form.patient_id,
         doctor_id: doctorIdToUse,
         treatment_date: form.treatment_date,
@@ -179,9 +181,9 @@ export default function Treatments({
         cost: Number(form.cost) || 0,
         status: form.status,
         notes: form.notes.trim() || null,
-      });
+      }, clinicId);
 
-      const updated = await getTreatments();
+      const updated = await getTreatments(undefined, clinicId);
       setTreatments(updated);
       setShowModal(false);
     } catch (err: any) {
@@ -193,8 +195,9 @@ export default function Treatments({
 
   async function handleDelete(id: string) {
     if (!confirm('Are you sure you want to remove this treatment record?')) return;
-    await deleteTreatment(id);
-    const updated = await getTreatments();
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    await deleteTreatment(id, clinicId);
+    const updated = await getTreatments(undefined, clinicId);
     setTreatments(updated);
   }
 

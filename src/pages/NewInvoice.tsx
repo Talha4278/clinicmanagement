@@ -5,6 +5,7 @@ import { Patient, Staff, ItemType, DiscountType, PaymentMethod, PaymentStatus } 
 import { useAuth } from '../contexts/AuthContext';
 import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS, saveDemoInvoice } from '../lib/demoData';
 import { useClinicSettings } from '../lib/clinicSettings';
+import { saveClinicInvoice } from '../lib/clinicStorage';
 
 interface LineItem {
   item_type: ItemType;
@@ -29,7 +30,7 @@ const defaultItems: LineItem[] = [
 ];
 
 export default function NewInvoice({ onSuccess }: Props) {
-  const { staff } = useAuth();
+  const { staff, activeClinic } = useAuth();
   const { settings } = useClinicSettings();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [doctors, setDoctors] = useState<Staff[]>([]);
@@ -50,7 +51,7 @@ export default function NewInvoice({ onSuccess }: Props) {
   useEffect(() => {
     fetchDoctors();
     fetchPatients();
-  }, []);
+  }, [activeClinic?.id]);
 
   async function fetchDoctors() {
     if (isDemoMode()) {
@@ -59,7 +60,13 @@ export default function NewInvoice({ onSuccess }: Props) {
       if (staff?.role === 'doctor') setSelectedDoctor(staff.id);
       return;
     }
-    const { data } = await supabase.from('staff').select('*').eq('role', 'doctor').eq('active', true);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    const { data } = await supabase
+      .from('staff')
+      .select('*')
+      .eq('clinic_id', clinicId)
+      .eq('role', 'doctor')
+      .eq('active', true);
     setDoctors(data ?? []);
     if (staff?.role === 'doctor') setSelectedDoctor(staff.id);
   }
@@ -69,7 +76,12 @@ export default function NewInvoice({ onSuccess }: Props) {
       setPatients(getDemoPatients());
       return;
     }
-    const { data } = await supabase.from('patients').select('*').order('name');
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    const { data } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('clinic_id', clinicId)
+      .order('name');
     setPatients(data ?? []);
   }
 
@@ -133,9 +145,11 @@ export default function NewInvoice({ onSuccess }: Props) {
     const isValidUuid = (val?: string | null) =>
       typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
 
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     const { data: inv, error: invErr } = await supabase
       .from('invoices')
       .insert({
+        clinic_id: clinicId,
         patient_id: selectedPatient.id,
         doctor_id: isValidUuid(selectedDoctor) ? selectedDoctor : null,
         created_by: isValidUuid(staff?.id) ? staff?.id : null,
@@ -174,6 +188,12 @@ export default function NewInvoice({ onSuccess }: Props) {
       setSaving(false);
       return;
     }
+
+    saveClinicInvoice({
+      ...inv,
+      patient: selectedPatient,
+      items: lineItems,
+    }, clinicId);
 
     onSuccess(inv.id);
   }

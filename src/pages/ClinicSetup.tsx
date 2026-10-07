@@ -154,10 +154,11 @@ export default function ClinicSetup() {
   // Load real doctors from database
   useEffect(() => {
     fetchDoctors();
-  }, []);
+  }, [activeClinic?.id]);
 
   async function fetchDoctors() {
     setLoadingDoctors(true);
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     try {
       if (isDemoMode()) {
         const staff = getDemoStaff();
@@ -166,6 +167,7 @@ export default function ClinicSetup() {
         const { data, error } = await supabase
           .from('staff')
           .select('*')
+          .eq('clinic_id', clinicId)
           .eq('role', 'doctor')
           .order('name');
         if (!error && data) {
@@ -438,80 +440,93 @@ export default function ClinicSetup() {
           active: editingDoctorForm.active,
         });
       } else {
-        const { error } = await supabase
-          .from('staff')
-          .update({
-            name: formattedName,
-            specialization: editingDoctorForm.specialization?.trim() || null,
-            phone: editingDoctorForm.phone?.trim() || null,
-            email: editingDoctorForm.email?.trim() || undefined,
-            active: editingDoctorForm.active,
-          })
-          .eq('id', editingDoctorId);
+          const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+          const { error } = await supabase
+            .from('staff')
+            .update({
+              name: formattedName,
+              specialization: editingDoctorForm.specialization?.trim() || null,
+              phone: editingDoctorForm.phone?.trim() || null,
+              email: editingDoctorForm.email?.trim() || undefined,
+              active: editingDoctorForm.active,
+            })
+            .eq('id', editingDoctorId)
+            .eq('clinic_id', clinicId);
 
-        if (error) {
-          alert(`Error updating doctor in database: ${error.message}`);
-          setSavingDoctor(false);
-          return;
+          if (error) {
+            alert(`Error updating doctor in database: ${error.message}`);
+            setSavingDoctor(false);
+            return;
+          }
         }
+
+        await fetchDoctors();
+        setEditingDoctorId(null);
+        setEditingDoctorForm(null);
+        notifySuccess(`Doctor ${formattedName} updated successfully in database!`);
+      } catch (err: any) {
+        alert(`Error updating doctor: ${err?.message || err}`);
+      } finally {
+        setSavingDoctor(false);
       }
-
-      await fetchDoctors();
-      setEditingDoctorId(null);
-      setEditingDoctorForm(null);
-      notifySuccess(`Doctor ${formattedName} updated successfully in database!`);
-    } catch (err: any) {
-      alert(`Error updating doctor: ${err?.message || err}`);
-    } finally {
-      setSavingDoctor(false);
-    }
-  }
-
-  async function handleToggleDoctorActive(doc: Staff) {
-    try {
-      if (isDemoMode()) {
-        toggleDemoStaff(doc.id);
-      } else {
-        const { error } = await supabase
-          .from('staff')
-          .update({ active: !doc.active })
-          .eq('id', doc.id);
-
-        if (error) {
-          alert(`Error toggling doctor status: ${error.message}`);
-          return;
-        }
-      }
-      await fetchDoctors();
-    } catch (err: any) {
-      console.error('Error toggling doctor status:', err);
-    }
-  }
-
-  async function handleRemoveDoctor(doc: Staff) {
-    if (!confirm(`Are you sure you want to remove ${doc.name} from the attending doctors list?`)) {
-      return;
     }
 
-    try {
-      if (isDemoMode()) {
-        deleteDemoStaff(doc.id);
-        notifySuccess(`Doctor ${doc.name} removed.`);
-      } else {
-        const { error } = await supabase.from('staff').delete().eq('id', doc.id);
-        if (error) {
-          // If foreign key constraint blocks deletion, deactivate instead
-          await supabase.from('staff').update({ active: false }).eq('id', doc.id);
-          notifySuccess(`Doctor ${doc.name} has clinical records in database and was deactivated.`);
+    async function handleToggleDoctorActive(doc: Staff) {
+      const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+      try {
+        if (isDemoMode()) {
+          toggleDemoStaff(doc.id);
         } else {
-          notifySuccess(`Doctor ${doc.name} removed from database.`);
+          const { error } = await supabase
+            .from('staff')
+            .update({ active: !doc.active })
+            .eq('id', doc.id)
+            .eq('clinic_id', clinicId);
+
+          if (error) {
+            alert(`Error toggling doctor status: ${error.message}`);
+            return;
+          }
         }
+        await fetchDoctors();
+      } catch (err: any) {
+        console.error('Error toggling doctor status:', err);
       }
-      await fetchDoctors();
-    } catch (err: any) {
-      alert(`Error removing doctor: ${err?.message || err}`);
     }
-  }
+
+    async function handleRemoveDoctor(doc: Staff) {
+      if (!confirm(`Are you sure you want to remove ${doc.name} from the attending doctors list?`)) {
+        return;
+      }
+
+      const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+      try {
+        if (isDemoMode()) {
+          deleteDemoStaff(doc.id);
+          notifySuccess(`Doctor ${doc.name} removed.`);
+        } else {
+          const { error } = await supabase
+            .from('staff')
+            .delete()
+            .eq('id', doc.id)
+            .eq('clinic_id', clinicId);
+          if (error) {
+            // If foreign key constraint blocks deletion, deactivate instead
+            await supabase
+              .from('staff')
+              .update({ active: false })
+              .eq('id', doc.id)
+              .eq('clinic_id', clinicId);
+            notifySuccess(`Doctor ${doc.name} has clinical records in database and was deactivated.`);
+          } else {
+            notifySuccess(`Doctor ${doc.name} removed from database.`);
+          }
+        }
+        await fetchDoctors();
+      } catch (err: any) {
+        alert(`Error removing doctor: ${err?.message || err}`);
+      }
+    }
 
   // Filtered views
   const filteredProcedures = currentProcedures.filter((p) =>

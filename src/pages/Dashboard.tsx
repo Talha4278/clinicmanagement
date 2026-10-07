@@ -49,7 +49,7 @@ function formatDisplayDate(dateStr: string): string {
 }
 
 export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
-  const { staff } = useAuth();
+  const { staff, activeClinic } = useAuth();
   const { settings: clinic } = useClinicSettings();
   const isReceptionist = staff?.role === 'receptionist';
 
@@ -77,7 +77,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [activeClinic?.id]);
 
   async function fetchData() {
     if (isDemoMode()) {
@@ -106,6 +106,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       return;
     }
 
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     const today = new Date();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
 
@@ -118,19 +119,21 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       recentPatRes,
       aptsRes,
     ] = await Promise.all([
-      supabase.from('patients').select('id', { count: 'exact', head: true }),
-      supabase.from('invoices').select('total').gte('created_at', todayStr).eq('payment_status', 'paid'),
-      supabase.from('invoices').select('total').gte('created_at', monthStart).eq('payment_status', 'paid'),
-      supabase.from('invoices').select('total').in('payment_status', ['pending', 'partial']),
+      supabase.from('patients').select('id', { count: 'exact', head: true }).eq('clinic_id', clinicId),
+      supabase.from('invoices').select('total').eq('clinic_id', clinicId).gte('created_at', todayStr).eq('payment_status', 'paid'),
+      supabase.from('invoices').select('total').eq('clinic_id', clinicId).gte('created_at', monthStart).eq('payment_status', 'paid'),
+      supabase.from('invoices').select('total').eq('clinic_id', clinicId).in('payment_status', ['pending', 'partial']),
       supabase
         .from('invoices')
         .select('*, patient:patients(name,phone), doctor:staff!invoices_doctor_id_fkey(name)')
+        .eq('clinic_id', clinicId)
         .order('created_at', { ascending: false })
         .limit(5),
-      supabase.from('patients').select('*').order('created_at', { ascending: false }).limit(5),
+      supabase.from('patients').select('*').eq('clinic_id', clinicId).order('created_at', { ascending: false }).limit(5),
       supabase
         .from('appointments')
         .select('*, patient:patients(*), doctor:staff!appointments_doctor_id_fkey(*)')
+        .eq('clinic_id', clinicId)
         .gte('appointment_date', todayStr)
         .eq('status', 'scheduled')
         .order('appointment_date', { ascending: true })
@@ -144,6 +147,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       const fallbackRes = await supabase
         .from('appointments')
         .select('*, patient:patients(*)')
+        .eq('clinic_id', clinicId)
         .gte('appointment_date', todayStr)
         .eq('status', 'scheduled')
         .order('appointment_date', { ascending: true })
@@ -157,6 +161,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
     const todayCount = await supabase
       .from('invoices')
       .select('id', { count: 'exact', head: true })
+      .eq('clinic_id', clinicId)
       .gte('created_at', todayStr);
 
     const scheduledApts = aptsData.filter(a => a.status === 'scheduled');
