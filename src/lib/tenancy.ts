@@ -1,5 +1,5 @@
 import { ClinicTenant, ClinicSignUpData, SubscriptionPlan, Staff, ClinicSettings } from './types';
-import { saveClinicSettings } from './clinicSettings';
+import { saveClinicSettings, getClinicSettings } from './clinicSettings';
 import { supabase } from './supabase';
 
 const TENANTS_STORAGE_KEY = 'clinsyst_tenants';
@@ -120,17 +120,17 @@ export function setActiveClinic(clinicId: string): ClinicTenant {
   const found = all.find(c => c.id === clinicId) || all[0];
   if (found) {
     localStorage.setItem(ACTIVE_CLINIC_STORAGE_KEY, found.id);
-    // Sync clinicSettings as well
+    // Sync clinicSettings as well - preserving existing custom localization, notation & tax settings
+    const existing = getClinicSettings();
     const settings: ClinicSettings = {
+      ...existing,
       clinic_name: found.name,
-      tagline: found.tagline || 'Dental & Aesthetic Care',
-      logo_url: found.logo_url || '',
-      address: found.address,
-      email: found.owner_email,
-      phone: found.phone,
-      website: `www.${found.slug}.com`,
-      tax_number: 'NTN-8921-D',
-      currency_symbol: 'Rs.',
+      tagline: found.tagline || existing.tagline || 'Dental & Aesthetic Care',
+      logo_url: found.logo_url !== undefined && found.logo_url !== null ? found.logo_url : existing.logo_url,
+      address: found.address || existing.address,
+      email: found.owner_email || existing.email,
+      phone: found.phone || existing.phone,
+      website: found.slug ? `www.${found.slug}.com` : existing.website,
     };
     saveClinicSettings(settings);
     window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: found }));
@@ -503,10 +503,12 @@ export function updateClinicStatus(
     window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: all[idx] }));
 
     // Async sync with Supabase clinics table
-    supabase
-      .from('clinics')
-      .update({ status })
-      .eq('id', clinicId)
+    Promise.resolve(
+      supabase
+        .from('clinics')
+        .update({ status })
+        .eq('id', clinicId)
+    )
       .then(({ error }) => {
         if (error) {
           console.warn('Could not sync clinic status to Supabase:', error.message);

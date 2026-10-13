@@ -44,6 +44,8 @@ export default function NewInvoice({ onSuccess }: Props) {
   const [taxRate, setTaxRate] = useState<number>(settings.tax_rate ?? 5);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('paid');
+  const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [userEditedPaid, setUserEditedPaid] = useState<boolean>(false);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -101,6 +103,41 @@ export default function NewInvoice({ onSuccess }: Props) {
   const afterDiscount = subtotal - discountAmount;
   const taxAmount = (afterDiscount * taxRate) / 100;
   const total = afterDiscount + taxAmount;
+  const remainingBalance = Math.max(0, total - paidAmount);
+
+  // Auto-sync paid amount when total or payment status changes (if not custom edited)
+  useEffect(() => {
+    if (!userEditedPaid) {
+      if (paymentStatus === 'paid') {
+        setPaidAmount(total);
+      } else if (paymentStatus === 'pending') {
+        setPaidAmount(0);
+      } else if (paymentStatus === 'partial') {
+        setPaidAmount(Math.round(total * 0.5));
+      }
+    }
+  }, [total, paymentStatus, userEditedPaid]);
+
+  function handleStatusChange(status: PaymentStatus) {
+    setPaymentStatus(status);
+    setUserEditedPaid(false);
+    if (status === 'paid') setPaidAmount(total);
+    else if (status === 'pending') setPaidAmount(0);
+    else if (status === 'partial') setPaidAmount(Math.round(total * 0.5));
+  }
+
+  function handlePaidAmountChange(val: number) {
+    const sanitized = isNaN(val) ? 0 : Math.max(0, val);
+    setPaidAmount(sanitized);
+    setUserEditedPaid(true);
+    if (sanitized >= total && total > 0) {
+      setPaymentStatus('paid');
+    } else if (sanitized > 0) {
+      setPaymentStatus('partial');
+    } else {
+      setPaymentStatus('pending');
+    }
+  }
 
   function addItem() {
     setItems([...items, { item_type: 'consultation', description: '', quantity: 1, unit_price: 0 }]);
@@ -130,7 +167,7 @@ export default function NewInvoice({ onSuccess }: Props) {
         discount: discountAmount,
         tax: taxAmount,
         total,
-        paid_amount: paymentStatus === 'paid' ? total : 0,
+        paid_amount: paidAmount,
         payment_method: paymentMethod,
         payment_status: paymentStatus,
         notes: notes.trim() || null,
@@ -161,6 +198,7 @@ export default function NewInvoice({ onSuccess }: Props) {
       tax_rate: taxRate,
       tax_amount: taxAmount,
       total,
+      paid_amount: paidAmount,
       payment_method: paymentMethod,
       payment_status: paymentStatus,
       notes: notes.trim() || null,
@@ -175,6 +213,14 @@ export default function NewInvoice({ onSuccess }: Props) {
     if (invErr && isMissingClinicIdColumnError(invErr)) {
       const { clinic_id, ...legacyPayload } = invoicePayload;
       const res = await supabase.from('invoices').insert(legacyPayload).select().single();
+      inv = res.data;
+      invErr = res.error;
+    }
+
+    // Fallback if paid_amount column is not present in legacy schema
+    if (invErr && (invErr.message?.includes('paid_amount') || invErr.details?.includes('paid_amount'))) {
+      const { paid_amount: _, ...withoutPaid } = invoicePayload;
+      const res = await supabase.from('invoices').insert(withoutPaid).select().single();
       inv = res.data;
       invErr = res.error;
     }
@@ -324,12 +370,12 @@ export default function NewInvoice({ onSuccess }: Props) {
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Payment Status</label>
                   <select
                     value={paymentStatus}
-                    onChange={(e) => setPaymentStatus(e.target.value as PaymentStatus)}
+                    onChange={(e) => handleStatusChange(e.target.value as PaymentStatus)}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
                   >
-                    <option value="paid">Paid</option>
-                    <option value="pending">Pending</option>
-                    <option value="partial">Partial</option>
+                    <option value="paid">Paid (Full)</option>
+                    <option value="pending">Pending (Unpaid)</option>
+                    <option value="partial">Partial Payment</option>
                   </select>
                 </div>
               </div>
@@ -501,10 +547,77 @@ export default function NewInvoice({ onSuccess }: Props) {
                 </div>
               )}
 
-              <div className="border-t border-gray-100 pt-3 flex justify-between">
-                <span className="font-semibold text-gray-900">Total</span>
+              <div className="border-t border-gray-100 pt-3 flex justify-between items-baseline">
+                <span className="font-semibold text-gray-900">Total Bill</span>
                 <span className="text-xl font-bold" style={{ color: '#3c5e27' }}>
                   {settings.currency_symbol || 'Rs. '}{total.toLocaleString()}
+                </span>
+              </div>
+
+              {/* Amount Paid input directly in Bill Summary */}
+              <div className="pt-2 space-y-1.5 border-t border-dashed border-gray-200">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm font-semibold text-gray-800">
+                    Amount Paid ({settings.currency_symbol || 'Rs. '})
+                  </label>
+                  <span className="text-2xs text-gray-400">Enter payment received</span>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">
+                    {settings.currency_symbol || 'Rs. '}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={paidAmount === 0 ? '' : paidAmount}
+                    onChange={(e) => handlePaidAmountChange(parseFloat(e.target.value) || 0)}
+                    placeholder="0"
+                    className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-base font-bold text-gray-900 text-right focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                  />
+                </div>
+                {/* Quick preset buttons */}
+                <div className="flex items-center gap-1.5 pt-1 justify-end flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handlePaidAmountChange(total)}
+                    className="px-2 py-0.5 text-2xs font-semibold rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-colors"
+                  >
+                    Pay Full (100%)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePaidAmountChange(Math.round(total * 0.5))}
+                    className="px-2 py-0.5 text-2xs font-semibold rounded-md bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors"
+                  >
+                    50% Deposit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePaidAmountChange(0)}
+                    className="px-2 py-0.5 text-2xs font-semibold rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                  >
+                    Unpaid (0)
+                  </button>
+                </div>
+              </div>
+
+              {/* Auto-calculated Remaining Balance */}
+              <div
+                className={`flex justify-between items-center p-3 rounded-xl text-sm ${
+                  remainingBalance > 0
+                    ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                    : 'bg-emerald-50 text-emerald-900 border border-emerald-200'
+                }`}
+              >
+                <div>
+                  <span className="font-bold block">Remaining Balance</span>
+                  <span className="text-2xs font-medium opacity-80 capitalize">
+                    Status: {paymentStatus === 'paid' ? 'Paid in Full' : paymentStatus === 'partial' ? 'Partial Payment' : 'Pending'}
+                  </span>
+                </div>
+                <span className="text-lg font-bold">
+                  {settings.currency_symbol || 'Rs. '}{remainingBalance.toLocaleString()} {remainingBalance === 0 ? '✓' : ''}
                 </span>
               </div>
             </div>

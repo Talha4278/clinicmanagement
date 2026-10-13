@@ -1,6 +1,7 @@
 import { Printer, X, Stethoscope, Calendar, Phone } from 'lucide-react';
 import { Prescription } from '../lib/types';
 import { useClinicSettings } from '../lib/clinicSettings';
+import { ClinicBadgeIcon } from './ClinicBadgeIcon';
 
 interface PrescriptionSlipProps {
   prescription: Prescription;
@@ -63,7 +64,7 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
                 {clinic.logo_url ? (
                   <img src={clinic.logo_url} alt={clinic.clinic_name} className="w-full h-full object-contain p-1" />
                 ) : (
-                  <Stethoscope size={24} />
+                  <ClinicBadgeIcon iconId={clinic.badge_icon} className="w-6 h-6 text-white" size={24} />
                 )}
               </div>
               <div>

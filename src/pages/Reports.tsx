@@ -80,10 +80,29 @@ export default function Reports() {
         }))
       );
 
-      setDoctorStats([
-        { doctor_name: 'Dr. Sarah Tariq', total: 106500, count: 2 },
-        { doctor_name: 'Dr. Hamza Malik', total: 18000, count: 1 },
-      ]);
+      const doctorMap = new Map<string, { total: number; count: number }>();
+      demoInvoices.forEach(inv => {
+        const docName = (inv.doctor as any)?.name;
+        if (!docName) return;
+        const existing = doctorMap.get(docName) ?? { total: 0, count: 0 };
+        const paid = Number(
+          inv.paid_amount !== undefined && inv.paid_amount !== null
+            ? inv.paid_amount
+            : inv.payment_status === 'paid'
+            ? inv.total
+            : 0
+        );
+        doctorMap.set(docName, {
+          total: existing.total + paid,
+          count: existing.count + 1,
+        });
+      });
+
+      setDoctorStats(
+        Array.from(doctorMap.entries())
+          .map(([doctor_name, v]) => ({ doctor_name, ...v }))
+          .sort((a, b) => b.total - a.total)
+      );
       setLoading(false);
       return;
     }
@@ -123,7 +142,7 @@ export default function Reports() {
 
     // Aggregate daily revenue
     const dayMap = new Map<string, { revenue: number; count: number }>();
-    (dailyRes.data ?? []).forEach(inv => {
+    (dailyRes.data ?? []).forEach((inv: any) => {
       const d = inv.created_at.split('T')[0];
       const existing = dayMap.get(d) ?? { revenue: 0, count: 0 };
       if (inv.payment_status === 'paid') {
@@ -138,8 +157,8 @@ export default function Reports() {
 
     setDaily(dailyArr);
     setSummary({
-      totalRevenue: (paidRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
-      totalPending: (pendingRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
+      totalRevenue: (paidRes.data ?? []).reduce((s: number, i: any) => s + Number(i.total), 0),
+      totalPending: (pendingRes.data ?? []).reduce((s: number, i: any) => s + Number(i.total), 0),
       totalInvoices: countRes.count ?? 0,
       totalPatients: patientRes.count ?? 0,
     });
@@ -156,19 +175,43 @@ export default function Reports() {
       }))
     );
 
-    // Doctor stats from invoices in period
-    const invWithDoctor = await supabase
+    // Doctor stats from invoices in period for THIS clinic only
+    let docInvQuery = supabase
       .from('invoices')
-      .select('total, payment_status, doctor:staff!invoices_doctor_id_fkey(name)')
+      .select('total, paid_amount, payment_status, doctor:staff!invoices_doctor_id_fkey(name, clinic_id)')
       .gte('created_at', startStr)
       .not('doctor_id', 'is', null);
 
+    docInvQuery = applyClinicFilter(docInvQuery, clinicId);
+    let invWithDoctor = await docInvQuery;
+
+    if (invWithDoctor.error && isMissingClinicIdColumnError(invWithDoctor.error)) {
+      invWithDoctor = await supabase
+        .from('invoices')
+        .select('total, paid_amount, payment_status, doctor:staff!invoices_doctor_id_fkey(name, clinic_id)')
+        .gte('created_at', startStr)
+        .not('doctor_id', 'is', null);
+    }
+
     const doctorMap = new Map<string, { total: number; count: number }>();
     (invWithDoctor.data ?? []).forEach((inv: any) => {
-      const name = inv.doctor?.name ?? 'Unknown';
+      // Security check: ensure doctor belongs to this clinic if clinic_id is present
+      if (inv.doctor?.clinic_id && inv.doctor.clinic_id !== clinicId) {
+        return;
+      }
+      const name = inv.doctor?.name;
+      if (!name) return;
+
       const existing = doctorMap.get(name) ?? { total: 0, count: 0 };
+      const paid = Number(
+        inv.paid_amount !== undefined && inv.paid_amount !== null
+          ? inv.paid_amount
+          : inv.payment_status === 'paid'
+          ? inv.total
+          : 0
+      );
       doctorMap.set(name, {
-        total: existing.total + (inv.payment_status === 'paid' ? Number(inv.total) : 0),
+        total: existing.total + paid,
         count: existing.count + 1,
       });
     });

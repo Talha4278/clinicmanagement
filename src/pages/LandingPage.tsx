@@ -3,18 +3,17 @@ import {
   Stethoscope, Activity, Sparkles, ShieldCheck, CheckCircle2,
   Globe, Calendar, Pill, Package, FileText,
   ArrowRight, Star, Clock, TrendingUp,
-  Layers, Lock, Laptop, Check, X,
+  Lock, X,
   Building2, Play, Sliders, Zap,
   ChevronDown, MessageSquare, AlertCircle, Eye, EyeOff,
-  Smartphone, Send, CheckCheck, RefreshCw, Receipt,
-  CheckCircle, Database, PhoneCall, HeartPulse, UserCheck, MapPin
+  Send, CheckCheck, RefreshCw, Receipt,
+  CheckCircle, Database, PhoneCall
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import {
   CurrencyCode,
   SUPPORTED_CURRENCIES,
   INTERNATIONAL_PLANS,
-  COMPETITOR_COMPARISON_DATA,
   TESTIMONIALS_DATA,
 } from '../lib/internationalPricing';
 import { ClinicSignUpData, SubscriptionPlan } from '../lib/types';

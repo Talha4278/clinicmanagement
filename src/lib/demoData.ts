@@ -9,6 +9,8 @@ import {
   PrescriptionItem,
   InventoryItem,
   Staff,
+  StaffRole,
+  PaymentMethod,
 } from './types';
 
 export const DEMO_ROLE_KEY = 'dentivista_demo_role';
@@ -887,7 +889,7 @@ export function saveDemoPatient(patient: Partial<Patient> & { name: string }): P
       id: patient.id || `pat-demo-${Date.now()}`,
       name: patient.name,
       email: patient.email || null,
-      phone: patient.phone || null,
+      phone: patient.phone || '',
       date_of_birth: patient.date_of_birth || null,
       gender: patient.gender || null,
       blood_group: patient.blood_group || null,
@@ -983,7 +985,11 @@ export function getDemoInvoices(): (Invoice & { items: InvoiceItem[] })[] {
 }
 
 export function saveDemoInvoice(
-  inv: Partial<Invoice> & { patient_id: string; total: number; items?: Partial<InvoiceItem>[] }
+  inv: Partial<Invoice> & {
+    patient_id: string;
+    total: number;
+    items?: (Partial<InvoiceItem> & { description?: string; quantity?: number; unit_price?: number; total?: number })[];
+  }
 ): Invoice & { items: InvoiceItem[] } {
   const list = getDemoInvoices();
   const patients = getDemoPatients();
@@ -1044,14 +1050,19 @@ export function saveDemoInvoice(
   return saved;
 }
 
-export function updateDemoInvoicePayment(id: string, paidAmount: number, paymentMethod?: string): boolean {
+export function updateDemoInvoicePayment(
+  id: string,
+  paidAmount: number,
+  paymentMethod?: PaymentMethod,
+  notes?: string
+): (Invoice & { items: InvoiceItem[] }) | null {
   const list = getDemoInvoices();
   const idx = list.findIndex(i => i.id === id);
   if (idx >= 0) {
     const inv = list[idx];
     const newPaid = Number(paidAmount);
     inv.paid_amount = newPaid;
-    if (newPaid >= inv.total) {
+    if (newPaid >= inv.total && inv.total > 0) {
       inv.payment_status = 'paid';
     } else if (newPaid > 0) {
       inv.payment_status = 'partial';
@@ -1059,11 +1070,12 @@ export function updateDemoInvoicePayment(id: string, paidAmount: number, payment
       inv.payment_status = 'pending';
     }
     if (paymentMethod) inv.payment_method = paymentMethod;
+    if (notes !== undefined) inv.notes = notes;
     inv.updated_at = new Date().toISOString();
     localStorage.setItem(STORAGE_KEYS.invoices, JSON.stringify(list));
-    return true;
+    return inv;
   }
-  return false;
+  return null;
 }
 
 export function getDemoInventory(): InventoryItem[] {

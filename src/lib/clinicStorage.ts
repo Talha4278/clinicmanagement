@@ -726,7 +726,7 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
         date: rx.prescription_date,
         title: `Prescription: ${rx.diagnosis || 'Clinical Regimen'}`,
         subtitle: `${itemCount} medication${itemCount === 1 ? '' : 's'} prescribed`,
-        details: rx.notes || undefined,
+        details: rx.clinical_notes || rx.notes || rx.advice || undefined,
         doctorName: rx.doctor?.name,
         badgeColor: '#7c3aed',
         rawRecord: rx,
@@ -737,7 +737,7 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
       timeline.push({
         id: `act-inv-${inv.id}`,
         type: 'invoice',
-        date: inv.created_at || inv.issue_date,
+        date: inv.created_at || inv.issue_date || new Date().toISOString(),
         title: `Invoice: ${inv.invoice_number}`,
         subtitle: `Total: Rs. ${Number(inv.total).toLocaleString()} • ${inv.payment_status.toUpperCase()}`,
         amount: Number(inv.total),
@@ -936,7 +936,7 @@ export async function getPatientDossier(patientId: string, clinicId?: string): P
     timeline.push({
       id: `act-inv-${inv.id}`,
       type: 'invoice',
-      date: inv.created_at || inv.issue_date,
+      date: inv.created_at || inv.issue_date || new Date().toISOString(),
       title: `Invoice: ${inv.invoice_number}`,
       subtitle: `Total: Rs. ${Number(inv.total).toLocaleString()} • ${inv.payment_status.toUpperCase()}`,
       amount: Number(inv.total),

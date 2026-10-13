@@ -109,7 +109,7 @@ export default function Prescriptions({
     setDoctors(availableDocs);
 
     if (preselectedPatientId && patRes.data) {
-      const match = patRes.data.find((p) => p.id === preselectedPatientId);
+      const match = (patRes.data as Patient[]).find((p: Patient) => p.id === preselectedPatientId);
       if (match) {
         openAddModal(match.id);
       }

@@ -97,7 +97,7 @@ export default function DentalChart({
   function handleSaveToothCondition(num: number, condition: ToothCondition | null) {
     if (!onChangeTeethFindings) return;
     const next = { ...teethFindings };
-    if (!condition || (condition.findings.length === 0 && !condition.notes)) {
+    if (!condition || ((condition.findings?.length ?? 0) === 0 && !condition.notes)) {
       delete next[num];
     } else {
       next[num] = condition;
@@ -354,7 +354,7 @@ export default function DentalChart({
             </span>
             {teethFindings[hoveredTooth.number]?.findings?.length ? (
               <div className="flex items-center gap-1 ml-2">
-                {teethFindings[hoveredTooth.number].findings.map((f) => (
+                {teethFindings[hoveredTooth.number]?.findings?.map((f) => (
                   <span
                     key={f}
                     className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${FINDINGS_CONFIG[f].badgeClass}`}

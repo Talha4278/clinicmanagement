@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Search, Plus, X, FileText, MessageSquare, Eye } from 'lucide-react';
+import { Search, Plus, X, FileText, MessageSquare, Eye, CreditCard } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Invoice, PaymentStatus } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
 import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
+import EditPaymentModal from '../components/EditPaymentModal';
 import { isDemoMode, getDemoInvoices } from '../lib/demoData';
 import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
@@ -35,6 +36,7 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | ''>('');
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
 
   const [whatsappModal, setWhatsappModal] = useState<{
     isOpen: boolean;
@@ -56,10 +58,14 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
     const patientName = (inv.patient as any)?.name || 'Valued Patient';
     const patientPhone = (inv.patient as any)?.phone || '';
     const totalAmount = Number(inv.total) || 0;
-    const isPartial = inv.payment_status === 'partial';
-    const paidAmount = isPartial ? Math.round(totalAmount * 0.5) : 0;
-    const pendingAmount = totalAmount - paidAmount;
-    const doctorName = (inv.doctor as any)?.name;
+    const paidAmount = Number(
+      inv.paid_amount !== undefined && inv.paid_amount !== null
+        ? inv.paid_amount
+        : inv.payment_status === 'paid'
+        ? totalAmount
+        : 0
+    );
+    const pendingAmount = Math.max(0, totalAmount - paidAmount);
     const procedureOrServices = `Dental Care & Clinical Services (${inv.invoice_number})`;
 
     const message = generatePaymentWhatsAppMessage({
@@ -150,8 +156,16 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
     return matchSearch && matchStatus;
   });
 
-  const totalRevenue = invoices.filter(i => i.payment_status === 'paid').reduce((s, i) => s + Number(i.total), 0);
-  const pending = invoices.filter(i => i.payment_status !== 'paid').reduce((s, i) => s + Number(i.total), 0);
+  const totalRevenue = invoices.reduce((s, i) => {
+    if (i.payment_status === 'paid') return s + Number(i.total);
+    return s + Number(i.paid_amount || 0);
+  }, 0);
+
+  const pending = invoices.reduce((s, i) => {
+    if (i.payment_status === 'paid') return s;
+    const remaining = Number(i.total) - Number(i.paid_amount || 0);
+    return s + Math.max(0, remaining);
+  }, 0);
 
   return (
     <div className="space-y-5">
@@ -175,14 +189,14 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
         {!isReceptionist && (
           <div className="bg-white rounded-2xl card-shadow p-4">
             <p className="text-xs text-gray-500 mb-1">Total Collected</p>
-            <p className="text-xl font-bold text-gray-900">Rs. {totalRevenue.toLocaleString()}</p>
+            <p className="text-xl font-bold text-gray-900">{clinic.currency_symbol || 'Rs.'} {totalRevenue.toLocaleString()}</p>
             <span className="text-xs badge-paid px-2 py-0.5 rounded-full font-medium">{invoices.filter(i => i.payment_status === 'paid').length} paid</span>
           </div>
         )}
         <div className="bg-white rounded-2xl card-shadow p-4">
-          <p className="text-xs text-gray-500 mb-1">Outstanding</p>
-          <p className="text-xl font-bold text-gray-900">Rs. {pending.toLocaleString()}</p>
-          <span className="text-xs badge-pending px-2 py-0.5 rounded-full font-medium">{invoices.filter(i => i.payment_status !== 'paid').length} unpaid</span>
+          <p className="text-xs text-gray-500 mb-1">Outstanding Balance</p>
+          <p className="text-xl font-bold text-gray-900">{clinic.currency_symbol || 'Rs.'} {pending.toLocaleString()}</p>
+          <span className="text-xs badge-pending px-2 py-0.5 rounded-full font-medium">{invoices.filter(i => i.payment_status !== 'paid').length} unpaid/partial</span>
         </div>
         <div className="bg-white rounded-2xl card-shadow p-4">
           <p className="text-xs text-gray-500 mb-1">Total Invoices</p>
@@ -232,7 +246,7 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5 hidden md:table-cell">Doctor</th>
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5 hidden sm:table-cell">Method</th>
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5 hidden lg:table-cell">Date</th>
-                <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5">Amount</th>
+                <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5">Amount & Balance</th>
                 <th className="text-center text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5">Status</th>
                 <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide px-6 py-3.5">Actions</th>
               </tr>
@@ -255,61 +269,118 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
                   </td>
                 </tr>
               ) : (
-                filtered.map((inv) => (
-                  <tr
-                    key={inv.id}
-                    onClick={() => onViewInvoice(inv.id)}
-                    className="table-row-hover cursor-pointer"
-                  >
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-mono font-medium text-gray-800">{inv.invoice_number}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-gray-900">{(inv.patient as any)?.name ?? '—'}</p>
-                      <p className="text-xs text-gray-400">{(inv.patient as any)?.phone}</p>
-                    </td>
-                    <td className="px-6 py-4 hidden md:table-cell">
-                      <p className="text-sm text-gray-600">{(inv.doctor as any)?.name ?? '—'}</p>
-                    </td>
-                    <td className="px-6 py-4 hidden sm:table-cell">
-                      <p className="text-sm text-gray-600 capitalize">{methodLabel[inv.payment_method] ?? inv.payment_method}</p>
-                    </td>
-                    <td className="px-6 py-4 hidden lg:table-cell">
-                      <p className="text-sm text-gray-400">{new Date(inv.created_at).toLocaleDateString()}</p>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <p className="text-sm font-semibold text-gray-900">Rs. {Number(inv.total).toLocaleString()}</p>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${statusBadge[inv.payment_status]}`}>
-                        {inv.payment_status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {inv.payment_status !== 'paid' && (
+                filtered.map((inv) => {
+                  const invTotal = Number(inv.total) || 0;
+                  const invPaid = Number(
+                    inv.paid_amount !== undefined && inv.paid_amount !== null
+                      ? inv.paid_amount
+                      : inv.payment_status === 'paid'
+                      ? invTotal
+                      : 0
+                  );
+                  const invBalance = Math.max(0, invTotal - invPaid);
+
+                  return (
+                    <tr
+                      key={inv.id}
+                      onClick={() => onViewInvoice(inv.id)}
+                      className="table-row-hover cursor-pointer"
+                    >
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-mono font-medium text-gray-800">{inv.invoice_number}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-medium text-gray-900">{(inv.patient as any)?.name ?? '—'}</p>
+                        <p className="text-xs text-gray-400">{(inv.patient as any)?.phone}</p>
+                      </td>
+                      <td className="px-6 py-4 hidden md:table-cell">
+                        <p className="text-sm text-gray-600">{(inv.doctor as any)?.name ?? '—'}</p>
+                      </td>
+                      <td className="px-6 py-4 hidden sm:table-cell">
+                        <p className="text-sm text-gray-600 capitalize">{methodLabel[inv.payment_method] ?? inv.payment_method}</p>
+                      </td>
+                      <td className="px-6 py-4 hidden lg:table-cell">
+                        <p className="text-sm text-gray-400">{new Date(inv.created_at).toLocaleDateString()}</p>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {clinic.currency_symbol || 'Rs.'} {invTotal.toLocaleString()}
+                        </p>
+                        {inv.payment_status === 'partial' ? (
+                          <div className="text-2xs font-medium mt-0.5 space-y-0.5">
+                            <span className="text-emerald-700">Paid: {clinic.currency_symbol || 'Rs.'} {invPaid.toLocaleString()}</span>
+                            <span className="text-gray-300 mx-1">•</span>
+                            <span className="text-amber-700 font-semibold">Bal: {clinic.currency_symbol || 'Rs.'} {invBalance.toLocaleString()}</span>
+                          </div>
+                        ) : inv.payment_status === 'pending' ? (
+                          <p className="text-2xs text-rose-600 font-medium mt-0.5">
+                            Due: {clinic.currency_symbol || 'Rs.'} {invTotal.toLocaleString()}
+                          </p>
+                        ) : (
+                          <p className="text-2xs text-emerald-600 font-medium mt-0.5">
+                            Settled in full ✓
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`text-xs px-2.5 py-1 rounded-full font-medium capitalize ${statusBadge[inv.payment_status]}`}>
+                          {inv.payment_status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Edit Payment Button for pending/partial records */}
+                          {inv.payment_status !== 'paid' ? (
+                            <button
+                              type="button"
+                              title="Edit Paid Amount & Calculate Balance"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingInvoice(inv);
+                              }}
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold transition-all shadow-2xs"
+                            >
+                              <CreditCard size={13} className="text-blue-600" />
+                              <span className="hidden sm:inline">Edit Payment</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              title="Adjust Payment Record"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingInvoice(inv);
+                              }}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                            >
+                              <CreditCard size={14} />
+                            </button>
+                          )}
+
+                          {inv.payment_status !== 'paid' && (
+                            <button
+                              type="button"
+                              title="Send WhatsApp Payment Reminder"
+                              onClick={(e) => handleOpenWhatsApp(e, inv)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold transition-all shadow-2xs"
+                            >
+                              <MessageSquare size={13} className="text-emerald-600" />
+                              <span className="hidden sm:inline">Remind</span>
+                            </button>
+                          )}
                           <button
                             type="button"
-                            title="Send WhatsApp Payment Reminder"
-                            onClick={(e) => handleOpenWhatsApp(e, inv)}
-                            className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-semibold transition-all shadow-2xs"
+                            title="View Invoice"
+                            onClick={() => onViewInvoice(inv.id)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
                           >
-                            <MessageSquare size={13} className="text-emerald-600" />
-                            <span className="hidden sm:inline">Remind</span>
+                            <Eye size={15} />
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          title="View Invoice"
-                          onClick={() => onViewInvoice(inv.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                        >
-                          <Eye size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -325,6 +396,18 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
         patientPhone={whatsappModal.patientPhone}
         initialMessage={whatsappModal.message}
         metadata={whatsappModal.metadata}
+      />
+
+      {/* Edit Payment Modal */}
+      <EditPaymentModal
+        isOpen={!!editingInvoice}
+        onClose={() => setEditingInvoice(null)}
+        invoice={editingInvoice}
+        currencySymbol={clinic.currency_symbol || 'Rs.'}
+        onSuccess={(updated) => {
+          setInvoices(prev => prev.map(inv => inv.id === updated.id ? updated : inv));
+          setEditingInvoice(null);
+        }}
       />
     </div>
   );

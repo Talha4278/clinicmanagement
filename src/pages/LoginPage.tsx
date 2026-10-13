@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Stethoscope, Eye, EyeOff, AlertCircle, Sparkles,
   Pill, Package, FileText, Calendar, ShieldCheck, CheckCircle2,
-  Activity, ArrowRight, Building2, User, Phone, MapPin, Check, LogOut,
+  Activity, ArrowRight, Building2, User, LogOut,
   KeyRound, Mail, X, Loader2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';

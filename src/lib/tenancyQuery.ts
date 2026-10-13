@@ -1,4 +1,3 @@
-import { supabase } from './supabase';
 
 /**
  * Checks if a Supabase PostgREST error was caused by the 'clinic_id' column

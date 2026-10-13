@@ -20,7 +20,6 @@ import {
   getDemoPatients,
   saveDemoPatient,
   getDemoStaff,
-  DEMO_STAFF_MEMBERS,
 } from '../lib/demoData';
 import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 
@@ -416,7 +415,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
 
     const createdByToUse = isDemoMode()
       ? (staff?.id ?? null)
-      : (isValidUuid(staff?.id) ? staff.id : null);
+      : (staff && isValidUuid(staff.id) ? staff.id : null);
 
     const clinicId = activeClinic?.id || 'clinic-dentivista-01';
     const payload = {

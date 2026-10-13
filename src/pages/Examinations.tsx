@@ -100,7 +100,7 @@ export default function Examinations({
     setDoctors(availableDocs);
 
     if (preselectedPatientId && patientsRes.data) {
-      const match = patientsRes.data.find((p) => p.id === preselectedPatientId);
+      const match = (patientsRes.data as Patient[]).find((p: Patient) => p.id === preselectedPatientId);
       if (match) {
         openNewExam(match);
       }

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Printer, ArrowLeft, CheckCircle, Clock, AlertTriangle, Stethoscope, MessageSquare } from 'lucide-react';
+import { Printer, ArrowLeft, CheckCircle, Clock, AlertTriangle, Stethoscope, MessageSquare, CreditCard } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Invoice, InvoiceItem } from '../lib/types';
 import { useClinicSettings } from '../lib/clinicSettings';
 import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
+import EditPaymentModal from '../components/EditPaymentModal';
+import { ClinicBadgeIcon } from '../components/ClinicBadgeIcon';
 import { isDemoMode, getDemoInvoices, updateDemoInvoicePayment } from '../lib/demoData';
 import { useAuth } from '../contexts/AuthContext';
 import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
@@ -34,6 +36,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [isEditPaymentOpen, setIsEditPaymentOpen] = useState(false);
 
   // WhatsApp Modal State
   const [whatsappModal, setWhatsappModal] = useState<{
@@ -57,10 +60,15 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
     const patientName = patientObj?.name || 'Valued Patient';
     const patientPhone = patientObj?.phone || '';
     const totalAmount = Number(invoice.total) || 0;
-    const isPartial = invoice.payment_status === 'partial';
-    const paidAmount = isPartial ? Math.round(totalAmount * 0.5) : 0;
-    const pendingAmount = totalAmount - paidAmount;
-    const itemsDescription = items.length > 0 ? items.map(i => i.item_name).join(', ') : 'Clinical Consultation & Procedures';
+    const paidAmount = Number(
+      invoice.paid_amount !== undefined && invoice.paid_amount !== null
+        ? invoice.paid_amount
+        : invoice.payment_status === 'paid'
+        ? totalAmount
+        : 0
+    );
+    const pendingAmount = Math.max(0, totalAmount - paidAmount);
+    const itemsDescription = items.length > 0 ? items.map(i => i.item_name || i.description).join(', ') : 'Clinical Consultation & Procedures';
 
     const message = generatePaymentWhatsAppMessage({
       patientName,
@@ -150,7 +158,6 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
   async function markPaid() {
     if (!invoice) return;
     setUpdating(true);
-    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
 
     if (isDemoMode()) {
       updateDemoInvoicePayment(invoice.id, invoice.total);
@@ -219,14 +226,20 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
   return (
     <div className="max-w-4xl space-y-4">
       {/* Toolbar — hidden on print */}
-      <div className="flex items-center justify-between gap-4 no-print">
+      <div className="flex items-center justify-between gap-4 no-print flex-wrap">
         <button
           onClick={onBack}
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
         >
           <ArrowLeft size={16} /> Back to Invoices
         </button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setIsEditPaymentOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors border border-blue-200"
+          >
+            <CreditCard size={15} /> Edit Payment & Balance
+          </button>
           {invoice.payment_status !== 'paid' && (
             <>
               <button
@@ -255,6 +268,34 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
         </div>
       </div>
 
+      {/* Outstanding Balance Banner (no-print) */}
+      {invoice.payment_status !== 'paid' && (
+        <div className="no-print bg-amber-50/90 border border-amber-200/80 rounded-2xl p-4 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0">
+              <Clock size={20} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                {invoice.payment_status === 'partial' ? 'Partial Payment Recorded' : 'Payment Status: Pending'}
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Total Bill: <span className="font-semibold">{clinic.currency_symbol || 'Rs.'} {Number(invoice.total).toLocaleString()}</span> • 
+                Paid: <span className="font-semibold text-emerald-700">{clinic.currency_symbol || 'Rs.'} {Number(invoice.paid_amount || 0).toLocaleString()}</span> • 
+                Remaining Balance: <span className="font-bold text-amber-950 underline">{clinic.currency_symbol || 'Rs.'} {Math.max(0, Number(invoice.total) - Number(invoice.paid_amount || 0)).toLocaleString()}</span>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsEditPaymentOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-semibold shadow-2xs transition-all"
+          >
+            <CreditCard size={14} className="text-amber-700" />
+            Edit Paid Amount & Balance
+          </button>
+        </div>
+      )}
+
       {/* Invoice document */}
       <div className="bg-white rounded-2xl card-shadow-md overflow-hidden" id="invoice-print">
         {/* Invoice header */}
@@ -265,7 +306,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
                 {clinic.logo_url ? (
                   <img src={clinic.logo_url} alt={clinic.clinic_name} className="w-full h-full object-contain p-1" />
                 ) : (
-                  <Stethoscope className="w-7 h-7 text-white" />
+                  <ClinicBadgeIcon iconId={clinic.badge_icon} className="w-7 h-7 text-white" size={28} />
                 )}
               </div>
               <div>
@@ -332,7 +373,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
                   </td>
                   <td className="py-3.5 hidden sm:table-cell">
                     <span className="text-xs px-2 py-0.5 rounded-md bg-gray-100 text-gray-600">
-                      {itemTypeLabels[item.item_type] ?? item.item_type}
+                      {(item.item_type && itemTypeLabels[item.item_type]) ? itemTypeLabels[item.item_type] : (item.item_type ?? 'Service')}
                     </span>
                   </td>
                   <td className="py-3.5 text-right text-sm text-gray-600">{Number(item.quantity)}</td>
@@ -366,9 +407,51 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
               </div>
             )}
             <div className="border-t-2 border-gray-200 pt-2 flex justify-between">
-              <span className="font-bold text-gray-900 text-base">Total</span>
+              <span className="font-bold text-gray-900 text-base">Total Bill</span>
               <span className="font-bold text-xl" style={{ color: '#3c5e27' }}>{clinic.currency_symbol || 'AED '}{Number(invoice.total).toLocaleString()}</span>
             </div>
+
+            {/* Paid Amount */}
+            <div className="flex justify-between text-sm pt-1">
+              <span className="text-gray-500">Amount Paid</span>
+              <span className="text-emerald-700 font-semibold">
+                {clinic.currency_symbol || 'AED '}
+                {Number(
+                  invoice.paid_amount !== undefined && invoice.paid_amount !== null
+                    ? invoice.paid_amount
+                    : invoice.payment_status === 'paid'
+                    ? invoice.total
+                    : 0
+                ).toLocaleString()}
+              </span>
+            </div>
+
+            {/* Remaining Balance */}
+            {(() => {
+              const invPaid = Number(
+                invoice.paid_amount !== undefined && invoice.paid_amount !== null
+                  ? invoice.paid_amount
+                  : invoice.payment_status === 'paid'
+                  ? invoice.total
+                  : 0
+              );
+              const invBal = Math.max(0, Number(invoice.total) - invPaid);
+              return (
+                <div
+                  className={`flex justify-between items-center px-3 py-2 rounded-xl text-sm ${
+                    invBal > 0
+                      ? 'bg-amber-50 text-amber-900 font-bold border border-amber-200'
+                      : 'bg-emerald-50 text-emerald-900 font-semibold border border-emerald-200'
+                  }`}
+                >
+                  <span>Remaining Balance</span>
+                  <span className="text-base font-bold">
+                    {clinic.currency_symbol || 'AED '} {invBal.toLocaleString()}
+                  </span>
+                </div>
+              );
+            })()}
+
             <div className="flex justify-between text-sm pt-1">
               <span className="text-gray-500">Payment Method</span>
               <span className="text-gray-700 capitalize">{methodLabel[invoice.payment_method] ?? invoice.payment_method}</span>
@@ -414,6 +497,18 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
         patientPhone={whatsappModal.patientPhone}
         initialMessage={whatsappModal.message}
         metadata={whatsappModal.metadata}
+      />
+
+      {/* Edit Payment Modal */}
+      <EditPaymentModal
+        isOpen={isEditPaymentOpen}
+        onClose={() => setIsEditPaymentOpen(false)}
+        invoice={invoice}
+        currencySymbol={clinic.currency_symbol || 'AED '}
+        onSuccess={(updated) => {
+          setInvoice(updated);
+          setIsEditPaymentOpen(false);
+        }}
       />
     </div>
   );

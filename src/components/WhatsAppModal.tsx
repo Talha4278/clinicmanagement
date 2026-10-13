@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   X, MessageSquare, Copy, Check, Send, Phone,
-  User, Calendar, Clock, DollarSign, Stethoscope, AlertTriangle, ShieldCheck
+  User, Calendar, Clock, DollarSign, Stethoscope, ShieldCheck
 } from 'lucide-react';
 import { useClinicSettings } from '../lib/clinicSettings';
 import { cleanPhoneNumber, openWhatsAppChat } from '../lib/whatsapp';
@@ -50,7 +50,6 @@ export default function WhatsAppModal({
   if (!isOpen) return null;
 
   const cleaned = cleanPhoneNumber(phone);
-  const isPakistani = cleaned.startsWith('92');
 
   function handleSend() {
     openWhatsAppChat(phone, message);

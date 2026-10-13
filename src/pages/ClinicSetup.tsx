@@ -6,7 +6,7 @@ import {
   Plus, Trash2, Edit2, Check, X, Search, UserPlus, AlertCircle,
   UserCheck, UserX, Loader2, Clock, Receipt, CreditCard,
   MessageSquare, Send, Smartphone, Lock,
-  ShieldCheck, Zap, Copy, Eye, EyeOff,
+  ShieldCheck, Zap,
   CheckCheck, Landmark
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -14,18 +14,18 @@ import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQ
 import { useAuth } from '../contexts/AuthContext';
 import {
   useClinicSettings,
-  DEFAULT_CLINIC_SETTINGS,
+  getClinicSettings,
   DEFAULT_PROCEDURES,
 } from '../lib/clinicSettings';
 import {
   ClinicSettings,
   Staff,
+  StaffRole,
 } from '../lib/types';
 import {
-  validateProductionPaymentConfig,
-  launchGlobalCheckout,
-  ValidationResult,
-} from '../lib/payments';
+  ClinicBadgeIcon,
+  PRESET_BADGE_ICONS,
+} from '../components/ClinicBadgeIcon';
 import {
   isDemoMode,
   getDemoStaff,
@@ -33,15 +33,6 @@ import {
   deleteDemoStaff,
   toggleDemoStaff,
 } from '../lib/demoData';
-
-const PRESET_ICONS = [
-  { id: 'stethoscope', label: 'Stethoscope', icon: Stethoscope },
-  { id: 'heartpulse', label: 'Heart Pulse', icon: HeartPulse },
-  { id: 'activity', label: 'Activity', icon: Activity },
-  { id: 'shield', label: 'Shield Care', icon: Shield },
-  { id: 'sparkles', label: 'Aesthetics', icon: Sparkles },
-  { id: 'building', label: 'Clinic', icon: Building2 },
-];
 
 const TIMEZONE_OPTIONS = [
   { value: 'Asia/Dubai', label: 'Asia/Dubai (GST, GMT+4) — UAE, Oman', flag: '🇦🇪', region: 'UAE / GCC' },
@@ -75,10 +66,17 @@ const CURRENCY_OPTIONS = [
 export default function ClinicSetup() {
   const { activeClinic } = useAuth();
   const { settings, updateSettings } = useClinicSettings();
-  const [form, setForm] = useState<ClinicSettings>({ ...settings });
+  const [form, setForm] = useState<ClinicSettings>({
+    ...settings,
+    badge_icon: settings.badge_icon || 'stethoscope',
+  });
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('Clinic settings successfully updated!');
-  const [selectedPresetIcon, setSelectedPresetIcon] = useState('stethoscope');
+  const [selectedPresetIcon, setSelectedPresetIcon] = useState<string>(
+    settings.badge_icon || 'stethoscope'
+  );
+  const [savingTab, setSavingTab] = useState<string | null>(null);
+  const [savedTab, setSavedTab] = useState<string | null>(null);
 
   // Navigation tab
   const [activeTab, setActiveTab] = useState<
@@ -92,15 +90,9 @@ export default function ClinicSetup() {
   const [testMobile, setTestMobile] = useState('+971 50 123 4567');
   const [testSending, setTestSending] = useState(false);
   const [testSent, setTestSent] = useState(false);
-
-  // Payments key toggle
-  const [showSecretKey, setShowSecretKey] = useState(false);
-
-  // Payment Diagnostics & Checkout Test State
-  const [validationReport, setValidationReport] = useState<ValidationResult | null>(null);
-  const [copiedWebhook, setCopiedWebhook] = useState(false);
-  const [testingCheckout, setTestingCheckout] = useState(false);
   const [checkoutTestStatus, setCheckoutTestStatus] = useState<string | null>(null);
+
+
 
   // Live clock effect
   useEffect(() => {
@@ -150,6 +142,9 @@ export default function ClinicSetup() {
   // Sync settings state if updated externally
   useEffect(() => {
     setForm(settings);
+    if (settings.badge_icon) {
+      setSelectedPresetIcon(settings.badge_icon);
+    }
   }, [settings]);
 
   // Load real doctors from database
@@ -203,21 +198,29 @@ export default function ClinicSetup() {
 
   function handleSaveLocalization(e?: React.FormEvent) {
     if (e) e.preventDefault();
+    setSavingTab('localization');
     updateSettings(form);
-    notifySuccess('FDI notation, time zone & VAT settings saved successfully!');
+    setSavingTab(null);
+    setSavedTab('localization');
+    notifySuccess('Tooth notation, time zone & VAT settings saved and applied!');
+    setTimeout(() => {
+      setSavedTab((curr) => curr === 'localization' ? null : curr);
+    }, 2500);
   }
 
   function handleSaveWhatsApp(e?: React.FormEvent) {
     if (e) e.preventDefault();
+    setSavingTab('whatsapp');
     updateSettings(form);
-    notifySuccess('WhatsApp Cloud API & automated notification triggers saved successfully!');
+    setSavingTab(null);
+    setSavedTab('whatsapp');
+    notifySuccess('WhatsApp Cloud API & automated triggers saved and applied!');
+    setTimeout(() => {
+      setSavedTab((curr) => curr === 'whatsapp' ? null : curr);
+    }, 2500);
   }
 
-  function handleSavePayments(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    updateSettings(form);
-    notifySuccess('Global payments, merchant of record & USD billing saved successfully!');
-  }
+
 
   function handleSendTestWhatsApp() {
     if (!testMobile.trim()) {
@@ -232,42 +235,7 @@ export default function ClinicSetup() {
     }, 1100);
   }
 
-  function handleRunPaymentDiagnostics() {
-    const report = validateProductionPaymentConfig(form.payment_gateway_config);
-    setValidationReport(report);
-  }
 
-  async function handleTestCheckout(planId: 'starter' | 'pro' | 'network', priceUSD: number) {
-    setTestingCheckout(true);
-    setCheckoutTestStatus(null);
-    try {
-      const res = await launchGlobalCheckout({
-        planId,
-        planName: planId === 'starter' ? 'Starter Plan' : planId === 'pro' ? 'Pro Clinic' : 'Network Chain',
-        priceUSD,
-        billingCycle: 'monthly',
-        customerEmail: form.email,
-        clinicName: form.clinic_name,
-        currency: 'USD',
-        onSuccess: (details) => {
-          setCheckoutTestStatus(`Authorization Verified! Tx: ${details.transactionId} for plan: ${details.planId.toUpperCase()}`);
-        },
-      });
-      if (res.message && !res.redirected) {
-        setCheckoutTestStatus(res.message);
-      }
-    } catch (err: any) {
-      setCheckoutTestStatus(`Checkout error: ${err.message || err}`);
-    } finally {
-      setTestingCheckout(false);
-    }
-  }
-
-  function handleCopyWebhookUrl(url: string) {
-    navigator.clipboard.writeText(url);
-    setCopiedWebhook(true);
-    setTimeout(() => setCopiedWebhook(false), 3000);
-  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -292,8 +260,19 @@ export default function ClinicSetup() {
       alert('Clinic Name is required');
       return;
     }
-    updateSettings(form);
-    notifySuccess('Clinic profile and invoice branding saved successfully!');
+    setSavingTab('profile');
+    const updatedForm = {
+      ...form,
+      badge_icon: form.badge_icon || selectedPresetIcon,
+    };
+    setForm(updatedForm);
+    updateSettings(updatedForm);
+    setSavingTab(null);
+    setSavedTab('profile');
+    notifySuccess('Clinic profile & badge branding saved and applied!');
+    setTimeout(() => {
+      setSavedTab((curr) => curr === 'profile' ? null : curr);
+    }, 2500);
   }
 
   function handleResetAll() {
@@ -393,7 +372,7 @@ export default function ClinicSetup() {
       if (isDemoMode()) {
         saveDemoStaff({
           name: formattedName,
-          role: 'doctor',
+          role: 'doctor' as StaffRole,
           specialization: newDoctor.specialization.trim() || 'General Dental Practitioner',
           phone: newDoctor.phone.trim() || null,
           email: emailToUse,
@@ -447,7 +426,7 @@ export default function ClinicSetup() {
         saveDemoStaff({
           id: editingDoctorId || undefined,
           name: formattedName,
-          role: 'doctor',
+          role: 'doctor' as StaffRole,
           specialization: editingDoctorForm.specialization?.trim() || null,
           phone: editingDoctorForm.phone?.trim() || null,
           email: editingDoctorForm.email?.trim() || `dr.${formattedName.toLowerCase().replace(/[^a-z0-9]/g, '')}@clinic.local`,
@@ -579,11 +558,46 @@ export default function ClinicSetup() {
         </div>
       </div>
 
-      {/* Success Notification Banner */}
+      {/* Floating Viewport Toast Notification (Always in view) */}
       {savedSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-800 text-sm font-semibold shadow-xs animate-in fade-in duration-200">
-          <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0" />
-          <span>{successMessage}</span>
+        <div className="fixed top-6 right-6 z-[100] max-w-sm w-full animate-in slide-in-from-top-4 fade-in duration-300 drop-shadow-2xl">
+          <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 text-white p-4 rounded-2xl border border-emerald-500/40 shadow-2xl flex items-start gap-3.5 backdrop-blur-md">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <CheckCircle2 size={19} className="animate-pulse" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                  Saved & Applied
+                </h4>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              </div>
+              <p className="text-xs text-emerald-100/90 mt-0.5 font-medium leading-relaxed">
+                {successMessage}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSavedSuccess(false)}
+              className="text-white/60 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+              title="Dismiss"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Success Notification Banner (In-Page) */}
+      {savedSuccess && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 text-emerald-800 text-sm font-semibold shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0" />
+            <span>{successMessage}</span>
+          </div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-white/70 px-2 py-0.5 rounded-md border border-emerald-200">
+            Active & Synchronized
+          </span>
         </div>
       )}
 
@@ -610,12 +624,12 @@ export default function ClinicSetup() {
             }`}
         >
           <Globe size={14} />
-          FDI Notation, Time Zone & VAT
+          Tooth Notation, Time Zone & VAT
           <span
             className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold ${activeTab === 'localization' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
               }`}
           >
-            {form.tooth_notation?.toUpperCase() || 'FDI'}
+            {form.tooth_notation === 'universal' ? 'UNIVERSAL' : 'FDI'}
           </span>
         </button>
 
@@ -741,7 +755,7 @@ export default function ClinicSetup() {
 
               <div className="flex items-center gap-4">
                 {/* Preview Avatar */}
-                <div className="w-16 h-16 rounded-2xl bg-emerald-700 text-white flex items-center justify-center overflow-hidden border-2 border-emerald-600/50 shadow-md flex-shrink-0">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-800 text-white flex items-center justify-center overflow-hidden border-2 border-emerald-700/60 shadow-md flex-shrink-0 transition-all">
                   {form.logo_url ? (
                     <img
                       src={form.logo_url}
@@ -749,7 +763,11 @@ export default function ClinicSetup() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Stethoscope size={30} />
+                    <ClinicBadgeIcon
+                      iconId={form.badge_icon || selectedPresetIcon}
+                      size={32}
+                      className="text-white drop-shadow-sm transition-transform duration-200"
+                    />
                   )}
                 </div>
 
@@ -789,28 +807,43 @@ export default function ClinicSetup() {
 
               {/* Quick Icon Selector when no custom image */}
               {!form.logo_url && (
-                <div className="pt-2 border-t border-gray-200">
-                  <span className="text-[11px] font-semibold text-gray-500 uppercase block mb-1.5">
-                    Or pick a clinic badge style:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {PRESET_ICONS.map((p) => {
+                <div className="pt-2 border-t border-gray-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-gray-500 uppercase">
+                      Or pick a clinic badge style:
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-800 uppercase px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200">
+                      Active: {PRESET_BADGE_ICONS.find(p => p.id === (form.badge_icon || selectedPresetIcon))?.label || 'Stethoscope'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {PRESET_BADGE_ICONS.map((p) => {
                       const IconComp = p.icon;
+                      const isSelected = (form.badge_icon || selectedPresetIcon) === p.id;
                       return (
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setSelectedPresetIcon(p.id)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${selectedPresetIcon === p.id
-                            ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
-                            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
-                            }`}
+                          onClick={() => {
+                            setSelectedPresetIcon(p.id);
+                            setForm((prev) => ({ ...prev, badge_icon: p.id }));
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                            isSelected
+                              ? 'bg-emerald-800 text-white border-emerald-800 shadow-md ring-2 ring-emerald-600/30 scale-[1.02]'
+                              : 'bg-white text-gray-700 border-gray-200 hover:bg-emerald-50 hover:border-emerald-300'
+                          }`}
                         >
-                          <IconComp size={13} /> {p.label}
+                          <IconComp size={14} />
+                          <span>{p.label}</span>
+                          {isSelected && <Check size={12} className="ml-0.5 text-white" />}
                         </button>
                       );
                     })}
                   </div>
+                  <p className="text-[11px] text-gray-500">
+                    ✨ Tapping any badge instantly updates the live invoice and prescription preview below.
+                  </p>
                 </div>
               )}
             </div>
@@ -908,10 +941,27 @@ export default function ClinicSetup() {
             <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
               <button
                 type="submit"
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90 shadow-md"
-                style={{ background: '#3c5e27' }}
+                disabled={savingTab === 'profile'}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md ${
+                  savedTab === 'profile'
+                    ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-offset-2 scale-[1.02]'
+                    : 'hover:opacity-90 active:scale-[0.98]'
+                }`}
+                style={savedTab === 'profile' ? undefined : { background: '#3c5e27' }}
               >
-                <Save size={15} /> Save Clinic Identity
+                {savingTab === 'profile' ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" /> Saving Identity...
+                  </>
+                ) : savedTab === 'profile' ? (
+                  <>
+                    <CheckCircle2 size={15} className="text-white animate-bounce" /> Saved & Applied!
+                  </>
+                ) : (
+                  <>
+                    <Save size={15} /> Save Clinic Identity
+                  </>
+                )}
               </button>
             </div>
           </form>
@@ -935,11 +985,15 @@ export default function ClinicSetup() {
                 <div className="p-4" style={{ background: '#3c5e27' }}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 transition-all">
                         {form.logo_url ? (
                           <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
                         ) : (
-                          <Stethoscope className="w-5 h-5 text-white" />
+                          <ClinicBadgeIcon
+                            iconId={form.badge_icon || selectedPresetIcon}
+                            size={20}
+                            className="w-5 h-5 text-white"
+                          />
                         )}
                       </div>
                       <div>
@@ -992,13 +1046,17 @@ export default function ClinicSetup() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5">
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white overflow-hidden"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white overflow-hidden transition-all"
                       style={{ background: '#3c5e27' }}
                     >
                       {form.logo_url ? (
                         <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
                       ) : (
-                        <Stethoscope size={16} />
+                        <ClinicBadgeIcon
+                          iconId={form.badge_icon || selectedPresetIcon}
+                          size={16}
+                          className="w-4 h-4 text-white"
+                        />
                       )}
                     </div>
                     <div>
@@ -1041,8 +1099,8 @@ export default function ClinicSetup() {
                   <h3 className="text-base font-bold text-gray-900">
                     Tooth Notation System (FDI vs Universal)
                   </h3>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                    Non-Negotiable
+                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    Configurable
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1 max-w-2xl">
@@ -1406,10 +1464,27 @@ export default function ClinicSetup() {
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90 shadow-md"
-              style={{ background: '#3c5e27' }}
+              disabled={savingTab === 'localization'}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md ${
+                savedTab === 'localization'
+                  ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-offset-2 scale-[1.02]'
+                  : 'hover:opacity-90 active:scale-[0.98]'
+              }`}
+              style={savedTab === 'localization' ? undefined : { background: '#3c5e27' }}
             >
-              <Save size={15} /> Save FDI Notation, Time Zone & VAT Settings
+              {savingTab === 'localization' ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Saving Settings...
+                </>
+              ) : savedTab === 'localization' ? (
+                <>
+                  <CheckCircle2 size={15} className="text-white animate-bounce" /> Saved & Applied!
+                </>
+              ) : (
+                <>
+                  <Save size={15} /> Save Tooth Notation, Time Zone & VAT Settings
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -1861,10 +1936,27 @@ export default function ClinicSetup() {
           <div className="flex items-center justify-end gap-3 pt-2">
             <button
               type="submit"
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-bold transition-all hover:opacity-90 shadow-md"
-              style={{ background: '#3c5e27' }}
+              disabled={savingTab === 'whatsapp'}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md ${
+                savedTab === 'whatsapp'
+                  ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-offset-2 scale-[1.02]'
+                  : 'hover:opacity-90 active:scale-[0.98]'
+              }`}
+              style={savedTab === 'whatsapp' ? undefined : { background: '#3c5e27' }}
             >
-              <Save size={15} /> Save WhatsApp Configuration & Triggers
+              {savingTab === 'whatsapp' ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" /> Saving Triggers...
+                </>
+              ) : savedTab === 'whatsapp' ? (
+                <>
+                  <CheckCircle2 size={15} className="text-white animate-bounce" /> Saved & Applied!
+                </>
+              ) : (
+                <>
+                  <Save size={15} /> Save WhatsApp Configuration & Triggers
+                </>
+              )}
             </button>
           </div>
         </form>

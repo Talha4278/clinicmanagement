@@ -19,6 +19,7 @@ export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   clinic_name: 'Dentivista Dental & Aesthetics',
   tagline: 'Dental & Aesthetics Healthcare',
   logo_url: '',
+  badge_icon: 'stethoscope',
   address: '1st Floor, 6/Street 2, Down Town Royal Orchard, Multan',
   email: 'sarah@dentivista.com',
   phone: '(+92) 300-0979185',
@@ -142,12 +143,17 @@ export function getClinicSettings(): ClinicSettings {
   return DEFAULT_CLINIC_SETTINGS;
 }
 
-export function saveClinicSettings(settings: ClinicSettings): void {
+export function saveClinicSettings(settings: Partial<ClinicSettings>): void {
   try {
     const key = getSettingsStorageKey();
-    localStorage.setItem(key, JSON.stringify(settings));
-    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(settings));
-    window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: settings }));
+    const existing = getClinicSettings();
+    const merged: ClinicSettings = {
+      ...existing,
+      ...settings,
+    };
+    localStorage.setItem(key, JSON.stringify(merged));
+    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(merged));
+    window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: merged }));
   } catch (err) {
     console.error('Failed to save clinic settings:', err);
   }
@@ -158,8 +164,13 @@ export function useClinicSettings() {
 
   useEffect(() => {
     function handleUpdate(e: Event) {
+      if (e.type === 'clinsyst-tenant-changed') {
+        // Tenant changed: reload full merged clinic settings for the active clinic
+        setSettings(getClinicSettings());
+        return;
+      }
       const customEvent = e as CustomEvent<ClinicSettings>;
-      if (customEvent.detail) {
+      if (e.type === EVENT_NAME && customEvent.detail) {
         setSettings(customEvent.detail);
       } else {
         setSettings(getClinicSettings());

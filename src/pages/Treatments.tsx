@@ -6,7 +6,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { Treatment, TreatmentStatus, Patient, Staff } from '../lib/types';
 import { getTreatments, saveTreatment, deleteTreatment } from '../lib/clinicStorage';
-import { isDemoMode, getDemoPatients, DEMO_STAFF_MEMBERS, getDemoStaff } from '../lib/demoData';
+import { isDemoMode, getDemoPatients, getDemoStaff } from '../lib/demoData';
 import { useClinicSettings } from '../lib/clinicSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
@@ -117,7 +117,7 @@ export default function Treatments({
     setDoctors(availableDocs);
 
     if (preselectedPatientId && patRes.data) {
-      const match = patRes.data.find((p) => p.id === preselectedPatientId);
+      const match = (patRes.data as Patient[]).find((p: Patient) => p.id === preselectedPatientId);
       if (match) {
         openAddModal(match.id);
       }

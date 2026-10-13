@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import {
   Stethoscope, LayoutDashboard, Users, Calendar, FileText, BarChart3,
   UserCog, LogOut, Menu, X, ChevronRight, Bell, Package, Pill, CheckCircle2,
-  Settings, Building2, ChevronDown, ShieldCheck, Laptop
+  Settings, ShieldCheck, Laptop
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
+import { ClinicBadgeIcon } from './ClinicBadgeIcon';
 
 export type Page =
   | 'dashboard'
@@ -24,7 +25,6 @@ export type Page =
 interface LayoutProps {
   currentPage: Page;
   onNavigate: (page: Page) => void;
-  onPreviewLanding?: () => void;
   children: React.ReactNode;
 }
 
@@ -42,7 +42,7 @@ const navItems = [
   { id: 'setup' as Page, label: 'Clinic Setup', icon: Settings, roles: ['admin', 'doctor'] as const },
 ];
 
-export default function Layout({ currentPage, onNavigate, onPreviewLanding, children }: LayoutProps) {
+export default function Layout({ currentPage, onNavigate, children }: LayoutProps) {
   const {
     staff,
     signOut,
@@ -72,7 +72,7 @@ export default function Layout({ currentPage, onNavigate, onPreviewLanding, chil
             {clinic.logo_url ? (
               <img src={clinic.logo_url} alt={clinic.clinic_name} className="w-full h-full object-contain p-0.5" />
             ) : (
-              <Stethoscope className="w-5 h-5 text-white" />
+              <ClinicBadgeIcon iconId={clinic.badge_icon} className="w-5 h-5 text-white" size={20} />
             )}
           </div>
           <div className="min-w-0 flex-1">

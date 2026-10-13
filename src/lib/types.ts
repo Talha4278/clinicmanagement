@@ -32,21 +32,22 @@ export interface Patient {
   address: string | null;
   emergency_contact?: string | null;
   medical_history: string | null;
-  allergies: string | null;
+  allergies?: string | null;
   notes?: string | null;
   created_at: string;
   updated_at?: string;
 }
 
 export interface InvoiceItem {
-  id: string;
-  invoice_id: string;
-  item_type: ItemType;
+  id?: string;
+  invoice_id?: string;
+  item_type?: ItemType;
+  item_name?: string;
   description: string;
   quantity: number;
   unit_price: number;
   total: number;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface Invoice {
@@ -55,13 +56,15 @@ export interface Invoice {
   invoice_number: string;
   patient_id: string;
   doctor_id: string | null;
-  created_by: string | null;
+  created_by?: string | null;
   subtotal: number;
-  discount_type: DiscountType;
-  discount_value: number;
-  discount_amount: number;
-  tax_rate: number;
-  tax_amount: number;
+  discount_type?: DiscountType;
+  discount_value?: number;
+  discount_amount?: number;
+  discount?: number;
+  tax_rate?: number;
+  tax_amount?: number;
+  tax?: number;
   total: number;
   paid_amount?: number;
   payment_method: PaymentMethod;
@@ -91,7 +94,7 @@ export interface Appointment {
   clinic_id?: string | null;
   patient_id: string;
   doctor_id: string | null;
-  created_by: string | null;
+  created_by?: string | null;
   appointment_date: string;
   appointment_time: string;
   duration_minutes?: number;
@@ -111,7 +114,8 @@ export type InventoryCategory =
   | 'Pharmaceuticals'
   | 'Disposables & Surgical'
   | 'Instruments & Tools'
-  | 'Office & General';
+  | 'Office & General'
+  | string;
 
 export interface InventoryItem {
   id: string;
@@ -149,10 +153,14 @@ export type ToothFinding =
 export type ToothSurface = 'O' | 'M' | 'D' | 'B' | 'L'; // Occlusal, Mesial, Distal, Buccal, Lingual
 
 export interface ToothCondition {
-  findings: ToothFinding[];
+  toothNumber?: number | string;
+  toothName?: string;
+  condition?: string;
+  findings?: ToothFinding[];
   surfaces?: ToothSurface[];
   notes?: string;
   severity?: 'mild' | 'moderate' | 'severe';
+  updatedAt?: string;
 }
 
 export interface Examination {
@@ -163,8 +171,8 @@ export interface Examination {
   examination_date: string;
   dentition_type: DentitionType;
   chief_complaint?: string | null;
-  gingival_condition?: 'Healthy' | 'Mild Gingivitis' | 'Moderate Periodontitis' | 'Severe Periodontitis' | null;
-  plaque_level?: 'Low' | 'Moderate' | 'High' | null;
+  gingival_condition?: 'Healthy' | 'Mild Gingivitis' | 'Moderate Periodontitis' | 'Severe Periodontitis' | string | null;
+  plaque_level?: 'Low' | 'Moderate' | 'High' | string | null;
   soft_tissue_notes?: string | null;
   teeth_findings: Record<number, ToothCondition>;
   clinical_notes?: string | null;
@@ -214,6 +222,7 @@ export interface Prescription {
   prescription_date: string;
   diagnosis?: string | null;
   clinical_notes?: string | null;
+  notes?: string | null;
   advice?: string | null; // e.g. "Warm saline rinse 3 times daily, avoid hard food"
   follow_up_date?: string | null;
   created_at: string;
@@ -232,6 +241,7 @@ export interface PatientActivityEvent {
   title: string;
   subtitle?: string;
   details?: string;
+  amount?: number;
   status?: string;
   doctorName?: string;
   badgeColor?: string;
@@ -282,6 +292,14 @@ export interface PaymentGatewayConfig {
   price_ids?: PaymentPlanPriceIds;
   return_url?: string;
   cancel_url?: string;
+  bank_name?: string;
+  account_title?: string;
+  account_number_iban?: string;
+  raast_id?: string;
+  jazzcash_number?: string;
+  easypaisa_number?: string;
+  whatsapp_number?: string;
+  manual_instructions?: string;
 }
 
 export interface AttendingDoctorSetting {
@@ -297,6 +315,7 @@ export interface ClinicSettings {
   clinic_name: string;
   tagline: string;
   logo_url?: string | null;
+  badge_icon?: string;
   address: string;
   email: string;
   phone: string;
@@ -342,6 +361,7 @@ export interface ClinicSignUpData {
   phone: string;
   address: string;
   plan: SubscriptionPlan;
+  billing_cycle?: 'monthly' | 'annual' | string;
 }
 
 export interface ActiveSession {

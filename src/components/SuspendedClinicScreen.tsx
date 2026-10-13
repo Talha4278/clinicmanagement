@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ShieldAlert, RefreshCw, MessageSquare, LogOut, Building2, Clock, CheckCircle2, AlertTriangle, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { ShieldAlert, RefreshCw, MessageSquare, LogOut, Clock, AlertTriangle, ExternalLink } from 'lucide-react';
 import { ClinicTenant } from '../lib/types';
 
 interface SuspendedClinicScreenProps {

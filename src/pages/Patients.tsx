@@ -122,7 +122,6 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
       return;
     }
 
-    let savedId = editPatient?.id;
     if (editPatient) {
       let { error } = await supabase.from('patients').update(payload).eq('id', editPatient.id);
       if (error && isMissingClinicIdColumnError(error)) {
@@ -132,15 +131,13 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
       }
       if (error) { setError(error.message); setSaving(false); return; }
     } else {
-      let { data: inserted, error } = await supabase.from('patients').insert(payload).select().maybeSingle();
+      let { error } = await supabase.from('patients').insert(payload);
       if (error && isMissingClinicIdColumnError(error)) {
         const { clinic_id, ...legacyPayload } = payload;
-        const res = await supabase.from('patients').insert(legacyPayload).select().maybeSingle();
-        inserted = res.data;
+        const res = await supabase.from('patients').insert(legacyPayload);
         error = res.error;
       }
       if (error) { setError(error.message); setSaving(false); return; }
-      if (inserted) savedId = inserted.id;
     }
 
     await fetchPatients();

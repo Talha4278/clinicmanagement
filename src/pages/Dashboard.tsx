@@ -209,9 +209,9 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
 
     setStats({
       totalPatients: patientsRes.count ?? 0,
-      todayRevenue: (todayInvRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
-      monthRevenue: (monthInvRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
-      pendingAmount: (pendingRes.data ?? []).reduce((s, i) => s + Number(i.total), 0),
+      todayRevenue: (todayInvRes.data ?? []).reduce((s: number, i: any) => s + Number(i.total), 0),
+      monthRevenue: (monthInvRes.data ?? []).reduce((s: number, i: any) => s + Number(i.total), 0),
+      pendingAmount: (pendingRes.data ?? []).reduce((s: number, i: any) => s + Math.max(0, Number(i.total) - Number(i.paid_amount || 0)), 0),
       todayInvoices: todayCount.count ?? 0,
       upcomingAppointmentsCount: scheduledApts.length,
     });
