@@ -17,7 +17,7 @@ import {
   TESTIMONIALS_DATA,
 } from '../lib/internationalPricing';
 import { ClinicSignUpData, SubscriptionPlan } from '../lib/types';
-import { detectVisitorCurrency, saveManualCurrency, GeoDetectionResult } from '../lib/geoPricing';
+import { detectVisitorCurrency, saveManualCurrency } from '../lib/geoPricing';
 
 // Tooth structure supporting both FDI (11–48 / 51–85) and Universal (1–32 / A–T)
 interface OdontogramTooth {
@@ -109,13 +109,11 @@ export default function LandingPage() {
   // Currency & Billing State (USD, PKR, AED, SAR prominent)
   const [currency, setCurrency] = useState<CurrencyCode>('USD');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
-  const [geoInfo, setGeoInfo] = useState<GeoDetectionResult | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     detectVisitorCurrency().then((res) => {
       if (isMounted) {
-        setGeoInfo(res);
         setCurrency(res.currency);
       }
     });
@@ -127,9 +125,6 @@ export default function LandingPage() {
   const handleSelectCurrency = (code: CurrencyCode) => {
     setCurrency(code);
     saveManualCurrency(code);
-    if (geoInfo) {
-      setGeoInfo({ ...geoInfo, currency: code, source: 'manual' });
-    }
   };
 
   // Interactive Odontogram State: Dual Notation (FDI vs Universal) + Arch
@@ -1764,17 +1759,6 @@ export default function LandingPage() {
               </button>
             </div>
 
-            {/* IP Geolocation auto-detection badge */}
-            <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 text-sky-800 text-xs font-semibold border border-sky-200 shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
-              <span>
-                {currency === 'PKR' ? (
-                  <>📍 Displaying localized pricing in <strong>PKR (Rs.)</strong> for Pakistan based on IP detection</>
-                ) : (
-                  <>📍 Displaying international pricing in <strong>USD ($)</strong> for {geoInfo?.countryName && geoInfo.countryName !== 'Pakistan' ? geoInfo.countryName : 'global clinics'} based on IP detection</>
-                )}
-              </span>
-            </div>
 
             {/* Monthly vs Annual Toggle (-20% discount) */}
             <div className="mt-6 inline-flex items-center gap-2 p-1.5 bg-white rounded-2xl border border-slate-200 shadow-xs">

@@ -113,23 +113,7 @@
         <a href="#faq" class="hover:text-brand-600 transition-colors">FAQ</a>
       </nav>
 
-      <!-- Currency Switcher & Actions -->
-      <div class="flex items-center gap-3">
-        <!-- Currency Pill with IP auto-detection support -->
-        <div class="hidden sm:flex items-center bg-slate-100 rounded-lg p-0.5 border border-slate-200 text-xs font-medium text-slate-600">
-          <button onclick="setCurrency('USD')" id="btn-curr-usd" class="px-2 py-1 rounded-md bg-white shadow-sm font-semibold text-slate-900 transition-all">USD ($)</button>
-          <button onclick="setCurrency('PKR')" id="btn-curr-pkr" class="px-2 py-1 rounded-md hover:text-slate-900 transition-all">PKR (Rs)</button>
-          <button onclick="setCurrency('AED')" id="btn-curr-aed" class="px-2 py-1 rounded-md hover:text-slate-900 transition-all">AED</button>
-          <button onclick="setCurrency('SAR')" id="btn-curr-sar" class="px-2 py-1 rounded-md hover:text-slate-900 transition-all">SAR</button>
-          <select onchange="setCurrency(this.value)" id="select-curr-other" class="bg-transparent text-slate-600 font-semibold px-1 py-1 rounded cursor-pointer outline-none border-l border-slate-200 text-[11px]" aria-label="More Currencies">
-            <option value="" disabled selected>More ▾</option>
-            <option value="GBP">GBP (£)</option>
-            <option value="EUR">EUR (€)</option>
-            <option value="CAD">CAD (CA$)</option>
-            <option value="AUD">AUD (A$)</option>
-          </select>
-        </div>
-
+     
         <a href="/app/?mode=signin" id="nav-sign-in" class="inline-flex text-sm font-semibold text-slate-700 hover:text-brand-600 px-2 sm:px-3 py-2 transition-colors">
           Sign In
         </a>
@@ -658,11 +642,6 @@
           </span>
         </div>
 
-        <!-- IP Geolocation indicator pill -->
-        <div id="geo-location-pill" class="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 text-sky-800 text-xs font-semibold border border-sky-200 shadow-xs">
-          <span class="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
-          <span id="geo-location-text">Detecting local regional pricing via IP...</span>
-        </div>
       </div>
 
       <!-- Pricing Cards Grid -->
@@ -806,14 +785,10 @@
 
       <!-- Trust Footer Note with Fast Currency Switcher -->
       <div class="mt-12 text-center text-xs text-slate-500">
-        * Viewing regional pricing? Switch anytime: 
+        Switch currency anytime: 
         <button onclick="setCurrency('PKR')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">PKR (Pakistan)</button> • 
-        <button onclick="setCurrency('AED')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">AED (UAE)</button> • 
-        <button onclick="setCurrency('SAR')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">SAR (Saudi)</button> • 
-        <button onclick="setCurrency('USD')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">USD ($)</button> • 
-        <button onclick="setCurrency('GBP')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">GBP (£)</button> • 
-        <button onclick="setCurrency('EUR')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">EUR (€)</button>
-      </div>
+        <button onclick="setCurrency('USD')" class="text-brand-600 hover:text-brand-700 underline font-semibold cursor-pointer">USD ($)</button>
+        
     </div>
   </section>
 
@@ -1270,17 +1245,6 @@
         }
       }
 
-      // Update Geolocation pill indicator
-      const p = pricingRates[curr];
-      const geoText = document.getElementById('geo-location-text');
-      if (geoText) {
-        const regionLabel = countryName || p.country || 'your region';
-        if (isManual) {
-          geoText.innerHTML = `Viewing pricing in <strong>${curr} (${p.sym.trim()})</strong> • Click any currency above to switch`;
-        } else {
-          geoText.innerHTML = `📍 Local pricing for <strong>${regionLabel} (${curr})</strong> applied automatically based on your IP`;
-        }
-      }
 
       updatePricingDisplay();
     }

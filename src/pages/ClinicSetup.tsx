@@ -23,7 +23,7 @@ import {
   StaffRole,
   SubscriptionPlan,
 } from '../lib/types';
-import { detectVisitorCurrency, GeoDetectionResult } from '../lib/geoPricing';
+import { detectVisitorCurrency } from '../lib/geoPricing';
 import { INTERNATIONAL_PLANS } from '../lib/internationalPricing';
 import { updateClinicPlan, PLAN_SPECS } from '../lib/tenancy';
 import {
@@ -90,7 +90,6 @@ export default function ClinicSetup() {
   // Pricing & Subscription state for activeTab === 'payments'
   const [pricingCurrency, setPricingCurrency] = useState<'PKR' | 'USD'>('PKR');
   const [pricingBillingCycle, setPricingBillingCycle] = useState<'monthly' | 'annual'>('annual');
-  const [pricingGeo, setPricingGeo] = useState<GeoDetectionResult | null>(null);
   const [selectedPlanTier, setSelectedPlanTier] = useState<SubscriptionPlan>(activeClinic?.plan || 'pro');
   const [planSuccessNotice, setPlanSuccessNotice] = useState<string | null>(null);
 
@@ -98,7 +97,6 @@ export default function ClinicSetup() {
     let isMounted = true;
     detectVisitorCurrency().then((res) => {
       if (isMounted) {
-        setPricingGeo(res);
         setPricingCurrency(res.currency === 'PKR' ? 'PKR' : 'USD');
       }
     });
@@ -2069,22 +2067,6 @@ export default function ClinicSetup() {
               </div>
             </div>
 
-            {/* IP Auto-detection Banner */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-sky-50/70 border border-sky-200 rounded-2xl text-xs text-sky-900">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
-                <span>
-                  {pricingCurrency === 'PKR' ? (
-                    <>📍 Local pricing for <strong>Pakistan (PKR)</strong> detected based on IP address</>
-                  ) : (
-                    <>📍 International pricing for <strong>{pricingGeo?.countryName && pricingGeo.countryName !== 'Pakistan' ? pricingGeo.countryName : 'Global Clinics'} (USD)</strong> detected based on IP address</>
-                  )}
-                </span>
-              </div>
-              <span className="text-[11px] font-semibold text-sky-700">
-                14-Day Full Access Trial • Zero Setup Fees
-              </span>
-            </div>
 
             {/* Plan Upgrade Success Banner */}
             {planSuccessNotice && (
