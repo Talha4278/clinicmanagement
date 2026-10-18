@@ -21,7 +21,11 @@ import {
   ClinicSettings,
   Staff,
   StaffRole,
+  SubscriptionPlan,
 } from '../lib/types';
+import { detectVisitorCurrency, GeoDetectionResult } from '../lib/geoPricing';
+import { INTERNATIONAL_PLANS } from '../lib/internationalPricing';
+import { updateClinicPlan, PLAN_SPECS } from '../lib/tenancy';
 import {
   ClinicBadgeIcon,
   PRESET_BADGE_ICONS,
@@ -78,10 +82,43 @@ export default function ClinicSetup() {
   const [savingTab, setSavingTab] = useState<string | null>(null);
   const [savedTab, setSavedTab] = useState<string | null>(null);
 
-  // Navigation tab
+  // Navigation tab (WhatsApp Cloud API hidden from UI)
   const [activeTab, setActiveTab] = useState<
-    'profile' | 'localization' | 'whatsapp' | 'payments' | 'procedures' | 'doctors'
+    'profile' | 'localization' | 'payments' | 'procedures' | 'doctors'
   >('profile');
+
+  // Pricing & Subscription state for activeTab === 'payments'
+  const [pricingCurrency, setPricingCurrency] = useState<'PKR' | 'USD'>('PKR');
+  const [pricingBillingCycle, setPricingBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [pricingGeo, setPricingGeo] = useState<GeoDetectionResult | null>(null);
+  const [selectedPlanTier, setSelectedPlanTier] = useState<SubscriptionPlan>(activeClinic?.plan || 'pro');
+  const [planSuccessNotice, setPlanSuccessNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    detectVisitorCurrency().then((res) => {
+      if (isMounted) {
+        setPricingGeo(res);
+        setPricingCurrency(res.currency === 'PKR' ? 'PKR' : 'USD');
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  function handleSelectPlanTier(planId: SubscriptionPlan) {
+    setSelectedPlanTier(planId);
+    if (activeClinic?.id) {
+      const ok = updateClinicPlan(activeClinic.id, planId);
+      if (ok) {
+        setPlanSuccessNotice(`Successfully switched clinic subscription plan to ${PLAN_SPECS[planId].name}!`);
+        setTimeout(() => {
+          setPlanSuccessNotice(null);
+        }, 3500);
+      }
+    }
+  }
 
   // Clock in clinic timezone
   const [currentTime, setCurrentTime] = useState('');
@@ -633,21 +670,7 @@ export default function ClinicSetup() {
           </span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('whatsapp')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'whatsapp'
-            ? 'bg-emerald-800 text-white shadow-sm'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
-            }`}
-        >
-          <MessageSquare size={14} />
-          WhatsApp Cloud API
-          <span
-            className={`w-2 h-2 rounded-full ${form.whatsapp_config?.enabled !== false ? 'bg-emerald-400' : 'bg-gray-300'
-              }`}
-          />
-        </button>
+        {/* WhatsApp Cloud API module hidden from UI for now */}
 
         <button
           type="button"
@@ -1491,9 +1514,9 @@ export default function ClinicSetup() {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────── */}
-      {/* TAB: WHATSAPP NOTIFICATION ENGINE (META CLOUD API & TWILIO)         */}
+      {/* TAB: WHATSAPP NOTIFICATION ENGINE (HIDDEN FROM UI FOR NOW)           */}
       {/* ─────────────────────────────────────────────────────────────────── */}
-      {activeTab === 'whatsapp' && (
+      {false && (activeTab as any) === 'whatsapp' && (
         <form onSubmit={handleSaveWhatsApp} className="space-y-6">
           {/* Header & Overview */}
           <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-5">
@@ -1969,7 +1992,7 @@ export default function ClinicSetup() {
         <div className="space-y-6">
           {/* Main Container */}
           <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-gray-100 pb-5">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
@@ -1979,21 +2002,228 @@ export default function ClinicSetup() {
                     Subscription Plans & Payment Methods
                   </h3>
                   <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800">
-                    Secure & Verified
+                    Active Plan: {PLAN_SPECS[activeClinic?.plan || selectedPlanTier].name}
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-1 max-w-2xl">
-                  Choose your preferred payment method for software subscriptions. Local Pakistani clinics can pay directly via bank transfer / Raast / NayaPay, and international card checkout is coming soon.
+                  Choose the plan tier that fits your practice capacity and staff team size. Pricing is automatically tailored to your region with direct local bank transfer for Pakistan and card checkout for international clinics.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-800">
-                <ShieldCheck size={14} className="text-emerald-700" />
-                Active Modes: <span className="font-bold">Direct Bank Transfer</span>
+              {/* Currency & Billing Controls */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Currency Switcher (USD vs PKR) */}
+                <div className="inline-flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPricingCurrency('USD')}
+                    className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                      pricingCurrency === 'USD'
+                        ? 'bg-white text-sky-700 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>🇺🇸</span>
+                    <span>USD ($)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPricingCurrency('PKR')}
+                    className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                      pricingCurrency === 'PKR'
+                        ? 'bg-white text-sky-700 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>🇵🇰</span>
+                    <span>PKR (Rs.)</span>
+                  </button>
+                </div>
+
+                {/* Cadence Switcher (Monthly vs Annual) */}
+                <div className="inline-flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPricingBillingCycle('monthly')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                      pricingBillingCycle === 'monthly'
+                        ? 'bg-gray-900 text-white shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPricingBillingCycle('annual')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                      pricingBillingCycle === 'annual'
+                        ? 'bg-sky-600 text-white shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>Annual</span>
+                    <span className="text-[10px] bg-emerald-400 text-emerald-950 font-bold px-1.5 py-0.2 rounded-md">Save 20%</span>
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Payment Options Grid */}
+            {/* IP Auto-detection Banner */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-3 bg-sky-50/70 border border-sky-200 rounded-2xl text-xs text-sky-900">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
+                <span>
+                  {pricingCurrency === 'PKR' ? (
+                    <>📍 Local pricing for <strong>Pakistan (PKR)</strong> detected based on IP address</>
+                  ) : (
+                    <>📍 International pricing for <strong>{pricingGeo?.countryName && pricingGeo.countryName !== 'Pakistan' ? pricingGeo.countryName : 'Global Clinics'} (USD)</strong> detected based on IP address</>
+                  )}
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-sky-700">
+                14-Day Full Access Trial • Zero Setup Fees
+              </span>
+            </div>
+
+            {/* Plan Upgrade Success Banner */}
+            {planSuccessNotice && (
+              <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-2xl text-xs font-semibold flex items-center justify-between animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0" />
+                  <span>{planSuccessNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPlanSuccessNotice(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* Pricing Plans Grid (Starter, Pro, Enterprise) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {INTERNATIONAL_PLANS.map((plan) => {
+                const isCurrent = (activeClinic?.plan || 'pro') === plan.id;
+                const isSelected = selectedPlanTier === plan.id;
+                const priceData = plan.pricing[pricingCurrency];
+                const displayPrice =
+                  pricingBillingCycle === 'annual'
+                    ? priceData.formattedAnnualMonthly
+                    : priceData.formattedMonthly;
+                const symbol = pricingCurrency === 'PKR' ? 'Rs. ' : '$';
+
+                return (
+                  <div
+                    key={plan.id}
+                    onClick={() => setSelectedPlanTier(plan.id)}
+                    className={`rounded-2xl p-5 flex flex-col justify-between transition-all relative border-2 text-left cursor-pointer ${
+                      isSelected
+                        ? 'border-sky-600 bg-sky-50/40 shadow-md ring-2 ring-sky-500/10'
+                        : 'border-gray-200 bg-white hover:border-gray-300 shadow-xs'
+                    }`}
+                  >
+                    {/* Badge */}
+                    {plan.badge && (
+                      <div className="absolute -top-3 right-4">
+                        <span
+                          className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider text-white shadow-xs ${
+                            plan.id === 'pro'
+                              ? 'bg-sky-600'
+                              : plan.id === 'starter'
+                              ? 'bg-emerald-600'
+                              : 'bg-indigo-600'
+                          }`}
+                        >
+                          {plan.badge}
+                        </span>
+                      </div>
+                    )}
+
+                    <div>
+                      {/* Title & Tagline */}
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between gap-1">
+                          <h4 className="font-bold text-sm text-gray-900">{plan.name}</h4>
+                          {isCurrent && (
+                            <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              Active Tier
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug min-h-[28px]">{plan.tagline}</p>
+                      </div>
+
+                      {/* Price Figure */}
+                      <div className="mb-4 pb-4 border-b border-gray-100">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight font-display">
+                            {displayPrice}
+                          </span>
+                          <span className="text-xs font-semibold text-gray-500">/ mo</span>
+                        </div>
+                        {pricingBillingCycle === 'annual' && (
+                          <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                            Billed annually ({symbol}{priceData.annualTotal.toLocaleString()}/yr)
+                          </p>
+                        )}
+                        <p className="text-[10px] text-sky-800 font-semibold mt-1 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
+                          ⚡ {priceData.competitorComparison}
+                        </p>
+                      </div>
+
+                      {/* Quotas */}
+                      <div className="grid grid-cols-2 gap-2 text-center text-xs mb-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                          <span className="text-gray-400 block text-[9px] uppercase font-semibold">Max Seats</span>
+                          <strong className="text-gray-800 text-xs">{plan.maxSeats} Doctor / Staff</strong>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block text-[9px] uppercase font-semibold">Concurrent</span>
+                          <strong className="text-gray-800 text-xs">{plan.maxSessions} Active Logins</strong>
+                        </div>
+                      </div>
+
+                      {/* Features */}
+                      <div className="space-y-2 mb-5 text-[11px] text-gray-600">
+                        {plan.features.slice(0, 5).map((f, i) => (
+                          <div key={i} className="flex items-start gap-1.5">
+                            <CheckCircle2 size={13} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+                            <span>{f}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="pt-2">
+                      {isCurrent ? (
+                        <div className="w-full py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 cursor-default">
+                          <Check size={14} className="text-emerald-700" />
+                          <span>Current Active Plan</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectPlanTier(plan.id);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                        >
+                          <Sparkles size={13} />
+                          <span>Switch to {plan.name}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Payment Settlement Methods */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* Option 1: Credit / Debit Card Checkout (Coming Soon) */}
               <div className="p-5 rounded-2xl border-2 border-amber-200/80 bg-gradient-to-br from-amber-50/40 via-white to-sky-50/30 space-y-4 flex flex-col justify-between shadow-sm relative overflow-hidden">

@@ -59,10 +59,12 @@ const STORAGE_KEY_MANUAL = 'clinsyst_manual_currency';
 
 /**
  * Detects visitor's region and currency using a multi-tiered approach:
- * 1. URL parameter (?currency=PKR or ?country=PK)
- * 2. User's manual selection in localStorage
+ * 1. URL parameter (?currency=PKR or ?currency=USD)
+ * 2. User's manual selection in localStorage (PKR or USD)
  * 3. Fast non-blocking IP Geolocation API (ipapi.co -> api.country.is)
- * 4. Timezone heuristic fallback (works offline or when privacy extensions block IP APIs)
+ *    - Pakistan (PK) -> PKR
+ *    - All other countries -> USD
+ * 4. Timezone heuristic fallback (Karachi -> PKR, all others -> USD)
  * 5. Default fallback (USD)
  */
 export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
@@ -70,45 +72,45 @@ export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
   if (typeof window !== 'undefined') {
     try {
       const params = new URLSearchParams(window.location.search);
-      const queryCurr = params.get('currency')?.toUpperCase() as CurrencyCode | null;
-      if (queryCurr && SUPPORTED_CURRENCIES[queryCurr]) {
-        const queryCountry = params.get('country')?.toUpperCase() || '';
+      const queryCurr = params.get('currency')?.toUpperCase();
+      if (queryCurr === 'PKR' || queryCurr === 'USD') {
+        const queryCountry = params.get('country')?.toUpperCase() || (queryCurr === 'PKR' ? 'PK' : 'US');
         return {
-          currency: queryCurr,
+          currency: queryCurr as CurrencyCode,
           countryCode: queryCountry,
-          countryName: COUNTRY_NAMES[queryCountry] || queryCountry || 'Selected Region',
+          countryName: queryCurr === 'PKR' ? 'Pakistan' : (COUNTRY_NAMES[queryCountry] || 'International'),
           source: 'url',
         };
       }
     } catch {}
   }
 
-  // 2. Check localStorage for manual user selection
+  // 2. Check localStorage for manual user selection (PKR or USD only)
   if (typeof window !== 'undefined') {
     try {
-      const manualCurr = localStorage.getItem(STORAGE_KEY_MANUAL) as CurrencyCode | null;
-      if (manualCurr && SUPPORTED_CURRENCIES[manualCurr]) {
+      const manualCurr = localStorage.getItem(STORAGE_KEY_MANUAL);
+      if (manualCurr === 'PKR' || manualCurr === 'USD') {
         const country = localStorage.getItem(STORAGE_KEY_COUNTRY) || '';
         return {
-          currency: manualCurr,
-          countryCode: '',
-          countryName: country || 'Custom Selection',
+          currency: manualCurr as CurrencyCode,
+          countryCode: manualCurr === 'PKR' ? 'PK' : '',
+          countryName: country || (manualCurr === 'PKR' ? 'Pakistan' : 'International'),
           source: 'manual',
         };
       }
     } catch {}
   }
 
-  // 3. Check cached IP detection
+  // 3. Check cached IP detection (PKR or USD only)
   if (typeof window !== 'undefined') {
     try {
-      const cachedCurr = localStorage.getItem(STORAGE_KEY_CURRENCY) as CurrencyCode | null;
+      const cachedCurr = localStorage.getItem(STORAGE_KEY_CURRENCY);
       const cachedCountry = localStorage.getItem(STORAGE_KEY_COUNTRY) || '';
-      if (cachedCurr && SUPPORTED_CURRENCIES[cachedCurr]) {
+      if (cachedCurr === 'PKR' || cachedCurr === 'USD') {
         return {
-          currency: cachedCurr,
-          countryCode: '',
-          countryName: cachedCountry,
+          currency: cachedCurr as CurrencyCode,
+          countryCode: cachedCurr === 'PKR' ? 'PK' : '',
+          countryName: cachedCountry || (cachedCurr === 'PKR' ? 'Pakistan' : 'International'),
           source: 'cache',
         };
       }
@@ -126,21 +128,23 @@ export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
     if (res.ok) {
       const data = await res.json();
       const code = (data.country_code || data.country || '').toUpperCase();
-      const name = data.country_name || COUNTRY_NAMES[code] || code;
-      const mappedCurr = COUNTRY_TO_CURRENCY[code] || (SUPPORTED_CURRENCIES[data.currency as CurrencyCode] ? data.currency : 'USD');
+      const rawName = data.country_name || COUNTRY_NAMES[code] || code;
+      const isPakistan = code === 'PK' || (rawName && rawName.toLowerCase().includes('pakistan'));
 
-      if (SUPPORTED_CURRENCIES[mappedCurr]) {
-        try {
-          localStorage.setItem(STORAGE_KEY_CURRENCY, mappedCurr);
-          localStorage.setItem(STORAGE_KEY_COUNTRY, name);
-        } catch {}
-        return {
-          currency: mappedCurr,
-          countryCode: code,
-          countryName: name,
-          source: 'ip',
-        };
-      }
+      const mappedCurr: CurrencyCode = isPakistan ? 'PKR' : 'USD';
+      const countryName = isPakistan ? 'Pakistan' : (rawName || 'International');
+
+      try {
+        localStorage.setItem(STORAGE_KEY_CURRENCY, mappedCurr);
+        localStorage.setItem(STORAGE_KEY_COUNTRY, countryName);
+      } catch {}
+
+      return {
+        currency: mappedCurr,
+        countryCode: isPakistan ? 'PK' : code,
+        countryName,
+        source: 'ip',
+      };
     }
   } catch {
     // Secondary fallback to api.country.is
@@ -153,21 +157,21 @@ export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
       if (res2.ok) {
         const data2 = await res2.json();
         const code2 = (data2.country || '').toUpperCase();
-        const name2 = COUNTRY_NAMES[code2] || code2;
-        const mappedCurr2 = COUNTRY_TO_CURRENCY[code2] || 'USD';
+        const isPakistan = code2 === 'PK';
+        const mappedCurr2: CurrencyCode = isPakistan ? 'PKR' : 'USD';
+        const countryName2 = isPakistan ? 'Pakistan' : (COUNTRY_NAMES[code2] || code2 || 'International');
 
-        if (SUPPORTED_CURRENCIES[mappedCurr2]) {
-          try {
-            localStorage.setItem(STORAGE_KEY_CURRENCY, mappedCurr2);
-            localStorage.setItem(STORAGE_KEY_COUNTRY, name2);
-          } catch {}
-          return {
-            currency: mappedCurr2,
-            countryCode: code2,
-            countryName: name2,
-            source: 'ip',
-          };
-        }
+        try {
+          localStorage.setItem(STORAGE_KEY_CURRENCY, mappedCurr2);
+          localStorage.setItem(STORAGE_KEY_COUNTRY, countryName2);
+        } catch {}
+
+        return {
+          currency: mappedCurr2,
+          countryCode: isPakistan ? 'PK' : code2,
+          countryName: countryName2,
+          source: 'ip',
+        };
       }
     } catch {}
   }
@@ -175,30 +179,12 @@ export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
   // 5. Timezone heuristic fallback
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    if (tz.includes('Karachi')) {
+    if (tz.includes('Karachi') || tz.toLowerCase().includes('pakistan')) {
       return { currency: 'PKR', countryCode: 'PK', countryName: 'Pakistan', source: 'timezone' };
-    }
-    if (tz.includes('Dubai') || tz.includes('Muscat')) {
-      return { currency: 'AED', countryCode: 'AE', countryName: 'UAE', source: 'timezone' };
-    }
-    if (tz.includes('Riyadh')) {
-      return { currency: 'SAR', countryCode: 'SA', countryName: 'Saudi Arabia', source: 'timezone' };
-    }
-    if (tz.includes('London')) {
-      return { currency: 'GBP', countryCode: 'GB', countryName: 'United Kingdom', source: 'timezone' };
-    }
-    if (tz.includes('Toronto') || tz.includes('Vancouver') || tz.includes('Montreal')) {
-      return { currency: 'CAD', countryCode: 'CA', countryName: 'Canada', source: 'timezone' };
-    }
-    if (tz.includes('Sydney') || tz.includes('Melbourne') || tz.includes('Brisbane')) {
-      return { currency: 'AUD', countryCode: 'AU', countryName: 'Australia', source: 'timezone' };
-    }
-    if (tz.includes('Berlin') || tz.includes('Paris') || tz.includes('Madrid') || tz.includes('Rome') || tz.includes('Amsterdam')) {
-      return { currency: 'EUR', countryCode: 'EU', countryName: 'Europe', source: 'timezone' };
     }
   } catch {}
 
-  // 6. Default
+  // 6. Default fallback (USD for all other countries)
   return {
     currency: 'USD',
     countryCode: 'US',
@@ -208,11 +194,12 @@ export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
 }
 
 /**
- * Persists user's manual currency choice
+ * Persists user's manual currency choice (normalized to PKR or USD)
  */
 export function saveManualCurrency(currency: CurrencyCode) {
   try {
-    localStorage.setItem(STORAGE_KEY_MANUAL, currency);
-    localStorage.setItem(STORAGE_KEY_CURRENCY, currency);
+    const validCurr = currency === 'PKR' ? 'PKR' : 'USD';
+    localStorage.setItem(STORAGE_KEY_MANUAL, validCurr);
+    localStorage.setItem(STORAGE_KEY_CURRENCY, validCurr);
   } catch {}
 }

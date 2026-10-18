@@ -178,16 +178,8 @@ export default function LandingPage() {
 
   const currConfig = SUPPORTED_CURRENCIES[currency];
 
-  // Currency multiplier relative to base USD
-  const currencyMultiplier =
-    currency === 'USD' ? 1
-    : currency === 'AED' ? 3.67
-    : currency === 'SAR' ? 3.75
-    : currency === 'GBP' ? 0.79
-    : currency === 'EUR' ? 0.92
-    : currency === 'CAD' ? 1.36
-    : currency === 'AUD' ? 1.52
-    : 280; // PKR
+  // Currency multiplier relative to base USD (1 for USD, 280 for PKR)
+  const currencyMultiplier = currency === 'PKR' ? 280 : 1;
 
   // Tooth finding costs
   const getFindingCost = (finding: OdontogramTooth['finding']): number => {
@@ -325,66 +317,14 @@ export default function LandingPage() {
               <Zap size={11} className="text-amber-300 fill-amber-300" /> Global Edition Live
             </span>
             <span className="text-slate-200 text-[11px] sm:text-xs">
-              Dual <strong className="text-white">FDI (11–48)</strong> & <strong className="text-white">Universal (1–32)</strong> notation ready. Localized for GCC (USD, AED, SAR) & International Clinics.
+              Dual <strong className="text-white">FDI (11–48)</strong> & <strong className="text-white">Universal (1–32)</strong> notation ready. Built for modern dental surgeries worldwide.
             </span>
           </div>
 
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            {/* Quick Currency Selector in Banner */}
-            <div className="flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-lg border border-white/15 text-[11px]">
-              <Globe size={12} className="text-sky-300" />
-              <button
-                onClick={() => handleSelectCurrency('USD')}
-                className={`px-1.5 py-0.5 rounded font-bold transition-colors ${
-                  currency === 'USD' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                USD ($)
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('PKR')}
-                className={`px-1.5 py-0.5 rounded font-bold transition-colors ${
-                  currency === 'PKR' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                PKR (Rs)
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('AED')}
-                className={`px-1.5 py-0.5 rounded font-bold transition-colors ${
-                  currency === 'AED' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                AED
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('SAR')}
-                className={`px-1.5 py-0.5 rounded font-bold transition-colors ${
-                  currency === 'SAR' ? 'bg-sky-600 text-white' : 'text-slate-300 hover:text-white'
-                }`}
-              >
-                SAR
-              </button>
-              <select
-                value={currency}
-                onChange={(e) => handleSelectCurrency(e.target.value as CurrencyCode)}
-                className="bg-transparent text-slate-300 hover:text-white font-semibold outline-none cursor-pointer text-[10px] pl-1 border-l border-white/20"
-                aria-label="More Currencies"
-              >
-                <option value="USD" className="bg-slate-900 text-white">USD ($)</option>
-                <option value="PKR" className="bg-slate-900 text-white">PKR (Rs.)</option>
-                <option value="AED" className="bg-slate-900 text-white">AED (د.إ)</option>
-                <option value="SAR" className="bg-slate-900 text-white">SAR (﷼)</option>
-                <option value="GBP" className="bg-slate-900 text-white">GBP (£)</option>
-                <option value="EUR" className="bg-slate-900 text-white">EUR (€)</option>
-                <option value="CAD" className="bg-slate-900 text-white">CAD (CA$)</option>
-                <option value="AUD" className="bg-slate-900 text-white">AUD (A$)</option>
-              </select>
-            </div>
-
             <button
               onClick={() => handleOpenSignup('pro')}
-              className="text-amber-300 hover:text-amber-200 font-bold inline-flex items-center gap-1 transition-colors text-[11px] bg-amber-400/10 px-2 py-0.5 rounded-lg border border-amber-400/20"
+              className="text-amber-300 hover:text-amber-200 font-bold inline-flex items-center gap-1 transition-colors text-[11px] bg-amber-400/10 px-2.5 py-1 rounded-lg border border-amber-400/20"
             >
               Get 2 Months Free <ArrowRight size={11} />
             </button>
@@ -440,56 +380,8 @@ export default function LandingPage() {
             </a>
           </nav>
 
-          {/* Header Action CTAs & Currency Switcher */}
+          {/* Header Action CTAs */}
           <div className="flex items-center gap-2.5">
-            {/* Currency Pill Switcher (USD, PKR, AED, SAR) */}
-            <div className="hidden lg:flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs">
-              <button
-                onClick={() => handleSelectCurrency('USD')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  currency === 'USD'
-                    ? 'bg-white text-sky-700 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="US Dollar"
-              >
-                🇺🇸 USD ($)
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('PKR')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  currency === 'PKR'
-                    ? 'bg-white text-sky-700 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Pakistani Rupee"
-              >
-                🇵🇰 PKR (Rs)
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('AED')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  currency === 'AED'
-                    ? 'bg-white text-sky-700 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="UAE Dirham"
-              >
-                🇦🇪 AED
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('SAR')}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  currency === 'SAR'
-                    ? 'bg-white text-sky-700 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="Saudi Riyal"
-              >
-                🇸🇦 SAR
-              </button>
-            </div>
-
             {/* Quick Demo Instant Login */}
             <button
               onClick={() => signInAsDemo('doctor')}
@@ -1502,7 +1394,7 @@ export default function LandingPage() {
                   Live Webhook Telemetry
                 </div>
                 <p className="text-emerald-400/90">
-                  [14:02:08] WhatsApp Cloud API: 24h reminder template dispatched to +971 50 123 4567
+                  [14:02:08] Automated Reminder: 24h template dispatched to +971 50 123 4567
                 </p>
                 {isChairConfirmed ? (
                   <>
@@ -1844,74 +1736,31 @@ export default function LandingPage() {
               No mandatory $2,500 onboarding penalties. No long-term lock-ins. Switch currencies or cancel anytime. All tiers include interactive dual odontograms, patient dossiers, and automated billing.
             </p>
 
-            {/* Prominent Currency Switcher Bar (USD, PKR, AED, SAR prioritized) */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-2 p-1.5 bg-slate-200/80 rounded-2xl max-w-2xl mx-auto border border-slate-300">
-              <span className="text-xs font-bold text-slate-700 px-2">Currency:</span>
+            {/* Auto-detected IP Currency Pill & Toggle (USD vs PKR) */}
+            <div className="mt-8 flex items-center justify-center gap-1.5 p-1 bg-slate-200/90 rounded-2xl max-w-xs mx-auto border border-slate-300 shadow-inner">
               <button
                 onClick={() => handleSelectCurrency('USD')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   currency === 'USD'
                     ? 'bg-white text-sky-700 shadow-sm border border-slate-200'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
+                title="International Pricing (US Dollar)"
               >
                 <span>🇺🇸</span>
                 <span>USD ($)</span>
               </button>
               <button
                 onClick={() => handleSelectCurrency('PKR')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                className={`flex-1 py-1.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
                   currency === 'PKR'
                     ? 'bg-white text-sky-700 shadow-sm border border-slate-200'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
+                title="Pakistan Pricing (Pakistani Rupee)"
               >
                 <span>🇵🇰</span>
                 <span>PKR (Rs.)</span>
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('AED')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  currency === 'AED'
-                    ? 'bg-white text-sky-700 shadow-sm border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>🇦🇪</span>
-                <span>AED (Dirham)</span>
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('SAR')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  currency === 'SAR'
-                    ? 'bg-white text-sky-700 shadow-sm border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>🇸🇦</span>
-                <span>SAR (Riyal)</span>
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('GBP')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  currency === 'GBP'
-                    ? 'bg-white text-sky-700 shadow-sm border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>🇬🇧</span>
-                <span>GBP (£)</span>
-              </button>
-              <button
-                onClick={() => handleSelectCurrency('EUR')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                  currency === 'EUR'
-                    ? 'bg-white text-sky-700 shadow-sm border border-slate-200'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>🇪🇺</span>
-                <span>EUR (€)</span>
               </button>
             </div>
 
@@ -1919,10 +1768,10 @@ export default function LandingPage() {
             <div className="mt-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 text-sky-800 text-xs font-semibold border border-sky-200 shadow-xs">
               <span className="w-2 h-2 rounded-full bg-sky-500 animate-pulse"></span>
               <span>
-                {geoInfo?.source === 'manual' || geoInfo?.source === 'url' ? (
-                  <>Viewing pricing in <strong>{currency} ({currConfig.symbol.trim()})</strong> • Click any currency above to switch</>
+                {currency === 'PKR' ? (
+                  <>📍 Displaying localized pricing in <strong>PKR (Rs.)</strong> for Pakistan based on IP detection</>
                 ) : (
-                  <>📍 Local pricing for <strong>{geoInfo?.countryName || currConfig.region} ({currency})</strong> applied automatically based on IP</>
+                  <>📍 Displaying international pricing in <strong>USD ($)</strong> for {geoInfo?.countryName && geoInfo.countryName !== 'Pakistan' ? geoInfo.countryName : 'global clinics'} based on IP detection</>
                 )}
               </span>
             </div>
@@ -2083,24 +1932,44 @@ export default function LandingPage() {
             </span>
           </div>
 
-          {/* Localized Pakistani Practice Footnote / Currency Switcher */}
-          <div className="max-w-3xl mx-auto p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 text-xs text-emerald-900 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xl">🇵🇰</span>
-              <div>
-                <strong className="block text-emerald-950 font-bold">Practicing in Pakistan?</strong>
-                <span className="text-emerald-800">
-                  Switch to PKR (from Rs. 1,499/mo) with localized support for Pakistani Bank Transfer, JazzCash & Easypaisa.
-                </span>
+          {/* Localized Practice Footnote / Regional Switcher */}
+          {currency === 'USD' ? (
+            <div className="max-w-3xl mx-auto p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200 text-xs text-emerald-900 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">🇵🇰</span>
+                <div>
+                  <strong className="block text-emerald-950 font-bold">Practicing in Pakistan?</strong>
+                  <span className="text-emerald-800">
+                    Switch to PKR (from Rs. 1,499/mo) with localized support for Pakistani Bank Transfer, UBL, Raast & NayaPay.
+                  </span>
+                </div>
               </div>
+              <button
+                onClick={() => handleSelectCurrency('PKR')}
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs whitespace-nowrap transition-colors shadow-xs"
+              >
+                Switch to PKR (Rs.)
+              </button>
             </div>
-            <button
-              onClick={() => setCurrency('PKR')}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs whitespace-nowrap transition-colors shadow-xs"
-            >
-              Switch to PKR (Rs.)
-            </button>
-          </div>
+          ) : (
+            <div className="max-w-3xl mx-auto p-4 bg-sky-50/70 rounded-2xl border border-sky-200 text-xs text-sky-900 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">🌐</span>
+                <div>
+                  <strong className="block text-sky-950 font-bold">Practicing outside Pakistan?</strong>
+                  <span className="text-sky-800">
+                    Switch to USD (from $24/mo) with international billing support for global dental practices.
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={() => handleSelectCurrency('USD')}
+                className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl font-bold text-xs whitespace-nowrap transition-colors shadow-xs"
+              >
+                Switch to USD ($)
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
@@ -2640,7 +2509,7 @@ export default function LandingPage() {
                 <p>1. Amoxicillin 500mg capsules - 1 cap TDS x 5 days</p>
                 <p>2. Ibuprofen 400mg tablets - 1 tab SOS post-meals</p>
               </div>
-              <p className="text-[10px] text-slate-500 italic">Dispatched automatically via WhatsApp Cloud API.</p>
+              <p className="text-[10px] text-slate-500 italic">Dispatched automatically via WhatsApp reminder automation.</p>
             </div>
             <button
               onClick={() => setShowRxModal(false)}

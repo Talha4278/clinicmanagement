@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { checkSeatLimit, PLAN_SPECS, updateClinicPlan, getTenantStaff, saveTenantStaff, saveTenantStaffMember } from '../lib/tenancy';
 import { isDemoMode, DEMO_STAFF_MEMBERS } from '../lib/demoData';
 import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
+import { detectVisitorCurrency } from '../lib/geoPricing';
+import { INTERNATIONAL_PLANS } from '../lib/internationalPricing';
 
 const roleColors: Record<StaffRole, string> = {
   admin: 'bg-red-50 text-red-700',
@@ -31,7 +33,14 @@ export default function Staff() {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(activeClinic?.plan || 'pro');
   const [planBillingCycle, setPlanBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [planCurrency, setPlanCurrency] = useState<'PKR' | 'USD'>('PKR');
   const [planSuccessNotice, setPlanSuccessNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    detectVisitorCurrency().then((res) => {
+      setPlanCurrency(res.currency === 'PKR' ? 'PKR' : 'USD');
+    });
+  }, []);
 
   const activeStaff = staffList.filter(s => s.active);
   const inactiveStaff = staffList.filter(s => !s.active);
@@ -632,9 +641,32 @@ export default function Staff() {
               </div>
             </div>
 
-            {/* Billing Cycle Switch */}
-            <div className="flex items-center justify-between bg-gray-50 p-2.5 rounded-2xl mb-5 border border-gray-100">
-              <span className="text-xs font-semibold text-gray-700">Billing Cadence</span>
+            {/* Billing Cycle & Currency Switch */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-gray-50 p-2.5 rounded-2xl mb-5 border border-gray-100">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-gray-700">Currency:</span>
+                <div className="inline-flex items-center bg-white p-0.5 rounded-xl shadow-xs border border-gray-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPlanCurrency('USD')}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                      planCurrency === 'USD' ? 'bg-sky-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    🇺🇸 USD
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlanCurrency('PKR')}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
+                      planCurrency === 'PKR' ? 'bg-sky-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    🇵🇰 PKR
+                  </button>
+                </div>
+              </div>
+
               <div className="inline-flex items-center bg-white p-1 rounded-xl shadow-xs border border-gray-200 text-xs">
                 <button
                   type="button"
@@ -653,7 +685,7 @@ export default function Staff() {
                   }`}
                 >
                   <span>Annual</span>
-                  <span className="text-[10px] bg-emerald-400 text-emerald-950 font-bold px-1.5 py-0.2 rounded-md">Save 17%</span>
+                  <span className="text-[10px] bg-emerald-400 text-emerald-950 font-bold px-1.5 py-0.2 rounded-md">Save 20%</span>
                 </button>
               </div>
             </div>
@@ -662,9 +694,13 @@ export default function Staff() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
               {(['starter', 'pro', 'enterprise'] as SubscriptionPlan[]).map((p) => {
                 const spec = PLAN_SPECS[p];
+                const intl = INTERNATIONAL_PLANS.find((ip) => ip.id === p);
+                const priceData = intl?.pricing[planCurrency];
                 const isSelected = selectedPlan === p;
                 const isCurrent = (activeClinic?.plan || 'pro') === p;
-                const price = planBillingCycle === 'annual' ? spec.annual_price : spec.price;
+                const price = priceData
+                  ? (planBillingCycle === 'annual' ? priceData.formattedAnnualMonthly : priceData.formattedMonthly)
+                  : (planBillingCycle === 'annual' ? spec.annual_price : spec.price);
 
                 return (
                   <div

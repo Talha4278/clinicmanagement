@@ -9,6 +9,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ClinicSignUpData, SubscriptionPlan } from '../lib/types';
 import { PLAN_SPECS } from '../lib/tenancy';
+import { detectVisitorCurrency } from '../lib/geoPricing';
+import { INTERNATIONAL_PLANS } from '../lib/internationalPricing';
 
 interface LoginPageProps {
   onBackToLanding?: () => void;
@@ -47,6 +49,13 @@ export default function LoginPage({
     plan: initialPlan,
   });
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>(initialBilling);
+  const [signupCurrency, setSignupCurrency] = useState<'PKR' | 'USD'>('PKR');
+
+  useEffect(() => {
+    detectVisitorCurrency().then((res) => {
+      setSignupCurrency(res.currency === 'PKR' ? 'PKR' : 'USD');
+    });
+  }, []);
 
   // Forgot Password / Recovery State
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -836,8 +845,12 @@ export default function LoginPage({
                   <div className="grid grid-cols-3 gap-2">
                     {(['starter', 'pro', 'enterprise'] as SubscriptionPlan[]).map((p) => {
                       const spec = PLAN_SPECS[p];
+                      const intlPlan = INTERNATIONAL_PLANS.find((ip) => ip.id === p);
+                      const priceData = intlPlan?.pricing[signupCurrency];
                       const isSelected = signupForm.plan === p;
-                      const displayPrice = billingCycle === 'annual' ? spec.annual_price : spec.price;
+                      const displayPrice = priceData
+                        ? (billingCycle === 'annual' ? priceData.formattedAnnualMonthly : priceData.formattedMonthly)
+                        : (billingCycle === 'annual' ? spec.annual_price : spec.price);
                       return (
                         <div
                           key={p}
