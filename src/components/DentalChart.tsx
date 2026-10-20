@@ -131,11 +131,10 @@ export default function DentalChart({
             <button
               type="button"
               onClick={() => setActiveNotation('fdi')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                activeNotation === 'fdi'
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${activeNotation === 'fdi'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
               title="FDI Two-Digit notation (Standard in UAE, GCC, UK, Europe, Southeast Asia)"
             >
               FDI (11–48)
@@ -143,11 +142,10 @@ export default function DentalChart({
             <button
               type="button"
               onClick={() => setActiveNotation('universal')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                activeNotation === 'universal'
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${activeNotation === 'universal'
                   ? 'bg-emerald-700 text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
               title="Universal numbering system (1–32 / A–T, US Standard)"
             >
               Universal (1–32)
@@ -160,22 +158,20 @@ export default function DentalChart({
               <button
                 type="button"
                 onClick={() => onChangeDentitionType('adult')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  dentitionType === 'adult'
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${dentitionType === 'adult'
                     ? 'bg-white text-emerald-800 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 Adult (32)
               </button>
               <button
                 type="button"
                 onClick={() => onChangeDentitionType('child')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  dentitionType === 'child'
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${dentitionType === 'child'
                     ? 'bg-white text-emerald-800 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 Pediatric (20)
               </button>
@@ -493,9 +489,8 @@ function ToothItem({
       onMouseEnter={() => onHover(tooth)}
       onMouseLeave={() => onHover(null)}
       disabled={readOnly}
-      className={`group relative flex flex-col items-center justify-between w-9 sm:w-10 h-16 rounded-xl border transition-all select-none ${
-        readOnly ? 'cursor-default' : 'cursor-pointer hover:shadow-md hover:scale-105 active:scale-95'
-      }`}
+      className={`group relative flex flex-col items-center justify-between w-9 sm:w-10 h-16 rounded-xl border transition-all select-none ${readOnly ? 'cursor-default' : 'cursor-pointer hover:shadow-md hover:scale-105 active:scale-95'
+        }`}
       style={{
         backgroundColor: toothBg,
         borderColor: toothBorder,
@@ -686,11 +681,10 @@ function ToothDetailModal({
                     key={key}
                     type="button"
                     onClick={() => toggleFinding(code)}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-medium transition-all text-left ${
-                      active
+                    className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-medium transition-all text-left ${active
                         ? 'border-emerald-600 ring-2 ring-emerald-600/20 bg-emerald-50/50 text-emerald-900'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-700'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2 truncate">
                       <div
@@ -719,11 +713,10 @@ function ToothDetailModal({
                     key={surf.code}
                     type="button"
                     onClick={() => toggleSurface(surf.code)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                      active
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${active
                         ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
                         : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {surf.code} — {surf.full}
                   </button>
@@ -744,11 +737,10 @@ function ToothDetailModal({
                     key={sev}
                     type="button"
                     onClick={() => setSeverity(sev)}
-                    className={`flex-1 py-1.5 rounded-xl text-xs font-semibold capitalize border transition-all ${
-                      severity === sev
+                    className={`flex-1 py-1.5 rounded-xl text-xs font-semibold capitalize border transition-all ${severity === sev
                         ? 'bg-amber-600 text-white border-amber-600'
                         : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {sev}
                   </button>

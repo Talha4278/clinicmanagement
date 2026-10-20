@@ -192,7 +192,7 @@ export default function ClinicSetup() {
       return;
     }
 
-    if (!isDirtyRef.current && savingTab !== 'profile') {
+    if (!isDirtyRef.current && !savingTab) {
       setForm(settings);
       if (settings.badge_icon) {
         setSelectedPresetIcon(settings.badge_icon);
@@ -254,6 +254,7 @@ export default function ClinicSetup() {
     if (e) e.preventDefault();
     setSavingTab('localization');
     updateSettings(form);
+    isDirtyRef.current = false;
     setSavingTab(null);
     setSavedTab('localization');
     notifySuccess('Tooth notation, time zone & VAT settings saved and applied!');
@@ -1317,7 +1318,13 @@ export default function ClinicSetup() {
                 {/* FDI Option */}
                 <button
                   type="button"
-                  onClick={() => setForm({ ...form, tooth_notation: 'fdi' })}
+                  onClick={() => {
+                    isDirtyRef.current = true;
+                    const nextForm = { ...form, tooth_notation: 'fdi' as const };
+                    setForm(nextForm);
+                    updateSettings(nextForm);
+                    notifySuccess('Switched to FDI Two-Digit Notation (11–48)!');
+                  }}
                   className={`p-4 rounded-2xl border-2 text-left transition-all relative ${(form.tooth_notation || 'fdi') === 'fdi'
                     ? 'border-emerald-700 bg-emerald-50/50 shadow-sm ring-2 ring-emerald-700/20'
                     : 'border-gray-200 bg-white hover:border-gray-300'
@@ -1360,7 +1367,13 @@ export default function ClinicSetup() {
                 {/* Universal Option */}
                 <button
                   type="button"
-                  onClick={() => setForm({ ...form, tooth_notation: 'universal' })}
+                  onClick={() => {
+                    isDirtyRef.current = true;
+                    const nextForm = { ...form, tooth_notation: 'universal' as const };
+                    setForm(nextForm);
+                    updateSettings(nextForm);
+                    notifySuccess('Switched to Universal Numbering System (1–32)!');
+                  }}
                   className={`p-4 rounded-2xl border-2 text-left transition-all relative ${form.tooth_notation === 'universal'
                     ? 'border-emerald-700 bg-emerald-50/50 shadow-sm ring-2 ring-emerald-700/20'
                     : 'border-gray-200 bg-white hover:border-gray-300'
@@ -1480,7 +1493,10 @@ export default function ClinicSetup() {
                 </label>
                 <select
                   value={form.timezone || 'Asia/Dubai'}
-                  onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+                  onChange={(e) => {
+                    isDirtyRef.current = true;
+                    setForm({ ...form, timezone: e.target.value });
+                  }}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700"
                 >
                   {TIMEZONE_OPTIONS.map((tz) => (
@@ -1537,14 +1553,15 @@ export default function ClinicSetup() {
                   <button
                     key={preset.label}
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      isDirtyRef.current = true;
                       setForm({
                         ...form,
                         tax_label: preset.label,
                         tax_rate: preset.rate,
                         currency_symbol: preset.symbol,
-                      })
-                    }
+                      });
+                    }}
                     className="text-[11px] px-2.5 py-1 rounded-lg border border-gray-200 bg-gray-50 hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-800 transition-colors font-medium text-gray-700"
                   >
                     {preset.label}
@@ -1563,7 +1580,10 @@ export default function ClinicSetup() {
                   type="text"
                   required
                   value={form.tax_label || ''}
-                  onChange={(e) => setForm({ ...form, tax_label: e.target.value })}
+                  onChange={(e) => {
+                    isDirtyRef.current = true;
+                    setForm({ ...form, tax_label: e.target.value });
+                  }}
                   placeholder="e.g. UAE VAT (5%)"
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-emerald-600/20"
                 />
@@ -1582,7 +1602,10 @@ export default function ClinicSetup() {
                     step="0.1"
                     required
                     value={form.tax_rate ?? 5}
-                    onChange={(e) => setForm({ ...form, tax_rate: parseFloat(e.target.value) || 0 })}
+                    onChange={(e) => {
+                      isDirtyRef.current = true;
+                      setForm({ ...form, tax_rate: parseFloat(e.target.value) || 0 });
+                    }}
                     className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-emerald-600/20 pr-8"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
@@ -1599,7 +1622,10 @@ export default function ClinicSetup() {
                 <input
                   type="text"
                   value={form.tax_number || ''}
-                  onChange={(e) => setForm({ ...form, tax_number: e.target.value })}
+                  onChange={(e) => {
+                    isDirtyRef.current = true;
+                    setForm({ ...form, tax_number: e.target.value });
+                  }}
                   placeholder="e.g. 100234567800003"
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs text-gray-900 focus:ring-2 focus:ring-emerald-600/20"
                 />
@@ -1612,7 +1638,10 @@ export default function ClinicSetup() {
                 </label>
                 <select
                   value={form.currency_symbol || 'AED '}
-                  onChange={(e) => setForm({ ...form, currency_symbol: e.target.value })}
+                  onChange={(e) => {
+                    isDirtyRef.current = true;
+                    setForm({ ...form, currency_symbol: e.target.value });
+                  }}
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs font-semibold text-gray-900 bg-white focus:ring-2 focus:ring-emerald-600/20"
                 >
                   {CURRENCY_OPTIONS.map((c) => (

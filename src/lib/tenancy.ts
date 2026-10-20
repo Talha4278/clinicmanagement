@@ -232,6 +232,11 @@ export function setActiveClinic(clinicId: string): ClinicTenant {
       email: effectiveEmail,
       phone: effectivePhone,
       website: effectiveWebsite,
+      tooth_notation: existing.tooth_notation || 'fdi',
+      timezone: existing.timezone || 'Asia/Karachi',
+      currency_symbol: existing.currency_symbol || 'Rs. ',
+      tax_rate: typeof existing.tax_rate === 'number' ? existing.tax_rate : 5,
+      tax_label: existing.tax_label || 'GST / Tax (5%)',
     };
     saveClinicSettings(settings);
     window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: found }));

@@ -117,6 +117,25 @@ export function getClinicSettings(): ClinicSettings {
       if ('doctors' in parsed) {
         delete parsed.doctors;
       }
+
+      // Check legacy storage for tooth_notation if missing in scoped settings
+      let fallbackNotation: 'fdi' | 'universal' | undefined = parsed.tooth_notation;
+      if (!fallbackNotation && key !== LEGACY_STORAGE_KEY) {
+        try {
+          const legRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
+          if (legRaw) {
+            const legParsed = JSON.parse(legRaw);
+            if (legParsed.tooth_notation === 'universal' || legParsed.tooth_notation === 'fdi') {
+              fallbackNotation = legParsed.tooth_notation;
+            }
+          }
+        } catch {}
+      }
+
+      const effectiveNotation = (fallbackNotation === 'universal' || fallbackNotation === 'fdi')
+        ? fallbackNotation
+        : (defaultBase.tooth_notation || 'fdi');
+
       return {
         ...defaultBase,
         ...parsed,
@@ -128,6 +147,11 @@ export function getClinicSettings(): ClinicSettings {
         email: parsed.email !== undefined ? parsed.email : defaultBase.email,
         website: parsed.website !== undefined ? parsed.website : defaultBase.website,
         tax_number: parsed.tax_number !== undefined ? parsed.tax_number : defaultBase.tax_number,
+        tax_rate: typeof parsed.tax_rate === 'number' ? parsed.tax_rate : defaultBase.tax_rate,
+        tax_label: parsed.tax_label || defaultBase.tax_label || 'GST / Tax (5%)',
+        timezone: parsed.timezone || defaultBase.timezone || 'Asia/Karachi',
+        tooth_notation: effectiveNotation,
+        currency_symbol: parsed.currency_symbol || defaultBase.currency_symbol || 'Rs. ',
         tagline: parsed.tagline !== undefined ? parsed.tagline : defaultBase.tagline,
         procedures: Array.isArray(parsed.procedures) && parsed.procedures.length > 0
           ? parsed.procedures
