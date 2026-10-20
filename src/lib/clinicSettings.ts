@@ -20,11 +20,11 @@ export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   tagline: 'Dental & Aesthetics Healthcare',
   logo_url: '',
   badge_icon: 'stethoscope',
-  address: '1st Floor, 6/Street 2, Down Town Royal Orchard, Multan',
-  email: 'sarah@dentivista.com',
-  phone: '(+92) 300-0979185',
-  website: 'www.dentivista.com',
-  tax_number: 'NTN-8921-D',
+  address: '',
+  email: '',
+  phone: '',
+  website: '',
+  tax_number: '',
   tax_rate: 5,
   tax_label: 'GST / Tax (5%)',
   timezone: 'Asia/Karachi',
@@ -33,7 +33,7 @@ export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
   whatsapp_config: {
     enabled: true,
     provider: 'cloud_api',
-    business_number: '(+92) 300-0979185',
+    business_number: '',
     api_endpoint: 'https://graph.facebook.com/v19.0',
     api_key: '',
     phone_number_id: '109283746501928',
@@ -76,7 +76,7 @@ function getSettingsStorageKey(): string {
 
 export function getClinicSettings(): ClinicSettings {
   try {
-    let defaultBase = DEFAULT_CLINIC_SETTINGS;
+    let defaultBase: ClinicSettings = { ...DEFAULT_CLINIC_SETTINGS };
     try {
       const activeTenantRaw = localStorage.getItem('clinsyst_tenants');
       const activeId = localStorage.getItem('clinsyst_active_clinic_id');
@@ -88,14 +88,14 @@ export function getClinicSettings(): ClinicSettings {
 
         if (currentTenant) {
           defaultBase = {
-            ...DEFAULT_CLINIC_SETTINGS,
-            clinic_name: currentTenant.name || DEFAULT_CLINIC_SETTINGS.clinic_name,
-            tagline: currentTenant.tagline || DEFAULT_CLINIC_SETTINGS.tagline,
+            ...defaultBase,
+            clinic_name: currentTenant.name || defaultBase.clinic_name,
+            tagline: currentTenant.tagline !== undefined ? currentTenant.tagline : defaultBase.tagline,
             logo_url: currentTenant.logo_url || '',
-            address: currentTenant.address || DEFAULT_CLINIC_SETTINGS.address,
-            email: currentTenant.owner_email || DEFAULT_CLINIC_SETTINGS.email,
-            phone: currentTenant.phone || DEFAULT_CLINIC_SETTINGS.phone,
-            website: currentTenant.slug ? `www.${currentTenant.slug}.com` : DEFAULT_CLINIC_SETTINGS.website,
+            address: currentTenant.address || defaultBase.address,
+            email: currentTenant.owner_email || defaultBase.email,
+            phone: currentTenant.phone || defaultBase.phone,
+            website: currentTenant.slug ? `www.${currentTenant.slug}.com` : defaultBase.website,
           };
         }
       }
@@ -108,10 +108,7 @@ export function getClinicSettings(): ClinicSettings {
     if (!raw && key !== LEGACY_STORAGE_KEY) {
       const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
       if (legacyRaw) {
-        const legacyParsed = JSON.parse(legacyRaw);
-        if (legacyParsed && legacyParsed.clinic_name && !legacyParsed.clinic_name.includes('Apex Dental')) {
-          raw = legacyRaw;
-        }
+        raw = legacyRaw;
       }
     }
 
@@ -120,18 +117,18 @@ export function getClinicSettings(): ClinicSettings {
       if ('doctors' in parsed) {
         delete parsed.doctors;
       }
-      // Purge legacy Apex Dental overrides if present in cached settings
-      if (parsed.clinic_name && parsed.clinic_name.includes('Apex Dental Care')) {
-        delete parsed.clinic_name;
-        delete parsed.email;
-        delete parsed.address;
-        delete parsed.website;
-      }
       return {
         ...defaultBase,
         ...parsed,
-        clinic_name: parsed.clinic_name || defaultBase.clinic_name,
+        clinic_name: (parsed.clinic_name && parsed.clinic_name.trim()) ? parsed.clinic_name : defaultBase.clinic_name,
         badge_icon: parsed.badge_icon || defaultBase.badge_icon || 'stethoscope',
+        logo_url: parsed.logo_url !== undefined ? parsed.logo_url : defaultBase.logo_url,
+        address: parsed.address !== undefined ? parsed.address : defaultBase.address,
+        phone: parsed.phone !== undefined ? parsed.phone : defaultBase.phone,
+        email: parsed.email !== undefined ? parsed.email : defaultBase.email,
+        website: parsed.website !== undefined ? parsed.website : defaultBase.website,
+        tax_number: parsed.tax_number !== undefined ? parsed.tax_number : defaultBase.tax_number,
+        tagline: parsed.tagline !== undefined ? parsed.tagline : defaultBase.tagline,
         procedures: Array.isArray(parsed.procedures) && parsed.procedures.length > 0
           ? parsed.procedures
           : DEFAULT_PROCEDURES,
@@ -160,9 +157,37 @@ export function saveClinicSettings(settings: Partial<ClinicSettings>): void {
       console.warn('Storage set error, attempting compact storage merge:', storageErr);
       if (merged.logo_url && merged.logo_url.length > 250000) {
         const compact = { ...merged, logo_url: '' };
-        localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(compact));
+        try {
+          localStorage.setItem(key, JSON.stringify(compact));
+          localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(compact));
+        } catch {}
       }
     }
+
+    // Keep tenant records in clinsyst_tenants in sync
+    try {
+      const tenantsRaw = localStorage.getItem('clinsyst_tenants');
+      const activeId = localStorage.getItem('clinsyst_active_clinic_id');
+      if (tenantsRaw) {
+        const tenants = JSON.parse(tenantsRaw);
+        if (Array.isArray(tenants)) {
+          const idx = tenants.findIndex((t: any) => t.id === activeId);
+          const tIdx = idx !== -1 ? idx : 0;
+          if (tenants[tIdx]) {
+            if (merged.clinic_name) tenants[tIdx].name = merged.clinic_name;
+            if (merged.tagline !== undefined) tenants[tIdx].tagline = merged.tagline;
+            if (merged.logo_url !== undefined) tenants[tIdx].logo_url = merged.logo_url;
+            if (merged.address !== undefined) tenants[tIdx].address = merged.address;
+            if (merged.phone !== undefined) tenants[tIdx].phone = merged.phone;
+            if (merged.email !== undefined) tenants[tIdx].owner_email = merged.email;
+            localStorage.setItem('clinsyst_tenants', JSON.stringify(tenants));
+          }
+        }
+      }
+    } catch (tErr) {
+      console.warn('Tenant sync error in saveClinicSettings:', tErr);
+    }
+
     window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: merged }));
   } catch (err) {
     console.error('Failed to save clinic settings:', err);

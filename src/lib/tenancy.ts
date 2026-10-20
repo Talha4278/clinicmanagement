@@ -60,9 +60,9 @@ export const DEFAULT_CLINIC_TENANT: ClinicTenant = {
   max_seats: 5,
   max_concurrent_sessions: 5,
   owner_name: 'Dr. Sarah Tariq',
-  owner_email: 'sarah@dentivista.com',
-  phone: '(+92) 300-0979185',
-  address: '1st Floor, 6/Street 2, Down Town Royal Orchard, Multan',
+  owner_email: '',
+  phone: '',
+  address: '',
   tagline: 'Dental & Aesthetics',
   logo_url: '',
   status: 'active',
@@ -120,11 +120,14 @@ export async function updateClinicTenantProfile(
   clinicId: string,
   profile: {
     name: string;
-    tagline?: string;
-    logo_url?: string;
-    address?: string;
-    phone?: string;
-    owner_email?: string;
+    tagline?: string | null;
+    logo_url?: string | null;
+    address?: string | null;
+    phone?: string | null;
+    owner_email?: string | null;
+    website?: string | null;
+    tax_number?: string | null;
+    badge_icon?: string | null;
   }
 ): Promise<ClinicTenant> {
   const all = getAllClinics();
@@ -134,11 +137,11 @@ export async function updateClinicTenantProfile(
   const updated: ClinicTenant = {
     ...current,
     name: profile.name.trim(),
-    tagline: profile.tagline !== undefined ? profile.tagline.trim() : current.tagline,
-    logo_url: profile.logo_url !== undefined ? profile.logo_url : current.logo_url,
-    address: profile.address !== undefined ? profile.address.trim() : current.address,
-    phone: profile.phone !== undefined ? profile.phone.trim() : current.phone,
-    owner_email: profile.owner_email !== undefined ? profile.owner_email.trim() : current.owner_email,
+    tagline: profile.tagline !== undefined && profile.tagline !== null ? profile.tagline.trim() : (profile.tagline === null ? '' : current.tagline),
+    logo_url: profile.logo_url !== undefined && profile.logo_url !== null ? profile.logo_url : (profile.logo_url === null ? '' : current.logo_url),
+    address: profile.address !== undefined && profile.address !== null ? profile.address.trim() : (profile.address === null ? '' : current.address),
+    phone: profile.phone !== undefined && profile.phone !== null ? profile.phone.trim() : (profile.phone === null ? '' : current.phone),
+    owner_email: profile.owner_email !== undefined && profile.owner_email !== null ? profile.owner_email.trim() : (profile.owner_email === null ? '' : current.owner_email),
   };
 
   if (idx !== -1) {
@@ -147,6 +150,19 @@ export async function updateClinicTenantProfile(
     all.push(updated);
   }
   saveAllClinics(all);
+
+  // Synchronize clinicSettings storage
+  saveClinicSettings({
+    clinic_name: updated.name,
+    tagline: updated.tagline || '',
+    logo_url: updated.logo_url || '',
+    address: updated.address || '',
+    phone: updated.phone || '',
+    email: updated.owner_email || '',
+    ...(profile.website !== undefined ? { website: profile.website || '' } : {}),
+    ...(profile.tax_number !== undefined ? { tax_number: profile.tax_number || '' } : {}),
+    ...(profile.badge_icon !== undefined ? { badge_icon: profile.badge_icon || 'stethoscope' } : {}),
+  });
 
   // Sync with Supabase clinics table
   try {
@@ -187,30 +203,35 @@ export function setActiveClinic(clinicId: string): ClinicTenant {
   const found = all.find(c => c.id === clinicId) || all[0];
   if (found) {
     localStorage.setItem(ACTIVE_CLINIC_STORAGE_KEY, found.id);
-    // Sync clinicSettings as well - preserving existing custom localization, notation & tax settings
     const existing = getClinicSettings();
-    // If existing has a customized name and found has the default seed name, preserve the custom name
-    const effectiveName =
-      found.name && !['Dentivista', 'Dentivista Dental & Aesthetics'].includes(found.name)
-        ? found.name
-        : (existing.clinic_name && !['Dentivista', 'Dentivista Dental & Aesthetics'].includes(existing.clinic_name)
-            ? existing.clinic_name
-            : found.name);
 
-    if (found.name !== effectiveName) {
-      found.name = effectiveName;
-      saveAllClinics(all);
-    }
+    // Preserve user saved customizations over default/seed data
+    const effectiveName = existing.clinic_name || found.name;
+    const effectiveTagline = existing.tagline !== undefined ? existing.tagline : (found.tagline || '');
+    const effectiveLogo = existing.logo_url !== undefined ? existing.logo_url : (found.logo_url || '');
+    const effectiveAddress = existing.address !== undefined ? existing.address : (found.address || '');
+    const effectiveEmail = existing.email !== undefined ? existing.email : (found.owner_email || '');
+    const effectivePhone = existing.phone !== undefined ? existing.phone : (found.phone || '');
+    const effectiveWebsite = existing.website || (found.slug ? `www.${found.slug}.com` : '');
+
+    // Synchronize tenant record with saved settings
+    found.name = effectiveName;
+    found.tagline = effectiveTagline;
+    found.logo_url = effectiveLogo;
+    found.address = effectiveAddress;
+    found.owner_email = effectiveEmail;
+    found.phone = effectivePhone;
+    saveAllClinics(all);
 
     const settings: ClinicSettings = {
       ...existing,
       clinic_name: effectiveName,
-      tagline: found.tagline || existing.tagline || 'Dental & Aesthetic Care',
-      logo_url: found.logo_url !== undefined && found.logo_url !== null ? found.logo_url : existing.logo_url,
-      address: found.address || existing.address,
-      email: found.owner_email || existing.email,
-      phone: found.phone || existing.phone,
-      website: found.slug ? `www.${found.slug}.com` : existing.website,
+      tagline: effectiveTagline,
+      logo_url: effectiveLogo,
+      address: effectiveAddress,
+      email: effectiveEmail,
+      phone: effectivePhone,
+      website: effectiveWebsite,
     };
     saveClinicSettings(settings);
     window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: found }));
@@ -645,50 +666,32 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
       const idx = all.findIndex(c => c.id === data.id || c.id === clinicId);
       const existing = idx !== -1 ? all[idx] : null;
 
-      // Preserve local user-saved identity customizations over stale remote seed defaults
+      // Preserve local user-saved identity customizations
       const localSettings = getClinicSettings();
 
-      const isSeedName = (n?: string) => !n || ['Dentivista', 'Dentivista Dental & Aesthetics'].includes(n.trim());
-      const effectiveName =
-        existing?.name && !isSeedName(existing.name)
-          ? existing.name
-          : (localSettings.clinic_name && !isSeedName(localSettings.clinic_name)
-              ? localSettings.clinic_name
-              : (data.name && !isSeedName(data.name) ? data.name : (localSettings.clinic_name || existing?.name || data.name)));
+      const effectiveName = (localSettings.clinic_name && localSettings.clinic_name.trim())
+        ? localSettings.clinic_name
+        : (existing?.name || data.name || 'Dentivista');
 
-      const isSeedPhone = (p?: string) => !p || p === '(+92) 300-0979185' || p === '+923087444256';
-      const effectivePhone =
-        existing?.phone && !isSeedPhone(existing.phone)
-          ? existing.phone
-          : (localSettings.phone && !isSeedPhone(localSettings.phone)
-              ? localSettings.phone
-              : (data.phone || existing?.phone || localSettings.phone || ''));
+      const effectivePhone = (localSettings.phone !== undefined && localSettings.phone !== '')
+        ? localSettings.phone
+        : (existing?.phone || data.phone || '');
 
-      const isSeedAddress = (a?: string) => !a || a.includes('Down Town Royal Orchard');
-      const effectiveAddress =
-        existing?.address && !isSeedAddress(existing.address)
-          ? existing.address
-          : (localSettings.address && !isSeedAddress(localSettings.address)
-              ? localSettings.address
-              : (data.address || existing?.address || localSettings.address || ''));
+      const effectiveAddress = (localSettings.address !== undefined && localSettings.address !== '')
+        ? localSettings.address
+        : (existing?.address || data.address || '');
 
-      const isSeedEmail = (e?: string) => !e || e === 'sarah@dentivista.com' || e === 'zahid.hashir2@gmail.com';
-      const effectiveEmail =
-        existing?.owner_email && !isSeedEmail(existing.owner_email)
-          ? existing.owner_email
-          : (localSettings.email && !isSeedEmail(localSettings.email)
-              ? localSettings.email
-              : (data.owner_email || existing?.owner_email || localSettings.email || ''));
+      const effectiveEmail = (localSettings.email !== undefined && localSettings.email !== '')
+        ? localSettings.email
+        : (existing?.owner_email || data.owner_email || '');
 
-      const effectiveTagline =
-        existing?.tagline !== undefined && existing?.tagline !== null && existing.tagline !== ''
-          ? existing.tagline
-          : (localSettings.tagline || data.tagline || '');
+      const effectiveTagline = (localSettings.tagline !== undefined && localSettings.tagline !== '')
+        ? localSettings.tagline
+        : (existing?.tagline || data.tagline || '');
 
-      const effectiveLogo =
-        existing?.logo_url !== undefined && existing?.logo_url !== null
-          ? existing.logo_url
-          : (localSettings.logo_url !== undefined ? localSettings.logo_url : (data.logo_url || null));
+      const effectiveLogo = localSettings.logo_url !== undefined
+        ? localSettings.logo_url
+        : (existing?.logo_url !== undefined ? existing.logo_url : (data.logo_url || ''));
 
       const updated: ClinicTenant = {
         id: data.id,

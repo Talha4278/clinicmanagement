@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Building2, Save, Upload, RefreshCw, CheckCircle2,
   Phone, Mail, MapPin, Globe, FileText, Image as ImageIcon,
@@ -85,6 +85,8 @@ export default function ClinicSetup() {
   const [brandingMode, setBrandingMode] = useState<'badge' | 'logo'>(
     settings.logo_url ? 'logo' : 'badge'
   );
+  const isDirtyRef = useRef(false);
+  const initialLoadedRef = useRef(false);
   // Navigation tab: Doctors & Services are merged, and Subscriptions is placed after it (at last)
   const [activeTab, setActiveTab] = useState<
     'profile' | 'localization' | 'doctors_services' | 'subscriptions'
@@ -178,13 +180,26 @@ export default function ClinicSetup() {
   const [editingDoctorForm, setEditingDoctorForm] = useState<Staff | null>(null);
   const [doctorSearch, setDoctorSearch] = useState('');
 
-  // Sync settings state if updated externally
+  // Sync settings state if updated externally, but never overwrite user's active edits
   useEffect(() => {
-    setForm(settings);
-    if (settings.badge_icon) {
-      setSelectedPresetIcon(settings.badge_icon);
+    if (!initialLoadedRef.current) {
+      setForm(settings);
+      if (settings.badge_icon) {
+        setSelectedPresetIcon(settings.badge_icon);
+      }
+      setBrandingMode(settings.logo_url ? 'logo' : 'badge');
+      initialLoadedRef.current = true;
+      return;
     }
-  }, [settings]);
+
+    if (!isDirtyRef.current && savingTab !== 'profile') {
+      setForm(settings);
+      if (settings.badge_icon) {
+        setSelectedPresetIcon(settings.badge_icon);
+      }
+      setBrandingMode(settings.logo_url ? 'logo' : 'badge');
+    }
+  }, [settings, savingTab]);
 
   // Load real doctors from database
   useEffect(() => {
@@ -324,7 +339,8 @@ export default function ClinicSetup() {
       return;
     }
     try {
-      const dataUrl = await compressImageFile(file, 320, 320, 0.88);
+      const dataUrl = await compressImageFile(file, 240, 240, 0.85);
+      isDirtyRef.current = true;
       setForm((prev) => ({ ...prev, logo_url: dataUrl }));
       setBrandingMode('logo');
     } catch (err) {
@@ -356,7 +372,7 @@ export default function ClinicSetup() {
     }
 
     setSavingTab('profile');
-    const activeLogo = brandingMode === 'badge' ? '' : (form.logo_url?.trim() || '');
+    const activeLogo = brandingMode === 'logo' ? (form.logo_url?.trim() || '') : '';
     const activeBadge = form.badge_icon || selectedPresetIcon || 'stethoscope';
 
     const updatedForm: ClinicSettings = {
@@ -372,6 +388,7 @@ export default function ClinicSetup() {
       logo_url: activeLogo,
     };
 
+    isDirtyRef.current = false;
     setForm(updatedForm);
     updateSettings(updatedForm);
 
@@ -380,10 +397,13 @@ export default function ClinicSetup() {
     await updateClinicTenantProfile(clinicId, {
       name: updatedForm.clinic_name,
       tagline: updatedForm.tagline,
-      logo_url: updatedForm.logo_url || undefined,
+      logo_url: updatedForm.logo_url || '',
       address: updatedForm.address,
       phone: updatedForm.phone,
       owner_email: updatedForm.email,
+      website: updatedForm.website,
+      tax_number: updatedForm.tax_number,
+      badge_icon: updatedForm.badge_icon,
     });
 
     setSavingTab(null);
@@ -827,7 +847,10 @@ export default function ClinicSetup() {
                   type="text"
                   required
                   value={form.clinic_name}
-                  onChange={(e) => setForm({ ...form, clinic_name: e.target.value })}
+                  onChange={(e) => {
+                    isDirtyRef.current = true;
+                    setForm({ ...form, clinic_name: e.target.value });
+                  }}
                   placeholder="e.g. Dentivista"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900 font-semibold"
                 />
@@ -840,23 +863,67 @@ export default function ClinicSetup() {
                 <input
                   type="text"
                   value={form.tagline}
-                  onChange={(e) => setForm({ ...form, tagline: e.target.value })}
+                  onChange={(e) => {
+                    isDirtyRef.current = true;
+                    setForm({ ...form, tagline: e.target.value });
+                  }}
                   placeholder="e.g. Dental & Aesthetics"
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
                 />
               </div>
             </div>
 
-            {/* Logo / Icon Upload & Select */}
-            <div className="space-y-3 bg-gray-50/80 p-4 rounded-2xl border border-gray-200/80">
-              <label className="block text-xs font-semibold text-gray-700 uppercase">
-                Clinic Icon / Logo
-              </label>
+            {/* Logo / Badge Choice & Customization */}
+            <div className="space-y-4 bg-gray-50/80 p-5 rounded-2xl border border-gray-200/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200/60 pb-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider">
+                    Clinic Branding & Iconography
+                  </label>
+                  <p className="text-[11px] text-gray-500">
+                    Choose between a curated medical vector badge or your own custom clinic logo.
+                  </p>
+                </div>
+                {/* 2-Option Mode Switcher */}
+                <div className="inline-flex rounded-xl p-1 bg-white border border-gray-200 shadow-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      isDirtyRef.current = true;
+                      setBrandingMode('badge');
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      brandingMode === 'badge'
+                        ? 'bg-emerald-800 text-white shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <Stethoscope size={13} />
+                    Medical Badge
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      isDirtyRef.current = true;
+                      setBrandingMode('logo');
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      brandingMode === 'logo'
+                        ? 'bg-emerald-800 text-white shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <ImageIcon size={13} />
+                    Custom Logo
+                  </button>
+                </div>
+              </div>
 
-              <div className="flex items-center gap-4">
-                {/* Preview Avatar */}
+              {/* Active Preview & Controls */}
+              <div className="flex items-start gap-4">
+                {/* Visual Avatar Preview */}
                 <div className="w-16 h-16 rounded-2xl bg-emerald-800 text-white flex items-center justify-center overflow-hidden border-2 border-emerald-700/60 shadow-md flex-shrink-0 transition-all">
-                  {form.logo_url ? (
+                  {brandingMode === 'logo' && form.logo_url ? (
                     <img
                       src={form.logo_url}
                       alt="Clinic Logo"
@@ -871,81 +938,89 @@ export default function ClinicSetup() {
                   )}
                 </div>
 
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <label className="cursor-pointer px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-100 transition-colors flex items-center gap-1.5 shadow-xs">
-                      <Upload size={13} /> Upload Image (PNG/JPG)
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                    </label>
-                    {form.logo_url && (
-                      <button
-                        type="button"
-                        onClick={() => setForm({ ...form, logo_url: '' })}
-                        className="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2 py-1"
-                      >
-                        Remove Logo
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <ImageIcon size={12} className="text-gray-400" />
-                    <input
-                      type="url"
-                      value={form.logo_url || ''}
-                      onChange={(e) => setForm({ ...form, logo_url: e.target.value })}
-                      placeholder="Or paste image URL (https://...)"
-                      className="w-full px-2.5 py-1 bg-white rounded-lg border border-gray-200 text-[11px] text-gray-800 focus:ring-1 focus:ring-emerald-600"
-                    />
-                  </div>
-                </div>
-              </div>
+                {/* Sub-panel based on brandingMode */}
+                {brandingMode === 'badge' ? (
+                  <div className="flex-1 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-gray-600 uppercase tracking-wider">
+                        Select Medical Badge Style
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-800 uppercase px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200">
+                        Selected: {PRESET_BADGE_ICONS.find(p => p.id === (form.badge_icon || selectedPresetIcon))?.label || 'Stethoscope'}
+                      </span>
+                    </div>
 
-              {/* Quick Icon Selector when no custom image */}
-              {!form.logo_url && (
-                <div className="pt-2 border-t border-gray-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-gray-500 uppercase">
-                      Or pick a clinic badge style:
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-800 uppercase px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-200">
-                      Active: {PRESET_BADGE_ICONS.find(p => p.id === (form.badge_icon || selectedPresetIcon))?.label || 'Stethoscope'}
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {PRESET_BADGE_ICONS.map((p) => {
+                        const IconComp = p.icon;
+                        const isSelected = (form.badge_icon || selectedPresetIcon) === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              isDirtyRef.current = true;
+                              setSelectedPresetIcon(p.id);
+                              setForm((prev) => ({ ...prev, badge_icon: p.id }));
+                            }}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
+                              isSelected
+                                ? 'bg-emerald-800 text-white border-emerald-800 shadow-md ring-2 ring-emerald-600/30 scale-[1.02]'
+                                : 'bg-white text-gray-700 border-gray-200 hover:bg-emerald-50 hover:border-emerald-300'
+                            }`}
+                          >
+                            <IconComp size={14} />
+                            <span>{p.label}</span>
+                            {isSelected && <Check size={12} className="ml-0.5 text-white" />}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {PRESET_BADGE_ICONS.map((p) => {
-                      const IconComp = p.icon;
-                      const isSelected = (form.badge_icon || selectedPresetIcon) === p.id;
-                      return (
+                ) : (
+                  <div className="flex-1 space-y-2.5">
+                    <div className="flex items-center gap-2">
+                      <label className="cursor-pointer px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 text-xs font-bold hover:bg-gray-100 transition-colors flex items-center gap-1.5 shadow-xs">
+                        <Upload size={14} className="text-emerald-700" /> Upload Image File (PNG/JPG)
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="hidden"
+                        />
+                      </label>
+                      {form.logo_url && (
                         <button
-                          key={p.id}
                           type="button"
                           onClick={() => {
-                            setSelectedPresetIcon(p.id);
-                            setForm((prev) => ({ ...prev, badge_icon: p.id }));
+                            isDirtyRef.current = true;
+                            setForm((prev) => ({ ...prev, logo_url: '' }));
                           }}
-                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                            isSelected
-                              ? 'bg-emerald-800 text-white border-emerald-800 shadow-md ring-2 ring-emerald-600/30 scale-[1.02]'
-                              : 'bg-white text-gray-700 border-gray-200 hover:bg-emerald-50 hover:border-emerald-300'
-                          }`}
+                          className="text-xs text-rose-600 hover:text-rose-800 font-semibold px-2.5 py-1.5 rounded-lg hover:bg-rose-50 transition-colors"
                         >
-                          <IconComp size={14} />
-                          <span>{p.label}</span>
-                          {isSelected && <Check size={12} className="ml-0.5 text-white" />}
+                          Clear Logo
                         </button>
-                      );
-                    })}
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon size={13} className="text-gray-400" />
+                      <input
+                        type="url"
+                        value={form.logo_url || ''}
+                        onChange={(e) => {
+                          isDirtyRef.current = true;
+                          setForm({ ...form, logo_url: e.target.value });
+                        }}
+                        placeholder="Or paste image URL (https://...)"
+                        className="w-full px-3 py-1.5 bg-white rounded-xl border border-gray-200 text-xs text-gray-800 focus:ring-1 focus:ring-emerald-600"
+                      />
+                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      Uploaded logos are automatically resized and compressed to keep invoices and receipts loading blazing fast.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-gray-500">
-                    ✨ Tapping any badge instantly updates the live invoice and prescription preview below.
-                  </p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Contact Details */}
@@ -965,7 +1040,10 @@ export default function ClinicSetup() {
                       type="text"
                       required
                       value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                      onChange={(e) => {
+                        isDirtyRef.current = true;
+                        setForm({ ...form, phone: e.target.value });
+                      }}
                       placeholder="+92 300 0000000"
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900 font-medium"
                     />
@@ -982,7 +1060,10 @@ export default function ClinicSetup() {
                       type="email"
                       required
                       value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      onChange={(e) => {
+                        isDirtyRef.current = true;
+                        setForm({ ...form, email: e.target.value });
+                      }}
                       placeholder="clinic@dentivista.com"
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
                     />
@@ -999,7 +1080,10 @@ export default function ClinicSetup() {
                       rows={2}
                       required
                       value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                      onChange={(e) => {
+                        isDirtyRef.current = true;
+                        setForm({ ...form, address: e.target.value });
+                      }}
                       placeholder="Floor, Plaza, Street, City..."
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900 resize-none"
                     />
@@ -1015,7 +1099,10 @@ export default function ClinicSetup() {
                     <input
                       type="text"
                       value={form.website || ''}
-                      onChange={(e) => setForm({ ...form, website: e.target.value })}
+                      onChange={(e) => {
+                        isDirtyRef.current = true;
+                        setForm({ ...form, website: e.target.value });
+                      }}
                       placeholder="www.yourclinic.com"
                       className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
                     />
@@ -1029,7 +1116,10 @@ export default function ClinicSetup() {
                   <input
                     type="text"
                     value={form.tax_number || ''}
-                    onChange={(e) => setForm({ ...form, tax_number: e.target.value })}
+                    onChange={(e) => {
+                      isDirtyRef.current = true;
+                      setForm({ ...form, tax_number: e.target.value });
+                    }}
                     placeholder="e.g. NTN-8921-D"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
                   />
@@ -1086,7 +1176,7 @@ export default function ClinicSetup() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 transition-all">
-                        {form.logo_url ? (
+                        {brandingMode === 'logo' && form.logo_url ? (
                           <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
                         ) : (
                           <ClinicBadgeIcon
@@ -1149,7 +1239,7 @@ export default function ClinicSetup() {
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-white overflow-hidden transition-all"
                       style={{ background: '#3c5e27' }}
                     >
-                      {form.logo_url ? (
+                      {brandingMode === 'logo' && form.logo_url ? (
                         <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
                       ) : (
                         <ClinicBadgeIcon
