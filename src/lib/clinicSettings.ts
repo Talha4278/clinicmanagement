@@ -130,6 +130,8 @@ export function getClinicSettings(): ClinicSettings {
       return {
         ...defaultBase,
         ...parsed,
+        clinic_name: parsed.clinic_name || defaultBase.clinic_name,
+        badge_icon: parsed.badge_icon || defaultBase.badge_icon || 'stethoscope',
         procedures: Array.isArray(parsed.procedures) && parsed.procedures.length > 0
           ? parsed.procedures
           : DEFAULT_PROCEDURES,
@@ -151,8 +153,16 @@ export function saveClinicSettings(settings: Partial<ClinicSettings>): void {
       ...existing,
       ...settings,
     };
-    localStorage.setItem(key, JSON.stringify(merged));
-    localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(merged));
+    try {
+      localStorage.setItem(key, JSON.stringify(merged));
+      localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(merged));
+    } catch (storageErr) {
+      console.warn('Storage set error, attempting compact storage merge:', storageErr);
+      if (merged.logo_url && merged.logo_url.length > 250000) {
+        const compact = { ...merged, logo_url: '' };
+        localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(compact));
+      }
+    }
     window.dispatchEvent(new CustomEvent(EVENT_NAME, { detail: merged }));
   } catch (err) {
     console.error('Failed to save clinic settings:', err);

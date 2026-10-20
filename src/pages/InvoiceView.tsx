@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Printer, ArrowLeft, CheckCircle, Clock, AlertTriangle, Stethoscope, MessageSquare, CreditCard } from 'lucide-react';
+import { Printer, ArrowLeft, CheckCircle, Clock, AlertTriangle, MessageSquare, CreditCard } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Invoice, InvoiceItem } from '../lib/types';
 import { useClinicSettings } from '../lib/clinicSettings';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, CreditCard, Banknote, Building2, AlertCircle, Clock, Sparkles } from 'lucide-react';
+import { X, CheckCircle, CreditCard, Banknote, Building2, AlertCircle, Sparkles } from 'lucide-react';
 import { Invoice, PaymentMethod, PaymentStatus } from '../lib/types';
 import { supabase } from '../lib/supabase';
 import { isDemoMode, updateDemoInvoicePayment } from '../lib/demoData';

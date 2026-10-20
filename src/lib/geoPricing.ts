@@ -1,4 +1,4 @@
-import { CurrencyCode, SUPPORTED_CURRENCIES } from './internationalPricing';
+import { CurrencyCode } from './internationalPricing';
 
 export interface GeoDetectionResult {
   currency: CurrencyCode;

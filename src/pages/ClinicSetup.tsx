@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Building2, Save, Upload, RefreshCw, CheckCircle2,
   Phone, Mail, MapPin, Globe, FileText, Image as ImageIcon,
-  Stethoscope, Shield, Sparkles, HeartPulse, Activity,
+  Stethoscope, Sparkles, Activity,
   Plus, Trash2, Edit2, Check, X, Search, UserPlus, AlertCircle,
   UserCheck, UserX, Loader2, Clock, Receipt, CreditCard,
   MessageSquare, Send, Smartphone, Lock,
@@ -25,7 +25,7 @@ import {
 } from '../lib/types';
 import { detectVisitorCurrency } from '../lib/geoPricing';
 import { INTERNATIONAL_PLANS } from '../lib/internationalPricing';
-import { updateClinicPlan, PLAN_SPECS } from '../lib/tenancy';
+import { updateClinicPlan, updateClinicTenantProfile, PLAN_SPECS } from '../lib/tenancy';
 import {
   ClinicBadgeIcon,
   PRESET_BADGE_ICONS,
@@ -82,10 +82,14 @@ export default function ClinicSetup() {
   const [savingTab, setSavingTab] = useState<string | null>(null);
   const [savedTab, setSavedTab] = useState<string | null>(null);
 
-  // Navigation tab (WhatsApp Cloud API hidden from UI)
+  const [brandingMode, setBrandingMode] = useState<'badge' | 'logo'>(
+    settings.logo_url ? 'logo' : 'badge'
+  );
+  // Navigation tab: Doctors & Services are merged, and Subscriptions is placed after it (at last)
   const [activeTab, setActiveTab] = useState<
-    'profile' | 'localization' | 'payments' | 'procedures' | 'doctors'
+    'profile' | 'localization' | 'doctors_services' | 'subscriptions'
   >('profile');
+  const [docServicesSubTab, setDocServicesSubTab] = useState<'doctors' | 'services'>('doctors');
 
   // Pricing & Subscription state for activeTab === 'payments'
   const [pricingCurrency, setPricingCurrency] = useState<'PKR' | 'USD'>('PKR');
@@ -272,39 +276,119 @@ export default function ClinicSetup() {
 
 
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert('File size must be under 2MB');
-        return;
-      }
+  // High-performance canvas-based image downscaler & compressor (max 320x320)
+  // Ensures uploaded logos never exceed browser localStorage quotas (~25KB typical)
+  function compressImageFile(file: File, maxWidth = 320, maxHeight = 320, quality = 0.88): Promise<string> {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setForm({ ...form, logo_url: event.target.result as string });
-        }
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Failed to load image preview'));
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth || height > maxHeight) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const hasAlpha = file.type === 'image/png' || file.type === 'image/webp' || file.type === 'image/svg+xml';
+          const dataUrl = canvas.toDataURL(hasAlpha ? 'image/png' : 'image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.src = e.target?.result as string;
       };
       reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image file size must be under 5MB');
+      return;
+    }
+    try {
+      const dataUrl = await compressImageFile(file, 320, 320, 0.88);
+      setForm((prev) => ({ ...prev, logo_url: dataUrl }));
+      setBrandingMode('logo');
+    } catch (err) {
+      console.error('Error optimizing image:', err);
+      alert('Could not process image file. Please try another image.');
+    } finally {
+      e.target.value = '';
     }
   }
 
-  function handleSaveProfile(e: React.FormEvent) {
+  async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.clinic_name.trim()) {
+    const trimmedName = form.clinic_name.trim();
+    if (!trimmedName) {
       alert('Clinic Name is required');
       return;
     }
+    if (!form.phone?.trim()) {
+      alert('Contact Phone / Mobile number is required');
+      return;
+    }
+    if (!form.email?.trim()) {
+      alert('Clinic Email address is required');
+      return;
+    }
+    if (!form.address?.trim()) {
+      alert('Clinic Full Address is required');
+      return;
+    }
+
     setSavingTab('profile');
-    const updatedForm = {
+    const activeLogo = brandingMode === 'badge' ? '' : (form.logo_url?.trim() || '');
+    const activeBadge = form.badge_icon || selectedPresetIcon || 'stethoscope';
+
+    const updatedForm: ClinicSettings = {
       ...form,
-      badge_icon: form.badge_icon || selectedPresetIcon,
+      clinic_name: trimmedName,
+      tagline: form.tagline?.trim() || '',
+      phone: form.phone.trim(),
+      email: form.email.trim(),
+      address: form.address.trim(),
+      website: form.website?.trim() || '',
+      tax_number: form.tax_number?.trim() || '',
+      badge_icon: activeBadge,
+      logo_url: activeLogo,
     };
+
     setForm(updatedForm);
     updateSettings(updatedForm);
+
+    // Synchronize tenant store, Supabase remote clinics table, and activeClinic in AuthContext
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    await updateClinicTenantProfile(clinicId, {
+      name: updatedForm.clinic_name,
+      tagline: updatedForm.tagline,
+      logo_url: updatedForm.logo_url || undefined,
+      address: updatedForm.address,
+      phone: updatedForm.phone,
+      owner_email: updatedForm.email,
+    });
+
     setSavingTab(null);
     setSavedTab('profile');
-    notifySuccess('Clinic profile & badge branding saved and applied!');
+    notifySuccess(`Clinic identity "${updatedForm.clinic_name}" successfully saved & synchronized!`);
     setTimeout(() => {
       setSavedTab((curr) => curr === 'profile' ? null : curr);
     }, 2500);
@@ -641,10 +725,11 @@ export default function ClinicSetup() {
         <button
           type="button"
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'profile'
-            ? 'bg-emerald-800 text-white shadow-sm'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
-            }`}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === 'profile'
+              ? 'bg-emerald-800 text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
+          }`}
         >
           <Building2 size={14} />
           Clinic Identity
@@ -653,69 +738,63 @@ export default function ClinicSetup() {
         <button
           type="button"
           onClick={() => setActiveTab('localization')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'localization'
-            ? 'bg-emerald-800 text-white shadow-sm'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
-            }`}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === 'localization'
+              ? 'bg-emerald-800 text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
+          }`}
         >
           <Globe size={14} />
           Tooth Notation, Time Zone & VAT
           <span
-            className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold ${activeTab === 'localization' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-              }`}
+            className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold ${
+              activeTab === 'localization' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
+            }`}
           >
             {form.tooth_notation === 'universal' ? 'UNIVERSAL' : 'FDI'}
           </span>
         </button>
 
-        {/* WhatsApp Cloud API module hidden from UI for now */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('doctors_services')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === 'doctors_services'
+              ? 'bg-emerald-800 text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
+          }`}
+        >
+          <Stethoscope size={14} />
+          Doctors & Services
+          <span
+            className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
+              activeTab === 'doctors_services' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+            }`}
+          >
+            {doctors.length} Drs · {currentProcedures.length} Services
+          </span>
+        </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('payments')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'payments'
-            ? 'bg-emerald-800 text-white shadow-sm'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
-            }`}
+          onClick={() => setActiveTab('subscriptions')}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === 'subscriptions'
+              ? 'bg-emerald-800 text-white shadow-sm'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
+          }`}
         >
           <CreditCard size={14} />
           Subscription Plans
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('procedures')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'procedures'
-            ? 'bg-emerald-800 text-white shadow-sm'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
-            }`}
-        >
-          <Activity size={14} />
-          Procedures
-          <span
-            className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${activeTab === 'procedures' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
+          {activeClinic?.plan && (
+            <span
+              className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                activeTab === 'subscriptions' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
               }`}
-          >
-            {currentProcedures.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('doctors')}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'doctors'
-            ? 'bg-emerald-800 text-white shadow-sm'
-            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
-            }`}
-        >
-          <Stethoscope size={14} />
-          Doctors
-          <span
-            className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${activeTab === 'doctors' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
-              }`}
-          >
-            {doctors.length}
-          </span>
+            >
+              {activeClinic.plan}
+            </span>
+          )}
         </button>
       </div>
 
@@ -1986,535 +2065,67 @@ export default function ClinicSetup() {
       {/* ─────────────────────────────────────────────────────────────────── */}
       {/* TAB: SUBSCRIPTION PLANS & PAYMENT METHOD HUB */}
       {/* ─────────────────────────────────────────────────────────────────── */}
-      {activeTab === 'payments' && (
+      {/* TAB 3: DOCTORS & SERVICES MANAGEMENT (MERGED)                      */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activeTab === 'doctors_services' && (
         <div className="space-y-6">
-          {/* Main Container */}
-          <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-6">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-gray-100 pb-5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
-                    💳
-                  </span>
-                  <h3 className="text-base font-bold text-gray-900">
-                    Subscription Plans & Payment Methods
-                  </h3>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800">
-                    Active Plan: {PLAN_SPECS[activeClinic?.plan || selectedPlanTier].name}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1 max-w-2xl">
-                  Choose the plan tier that fits your practice capacity and staff team size. Pricing is automatically tailored to your region with direct local bank transfer for Pakistan and card checkout for international clinics.
-                </p>
-              </div>
-
-              {/* Currency & Billing Controls */}
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Currency Switcher (USD vs PKR) */}
-                <div className="inline-flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setPricingCurrency('USD')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
-                      pricingCurrency === 'USD'
-                        ? 'bg-white text-sky-700 shadow-xs'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <span>🇺🇸</span>
-                    <span>USD ($)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPricingCurrency('PKR')}
-                    className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
-                      pricingCurrency === 'PKR'
-                        ? 'bg-white text-sky-700 shadow-xs'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <span>🇵🇰</span>
-                    <span>PKR (Rs.)</span>
-                  </button>
-                </div>
-
-                {/* Cadence Switcher (Monthly vs Annual) */}
-                <div className="inline-flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setPricingBillingCycle('monthly')}
-                    className={`px-3 py-1 rounded-lg font-medium transition-all ${
-                      pricingBillingCycle === 'monthly'
-                        ? 'bg-gray-900 text-white shadow-xs'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Monthly
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPricingBillingCycle('annual')}
-                    className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
-                      pricingBillingCycle === 'annual'
-                        ? 'bg-sky-600 text-white shadow-xs'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    <span>Annual</span>
-                    <span className="text-[10px] bg-emerald-400 text-emerald-950 font-bold px-1.5 py-0.2 rounded-md">Save 20%</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-
-            {/* Plan Upgrade Success Banner */}
-            {planSuccessNotice && (
-              <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-2xl text-xs font-semibold flex items-center justify-between animate-in fade-in">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0" />
-                  <span>{planSuccessNotice}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setPlanSuccessNotice(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-
-            {/* Pricing Plans Grid (Starter, Pro, Enterprise) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {INTERNATIONAL_PLANS.map((plan) => {
-                const isCurrent = (activeClinic?.plan || 'pro') === plan.id;
-                const isSelected = selectedPlanTier === plan.id;
-                const priceData = plan.pricing[pricingCurrency];
-                const displayPrice =
-                  pricingBillingCycle === 'annual'
-                    ? priceData.formattedAnnualMonthly
-                    : priceData.formattedMonthly;
-                const symbol = pricingCurrency === 'PKR' ? 'Rs. ' : '$';
-
-                return (
-                  <div
-                    key={plan.id}
-                    onClick={() => setSelectedPlanTier(plan.id)}
-                    className={`rounded-2xl p-5 flex flex-col justify-between transition-all relative border-2 text-left cursor-pointer ${
-                      isSelected
-                        ? 'border-sky-600 bg-sky-50/40 shadow-md ring-2 ring-sky-500/10'
-                        : 'border-gray-200 bg-white hover:border-gray-300 shadow-xs'
-                    }`}
-                  >
-                    {/* Badge */}
-                    {plan.badge && (
-                      <div className="absolute -top-3 right-4">
-                        <span
-                          className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider text-white shadow-xs ${
-                            plan.id === 'pro'
-                              ? 'bg-sky-600'
-                              : plan.id === 'starter'
-                              ? 'bg-emerald-600'
-                              : 'bg-indigo-600'
-                          }`}
-                        >
-                          {plan.badge}
-                        </span>
-                      </div>
-                    )}
-
-                    <div>
-                      {/* Title & Tagline */}
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between gap-1">
-                          <h4 className="font-bold text-sm text-gray-900">{plan.name}</h4>
-                          {isCurrent && (
-                            <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
-                              Active Tier
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug min-h-[28px]">{plan.tagline}</p>
-                      </div>
-
-                      {/* Price Figure */}
-                      <div className="mb-4 pb-4 border-b border-gray-100">
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight font-display">
-                            {displayPrice}
-                          </span>
-                          <span className="text-xs font-semibold text-gray-500">/ mo</span>
-                        </div>
-                        {pricingBillingCycle === 'annual' && (
-                          <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
-                            Billed annually ({symbol}{priceData.annualTotal.toLocaleString()}/yr)
-                          </p>
-                        )}
-                        <p className="text-[10px] text-sky-800 font-semibold mt-1 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
-                          ⚡ {priceData.competitorComparison}
-                        </p>
-                      </div>
-
-                      {/* Quotas */}
-                      <div className="grid grid-cols-2 gap-2 text-center text-xs mb-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
-                        <div>
-                          <span className="text-gray-400 block text-[9px] uppercase font-semibold">Max Seats</span>
-                          <strong className="text-gray-800 text-xs">{plan.maxSeats} Doctor / Staff</strong>
-                        </div>
-                        <div>
-                          <span className="text-gray-400 block text-[9px] uppercase font-semibold">Concurrent</span>
-                          <strong className="text-gray-800 text-xs">{plan.maxSessions} Active Logins</strong>
-                        </div>
-                      </div>
-
-                      {/* Features */}
-                      <div className="space-y-2 mb-5 text-[11px] text-gray-600">
-                        {plan.features.slice(0, 5).map((f, i) => (
-                          <div key={i} className="flex items-start gap-1.5">
-                            <CheckCircle2 size={13} className="text-emerald-600 flex-shrink-0 mt-0.5" />
-                            <span>{f}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Action Button */}
-                    <div className="pt-2">
-                      {isCurrent ? (
-                        <div className="w-full py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 cursor-default">
-                          <Check size={14} className="text-emerald-700" />
-                          <span>Current Active Plan</span>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectPlanTier(plan.id);
-                          }}
-                          className="w-full py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
-                        >
-                          <Sparkles size={13} />
-                          <span>Switch to {plan.name}</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Payment Settlement Methods */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* Option 1: Credit / Debit Card Checkout (Coming Soon) */}
-              <div className="p-5 rounded-2xl border-2 border-amber-200/80 bg-gradient-to-br from-amber-50/40 via-white to-sky-50/30 space-y-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                      <CreditCard size={18} className="text-sky-600" />
-                      Credit & Debit Card Checkout
-                    </span>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-white shadow-xs flex items-center gap-1">
-                      <Clock size={11} />
-                      Coming Soon
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Automated online card payments for <strong>Visa, Mastercard, Apple Pay, & Google Pay</strong> are currently under integration for global subscription processing.
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-gray-700 pt-1">
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-xs flex items-center gap-1 text-gray-800">
-                      💳 Credit & Debit Cards
-                    </span>
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-xs flex items-center gap-1 text-gray-800">
-                      🍏 Apple Pay & GPay
-                    </span>
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-xs flex items-center gap-1 text-gray-800">
-                      🌐 Global Currencies
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2 mt-2">
-                    <Sparkles size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-[11px] leading-snug">
-                      <span className="font-bold text-amber-950 block">Card Checkout Method Coming Soon</span>
-                      We are currently completing verification for international card gateways. In the meantime, please use <strong>Direct Bank Transfer</strong> or WhatsApp support for instant activation.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    disabled
-                    className="w-full py-2.5 px-4 rounded-xl text-gray-400 bg-gray-100 border border-gray-200 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed shadow-none"
-                  >
-                    <Clock size={14} className="text-gray-400" />
-                    <span>Card Checkout — Coming Soon</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Option 2: Direct Bank Transfer (Pakistan) */}
-              <div className="p-5 rounded-2xl border-2 border-emerald-300 bg-emerald-50/60 space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-emerald-950 flex items-center gap-2">
-                      <Landmark size={18} className="text-emerald-700" />
-                      Direct Bank / NayaPay / Raast (Pakistan Local Clinics)
-                    </span>
-
-                  </div>
-
-                  <p className="text-xs text-emerald-900/90 leading-relaxed">
-                    Direct local bank transfer for Pakistani clinics via <strong>NayaPay, UBL, Raast Instant Payment, or EasyPaisa</strong> with zero platform fees.
-                  </p>
-
-                  {/* Bank Account Details */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium text-emerald-950 bg-white/90 p-3 rounded-xl border border-emerald-200">
-                    <div>
-                      <span className="text-gray-500 text-[10px] block font-normal">Bank Names</span>
-                      <span className="font-bold">UBL (United Bank Limited)</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-[10px] block font-normal">Account Title</span>
-                      <span className="font-bold">Talha Sarfraz Malik</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-[10px] block font-normal">IBAN (UBL)</span>
-                      <span className="font-mono text-[11px] font-bold select-all">PK66 UNIL 0109 0003 6725 1495</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-[10px] block font-normal">Raast / NayaPay / EasyPaisa</span>
-                      <span className="font-mono text-[11px] font-bold select-all">0334 4634278</span>
-                    </div>
-                  </div>
-
-                  {/* QR Code Images */}
-                  <div className="pt-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 block mb-1.5">
-                      Scan & Pay QR Codes (NayaPay & UBL Digital)
-                    </span>
-                    <div className="grid grid-cols-2 gap-3 max-w-sm">
-                      <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
-                        <img src="/payments/nayapay_qr.jpg" alt="NayaPay QR Code" className="w-full h-32 object-contain rounded-lg" />
-                        <span className="text-[10px] font-bold text-gray-700 block">NayaPay QR</span>
-                      </div>
-                      <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
-                        <img src="/payments/ubl_qr.jpg" alt="UBL Digital QR Code" className="w-full h-32 object-contain rounded-lg" />
-                        <span className="text-[10px] font-bold text-gray-700 block">UBL Bank QR</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <a
-                  href={`https://wa.me/923093622732?text=${encodeURIComponent(
-                    `Hi, I am sending the subscription payment receipt for ${form.clinic_name || 'my clinic'}. Please activate my subscription.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm"
-                >
-                  <MessageSquare size={14} />
-                  <span>Send Payment Receipt on WhatsApp</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Status Banner */}
-            {checkoutTestStatus && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-semibold flex items-center justify-between animate-in fade-in">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0" />
-                  <span>{checkoutTestStatus}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCheckoutTestStatus(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-      {activeTab === 'procedures' && (
-        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-6">
-          {/* Header & Reset Button */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+          {/* Sub-tab Pill Switcher for Doctors & Clinical Services */}
+          <div className="bg-white p-4 sm:p-5 rounded-3xl border border-gray-100 card-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Activity className="text-emerald-700" size={18} />
-                Clinical Procedures Catalog
+                <Stethoscope className="text-emerald-700" size={20} />
+                Doctors & Clinical Services Management
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Add, edit, or remove procedure names used during appointment booking, treatment planning, and invoicing.
+                Manage your attending doctors directory and clinical procedures catalog in a unified workspace.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleResetProcedures}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
-            >
-              <RefreshCw size={12} /> Reset to Standard Procedures
-            </button>
-          </div>
-
-          {/* Add Procedure Form & Search Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-            {/* Add New Procedure Form (8 cols) */}
-            <form onSubmit={handleAddProcedure} className="md:col-span-8 flex items-center gap-2">
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={newProcedureName}
-                  onChange={(e) => setNewProcedureName(e.target.value)}
-                  placeholder="Enter new procedure name (e.g. Dental Veneers, Wisdom Tooth Extraction...)"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 text-gray-900 font-medium"
-                />
-              </div>
+            <div className="inline-flex items-center bg-gray-100 p-1.5 rounded-2xl border border-gray-200 text-xs">
               <button
-                type="submit"
-                disabled={!newProcedureName.trim()}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-sm"
-                style={{ background: '#3c5e27' }}
+                type="button"
+                onClick={() => setDocServicesSubTab('doctors')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
+                  docServicesSubTab === 'doctors'
+                    ? 'bg-emerald-800 text-white shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
-                <Plus size={15} /> Add Procedure
-              </button>
-            </form>
-
-            {/* Search Filter (4 cols) */}
-            <div className="md:col-span-4 relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={procedureSearch}
-                onChange={(e) => setProcedureSearch(e.target.value)}
-                placeholder="Search procedures..."
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-gray-200 text-xs bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-600/20"
-              />
-            </div>
-          </div>
-
-          {/* Procedures List */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs text-gray-500 font-semibold px-2">
-              <span>{filteredProcedures.length} Procedures Available</span>
-              {procedureSearch && (
-                <button
-                  type="button"
-                  onClick={() => setProcedureSearch('')}
-                  className="text-emerald-700 hover:underline"
+                <Stethoscope size={15} />
+                <span>Attending Doctors</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+                    docServicesSubTab === 'doctors' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
+                  }`}
                 >
-                  Clear search
-                </button>
-              )}
+                  {doctors.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDocServicesSubTab('services')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
+                  docServicesSubTab === 'services'
+                    ? 'bg-emerald-800 text-white shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Activity size={15} />
+                <span>Clinical Services / Procedures</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
+                    docServicesSubTab === 'services' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  {currentProcedures.length}
+                </span>
+              </button>
             </div>
-
-            {filteredProcedures.length === 0 ? (
-              <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-100 text-gray-400 text-xs space-y-2">
-                <AlertCircle size={24} className="mx-auto text-gray-300" />
-                <p className="font-semibold text-gray-600">No procedures found</p>
-                <p>Click "Add Procedure" above or reset to standard dental procedures.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                {currentProcedures.map((procName, idx) => {
-                  if (
-                    procedureSearch &&
-                    !procName.toLowerCase().includes(procedureSearch.toLowerCase())
-                  ) {
-                    return null;
-                  }
-
-                  const isEditing = editingProcedureIndex === idx;
-
-                  return (
-                    <div
-                      key={`${procName}-${idx}`}
-                      className="p-3 bg-gray-50/80 hover:bg-white rounded-2xl border border-gray-200 flex items-center justify-between gap-2 transition-all hover:shadow-xs group"
-                    >
-                      {isEditing ? (
-                        <div className="flex items-center gap-2 w-full">
-                          <input
-                            type="text"
-                            value={editingProcedureValue}
-                            onChange={(e) => setEditingProcedureValue(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleSaveEditProcedure(idx);
-                              if (e.key === 'Escape') setEditingProcedureIndex(null);
-                            }}
-                            autoFocus
-                            className="flex-1 px-3 py-1.5 rounded-lg border border-emerald-500 text-xs text-gray-900 font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => handleSaveEditProcedure(idx)}
-                            className="p-1.5 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-colors shadow-xs"
-                            title="Save procedure name"
-                          >
-                            <Check size={14} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setEditingProcedureIndex(null)}
-                            className="p-1.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
-                            title="Cancel"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0">
-                              {idx + 1}
-                            </span>
-                            <span className="text-xs font-semibold text-gray-900 truncate">
-                              {procName}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <button
-                              type="button"
-                              onClick={() => handleStartEditProcedure(idx, procName)}
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
-                              title="Edit procedure name"
-                            >
-                              <Edit2 size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveProcedure(idx, procName)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                              title="Remove procedure"
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
-        </div>
-      )}
 
-      {/* ─────────────────────────────────────────────────────────────────── */}
-      {/* TAB 3: ATTENDING DOCTORS MANAGEMENT (DATABASE DRIVEN)              */}
-      {/* ─────────────────────────────────────────────────────────────────── */}
-      {activeTab === 'doctors' && (
+          {/* Sub-panel 1: Attending Doctors */}
+          {docServicesSubTab === 'doctors' && (
         <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-6">
           {/* Header & Reset Button */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
@@ -2897,6 +2508,538 @@ export default function ClinicSetup() {
               })}
             </div>
           )}
+        </div>
+          )}
+
+          {/* Sub-panel 2: Clinical Services / Procedures */}
+          {docServicesSubTab === 'services' && (
+        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-6">
+          {/* Header & Reset Button */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
+            <div>
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Activity className="text-emerald-700" size={18} />
+                Clinical Procedures Catalog
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Add, edit, or remove procedure names used during appointment booking, treatment planning, and invoicing.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleResetProcedures}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
+            >
+              <RefreshCw size={12} /> Reset to Standard Procedures
+            </button>
+          </div>
+
+          {/* Add Procedure Form & Search Bar */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            {/* Add New Procedure Form (8 cols) */}
+            <form onSubmit={handleAddProcedure} className="md:col-span-8 flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={newProcedureName}
+                  onChange={(e) => setNewProcedureName(e.target.value)}
+                  placeholder="Enter new procedure name (e.g. Dental Veneers, Wisdom Tooth Extraction...)"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 text-gray-900 font-medium"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!newProcedureName.trim()}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-sm"
+                style={{ background: '#3c5e27' }}
+              >
+                <Plus size={15} /> Add Procedure
+              </button>
+            </form>
+
+            {/* Search Filter (4 cols) */}
+            <div className="md:col-span-4 relative">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={procedureSearch}
+                onChange={(e) => setProcedureSearch(e.target.value)}
+                placeholder="Search procedures..."
+                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-gray-200 text-xs bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-600/20"
+              />
+            </div>
+          </div>
+
+          {/* Procedures List */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs text-gray-500 font-semibold px-2">
+              <span>{filteredProcedures.length} Procedures Available</span>
+              {procedureSearch && (
+                <button
+                  type="button"
+                  onClick={() => setProcedureSearch('')}
+                  className="text-emerald-700 hover:underline"
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
+
+            {filteredProcedures.length === 0 ? (
+              <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-100 text-gray-400 text-xs space-y-2">
+                <AlertCircle size={24} className="mx-auto text-gray-300" />
+                <p className="font-semibold text-gray-600">No procedures found</p>
+                <p>Click "Add Procedure" above or reset to standard dental procedures.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {currentProcedures.map((procName, idx) => {
+                  if (
+                    procedureSearch &&
+                    !procName.toLowerCase().includes(procedureSearch.toLowerCase())
+                  ) {
+                    return null;
+                  }
+
+                  const isEditing = editingProcedureIndex === idx;
+
+                  return (
+                    <div
+                      key={`${procName}-${idx}`}
+                      className="p-3 bg-gray-50/80 hover:bg-white rounded-2xl border border-gray-200 flex items-center justify-between gap-2 transition-all hover:shadow-xs group"
+                    >
+                      {isEditing ? (
+                        <div className="flex items-center gap-2 w-full">
+                          <input
+                            type="text"
+                            value={editingProcedureValue}
+                            onChange={(e) => setEditingProcedureValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEditProcedure(idx);
+                              if (e.key === 'Escape') setEditingProcedureIndex(null);
+                            }}
+                            autoFocus
+                            className="flex-1 px-3 py-1.5 rounded-lg border border-emerald-500 text-xs text-gray-900 font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveEditProcedure(idx)}
+                            className="p-1.5 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-colors shadow-xs"
+                            title="Save procedure name"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingProcedureIndex(null)}
+                            className="p-1.5 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
+                            title="Cancel"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+                              {idx + 1}
+                            </span>
+                            <span className="text-xs font-semibold text-gray-900 truncate">
+                              {procName}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleStartEditProcedure(idx, procName)}
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
+                              title="Edit procedure name"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveProcedure(idx, procName)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              title="Remove procedure"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+          )}
+        </div>
+      )}
+
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {/* TAB 4: SUBSCRIPTION PLANS & PAYMENT METHOD HUB (PLACED LAST)        */}
+      {/* ─────────────────────────────────────────────────────────────────── */}
+      {activeTab === 'subscriptions' && (
+        <div className="space-y-6">
+          {/* Main Container */}
+          <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-6">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                    💳
+                  </span>
+                  <h3 className="text-base font-bold text-gray-900">
+                    Subscription Plans & Payment Methods
+                  </h3>
+                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800">
+                    Active Plan: {PLAN_SPECS[activeClinic?.plan || selectedPlanTier].name}
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1 max-w-2xl">
+                  Choose the plan tier that fits your practice capacity and staff team size. Pricing is automatically tailored to your region with direct local bank transfer for Pakistan and card checkout for international clinics.
+                </p>
+              </div>
+
+              {/* Currency & Billing Controls */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Currency Switcher (USD vs PKR) */}
+                <div className="inline-flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPricingCurrency('USD')}
+                    className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                      pricingCurrency === 'USD'
+                        ? 'bg-white text-sky-700 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>🇺🇸</span>
+                    <span>USD ($)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPricingCurrency('PKR')}
+                    className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
+                      pricingCurrency === 'PKR'
+                        ? 'bg-white text-sky-700 shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>🇵🇰</span>
+                    <span>PKR (Rs.)</span>
+                  </button>
+                </div>
+
+                {/* Cadence Switcher (Monthly vs Annual) */}
+                <div className="inline-flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setPricingBillingCycle('monthly')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-all ${
+                      pricingBillingCycle === 'monthly'
+                        ? 'bg-gray-900 text-white shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPricingBillingCycle('annual')}
+                    className={`px-3 py-1 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+                      pricingBillingCycle === 'annual'
+                        ? 'bg-sky-600 text-white shadow-xs'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    <span>Annual</span>
+                    <span className="text-[10px] bg-emerald-400 text-emerald-950 font-bold px-1.5 py-0.2 rounded-md">Save 20%</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+
+            {/* Plan Upgrade Success Banner */}
+            {planSuccessNotice && (
+              <div className="p-3.5 bg-emerald-50 border border-emerald-300 text-emerald-900 rounded-2xl text-xs font-semibold flex items-center justify-between animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0" />
+                  <span>{planSuccessNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPlanSuccessNotice(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* Pricing Plans Grid (Starter, Pro, Enterprise) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {INTERNATIONAL_PLANS.map((plan) => {
+                const isCurrent = (activeClinic?.plan || 'pro') === plan.id;
+                const isSelected = selectedPlanTier === plan.id;
+                const priceData = plan.pricing[pricingCurrency];
+                const displayPrice =
+                  pricingBillingCycle === 'annual'
+                    ? priceData.formattedAnnualMonthly
+                    : priceData.formattedMonthly;
+                const symbol = pricingCurrency === 'PKR' ? 'Rs. ' : '$';
+
+                return (
+                  <div
+                    key={plan.id}
+                    onClick={() => setSelectedPlanTier(plan.id)}
+                    className={`rounded-2xl p-5 flex flex-col justify-between transition-all relative border-2 text-left cursor-pointer ${
+                      isSelected
+                        ? 'border-sky-600 bg-sky-50/40 shadow-md ring-2 ring-sky-500/10'
+                        : 'border-gray-200 bg-white hover:border-gray-300 shadow-xs'
+                    }`}
+                  >
+                    {/* Badge */}
+                    {plan.badge && (
+                      <div className="absolute -top-3 right-4">
+                        <span
+                          className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider text-white shadow-xs ${
+                            plan.id === 'pro'
+                              ? 'bg-sky-600'
+                              : plan.id === 'starter'
+                              ? 'bg-emerald-600'
+                              : 'bg-indigo-600'
+                          }`}
+                        >
+                          {plan.badge}
+                        </span>
+                      </div>
+                    )}
+
+                    <div>
+                      {/* Title & Tagline */}
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between gap-1">
+                          <h4 className="font-bold text-sm text-gray-900">{plan.name}</h4>
+                          {isCurrent && (
+                            <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              Active Tier
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug min-h-[28px]">{plan.tagline}</p>
+                      </div>
+
+                      {/* Price Figure */}
+                      <div className="mb-4 pb-4 border-b border-gray-100">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight font-display">
+                            {displayPrice}
+                          </span>
+                          <span className="text-xs font-semibold text-gray-500">/ mo</span>
+                        </div>
+                        {pricingBillingCycle === 'annual' && (
+                          <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">
+                            Billed annually ({symbol}{priceData.annualTotal.toLocaleString()}/yr)
+                          </p>
+                        )}
+                        <p className="text-[10px] text-sky-800 font-semibold mt-1 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">
+                          ⚡ {priceData.competitorComparison}
+                        </p>
+                      </div>
+
+                      {/* Quotas */}
+                      <div className="grid grid-cols-2 gap-2 text-center text-xs mb-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
+                        <div>
+                          <span className="text-gray-400 block text-[9px] uppercase font-semibold">Max Seats</span>
+                          <strong className="text-gray-800 text-xs">{plan.maxSeats} Doctor / Staff</strong>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block text-[9px] uppercase font-semibold">Concurrent</span>
+                          <strong className="text-gray-800 text-xs">{plan.maxSessions} Active Logins</strong>
+                        </div>
+                      </div>
+
+                      {/* Features */}
+                      <div className="space-y-2 mb-5 text-[11px] text-gray-600">
+                        {plan.features.slice(0, 5).map((f, i) => (
+                          <div key={i} className="flex items-start gap-1.5">
+                            <CheckCircle2 size={13} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+                            <span>{f}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="pt-2">
+                      {isCurrent ? (
+                        <div className="w-full py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 cursor-default">
+                          <Check size={14} className="text-emerald-700" />
+                          <span>Current Active Plan</span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectPlanTier(plan.id);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                        >
+                          <Sparkles size={13} />
+                          <span>Switch to {plan.name}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Payment Settlement Methods */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Option 1: Credit / Debit Card Checkout (Coming Soon) */}
+              <div className="p-5 rounded-2xl border-2 border-amber-200/80 bg-gradient-to-br from-amber-50/40 via-white to-sky-50/30 space-y-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                      <CreditCard size={18} className="text-sky-600" />
+                      Credit & Debit Card Checkout
+                    </span>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-white shadow-xs flex items-center gap-1">
+                      <Clock size={11} />
+                      Coming Soon
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Automated online card payments for <strong>Visa, Mastercard, Apple Pay, & Google Pay</strong> are currently under integration for global subscription processing.
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-gray-700 pt-1">
+                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-xs flex items-center gap-1 text-gray-800">
+                      💳 Credit & Debit Cards
+                    </span>
+                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-xs flex items-center gap-1 text-gray-800">
+                      🍏 Apple Pay & GPay
+                    </span>
+                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-xs flex items-center gap-1 text-gray-800">
+                      🌐 Global Currencies
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2 mt-2">
+                    <Sparkles size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-[11px] leading-snug">
+                      <span className="font-bold text-amber-950 block">Card Checkout Method Coming Soon</span>
+                      We are currently completing verification for international card gateways. In the meantime, please use <strong>Direct Bank Transfer</strong> or WhatsApp support for instant activation.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    disabled
+                    className="w-full py-2.5 px-4 rounded-xl text-gray-400 bg-gray-100 border border-gray-200 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed shadow-none"
+                  >
+                    <Clock size={14} className="text-gray-400" />
+                    <span>Card Checkout — Coming Soon</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Option 2: Direct Bank Transfer (Pakistan) */}
+              <div className="p-5 rounded-2xl border-2 border-emerald-300 bg-emerald-50/60 space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sm text-emerald-950 flex items-center gap-2">
+                      <Landmark size={18} className="text-emerald-700" />
+                      Direct Bank / NayaPay / Raast (Pakistan Local Clinics)
+                    </span>
+
+                  </div>
+
+                  <p className="text-xs text-emerald-900/90 leading-relaxed">
+                    Direct local bank transfer for Pakistani clinics via <strong>NayaPay, UBL, Raast Instant Payment, or EasyPaisa</strong> with zero platform fees.
+                  </p>
+
+                  {/* Bank Account Details */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium text-emerald-950 bg-white/90 p-3 rounded-xl border border-emerald-200">
+                    <div>
+                      <span className="text-gray-500 text-[10px] block font-normal">Bank Names</span>
+                      <span className="font-bold">UBL (United Bank Limited)</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10px] block font-normal">Account Title</span>
+                      <span className="font-bold">Talha Sarfraz Malik</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10px] block font-normal">IBAN (UBL)</span>
+                      <span className="font-mono text-[11px] font-bold select-all">PK66 UNIL 0109 0003 6725 1495</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10px] block font-normal">Raast / NayaPay / EasyPaisa</span>
+                      <span className="font-mono text-[11px] font-bold select-all">0334 4634278</span>
+                    </div>
+                  </div>
+
+                  {/* QR Code Images */}
+                  <div className="pt-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 block mb-1.5">
+                      Scan & Pay QR Codes (NayaPay & UBL Digital)
+                    </span>
+                    <div className="grid grid-cols-2 gap-3 max-w-sm">
+                      <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
+                        <img src="/payments/nayapay_qr.jpg" alt="NayaPay QR Code" className="w-full h-32 object-contain rounded-lg" />
+                        <span className="text-[10px] font-bold text-gray-700 block">NayaPay QR</span>
+                      </div>
+                      <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
+                        <img src="/payments/ubl_qr.jpg" alt="UBL Digital QR Code" className="w-full h-32 object-contain rounded-lg" />
+                        <span className="text-[10px] font-bold text-gray-700 block">UBL Bank QR</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <a
+                  href={`https://wa.me/923093622732?text=${encodeURIComponent(
+                    `Hi, I am sending the subscription payment receipt for ${form.clinic_name || 'my clinic'}. Please activate my subscription.`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm"
+                >
+                  <MessageSquare size={14} />
+                  <span>Send Payment Receipt on WhatsApp</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Status Banner */}
+            {checkoutTestStatus && (
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-semibold flex items-center justify-between animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0" />
+                  <span>{checkoutTestStatus}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCheckoutTestStatus(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
