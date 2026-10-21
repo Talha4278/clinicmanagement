@@ -203,42 +203,25 @@ export function setActiveClinic(clinicId: string): ClinicTenant {
   const found = all.find(c => c.id === clinicId) || all[0];
   if (found) {
     localStorage.setItem(ACTIVE_CLINIC_STORAGE_KEY, found.id);
-    const existing = getClinicSettings();
+    const existing = getClinicSettings(found.id);
 
-    // Preserve user saved customizations over default/seed data
-    const effectiveName = existing.clinic_name || found.name;
-    const effectiveTagline = existing.tagline !== undefined ? existing.tagline : (found.tagline || '');
-    const effectiveLogo = existing.logo_url !== undefined ? existing.logo_url : (found.logo_url || '');
-    const effectiveAddress = existing.address !== undefined ? existing.address : (found.address || '');
-    const effectiveEmail = existing.email !== undefined ? existing.email : (found.owner_email || '');
-    const effectivePhone = existing.phone !== undefined ? existing.phone : (found.phone || '');
-    const effectiveWebsite = existing.website || (found.slug ? `www.${found.slug}.com` : '');
-
-    // Synchronize tenant record with saved settings
-    found.name = effectiveName;
-    found.tagline = effectiveTagline;
-    found.logo_url = effectiveLogo;
-    found.address = effectiveAddress;
-    found.owner_email = effectiveEmail;
-    found.phone = effectivePhone;
-    saveAllClinics(all);
-
+    // Synchronize clinic settings with this tenant's real identity from database
     const settings: ClinicSettings = {
       ...existing,
-      clinic_name: effectiveName,
-      tagline: effectiveTagline,
-      logo_url: effectiveLogo,
-      address: effectiveAddress,
-      email: effectiveEmail,
-      phone: effectivePhone,
-      website: effectiveWebsite,
+      clinic_name: found.name,
+      tagline: found.tagline !== undefined && found.tagline !== null ? found.tagline : '',
+      logo_url: found.logo_url || '',
+      address: found.address || '',
+      email: found.owner_email || '',
+      phone: found.phone || '',
+      website: existing.website || (found.slug ? `www.${found.slug}.com` : ''),
       tooth_notation: existing.tooth_notation || 'fdi',
       timezone: existing.timezone || 'Asia/Karachi',
       currency_symbol: existing.currency_symbol || 'Rs. ',
       tax_rate: typeof existing.tax_rate === 'number' ? existing.tax_rate : 5,
       tax_label: existing.tax_label || 'GST / Tax (5%)',
     };
-    saveClinicSettings(settings);
+    saveClinicSettings(settings, found.id);
     window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: found }));
   }
   return found;
@@ -394,7 +377,7 @@ export async function registerNewClinic(data: ClinicSignUpData): Promise<{
       owner_email: data.email.trim().toLowerCase(),
       phone: data.phone.trim(),
       address: data.address.trim(),
-      tagline: data.tagline?.trim() || 'Dental & Aesthetics Healthcare',
+      tagline: data.tagline?.trim() || '',
       logo_url: '',
       status: 'trial',
       trial_ends_at: trialEnds,
@@ -648,6 +631,7 @@ export function deactivateClinicMembership(clinicId: string): boolean {
  * Sync clinic status and details from Supabase database table into local state
  */
 export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTenant | null> {
+  if (!clinicId) return null;
   try {
     let { data, error } = await supabase
       .from('clinics')
@@ -655,14 +639,15 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
       .eq('id', clinicId)
       .maybeSingle();
 
-    // Fallback: If not found by exact ID, attempt to lookup single clinic or by slug
+    // Fallback: If not found by exact ID, attempt lookup by slug
     if (!data && !error) {
-      const { data: fallbackList } = await supabase
+      const { data: bySlug } = await supabase
         .from('clinics')
         .select('*')
-        .limit(2);
-      if (fallbackList && fallbackList.length === 1) {
-        data = fallbackList[0];
+        .eq('slug', clinicId)
+        .maybeSingle();
+      if (bySlug) {
+        data = bySlug;
       }
     }
 
@@ -671,49 +656,31 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
       const idx = all.findIndex(c => c.id === data.id || c.id === clinicId);
       const existing = idx !== -1 ? all[idx] : null;
 
-      // Preserve local user-saved identity customizations
-      const localSettings = getClinicSettings();
-
-      const effectiveName = (localSettings.clinic_name && localSettings.clinic_name.trim())
-        ? localSettings.clinic_name
-        : (existing?.name || data.name || 'Dentivista');
-
-      const effectivePhone = (localSettings.phone !== undefined && localSettings.phone !== '')
-        ? localSettings.phone
-        : (existing?.phone || data.phone || '');
-
-      const effectiveAddress = (localSettings.address !== undefined && localSettings.address !== '')
-        ? localSettings.address
-        : (existing?.address || data.address || '');
-
-      const effectiveEmail = (localSettings.email !== undefined && localSettings.email !== '')
-        ? localSettings.email
-        : (existing?.owner_email || data.owner_email || '');
-
-      const effectiveTagline = (localSettings.tagline !== undefined && localSettings.tagline !== '')
-        ? localSettings.tagline
-        : (existing?.tagline || data.tagline || '');
-
-      const effectiveLogo = localSettings.logo_url !== undefined
-        ? localSettings.logo_url
-        : (existing?.logo_url !== undefined ? existing.logo_url : (data.logo_url || ''));
+      // Authoritative database values from the 'clinics' table against user's clinic ID!
+      // Do NOT overwrite with hardcoded defaults or wrong legacy cache.
+      const effectiveName = (data.name && data.name.trim()) ? data.name.trim() : (existing?.name || '');
+      const effectiveTagline = data.tagline !== undefined && data.tagline !== null ? data.tagline.trim() : (existing?.tagline || '');
+      const effectivePhone = data.phone !== undefined && data.phone !== null ? data.phone.trim() : (existing?.phone || '');
+      const effectiveAddress = data.address !== undefined && data.address !== null ? data.address.trim() : (existing?.address || '');
+      const effectiveEmail = (data.owner_email && data.owner_email.trim()) ? data.owner_email.trim() : (existing?.owner_email || '');
+      const effectiveLogo = data.logo_url !== undefined && data.logo_url !== null ? data.logo_url : (existing?.logo_url || '');
 
       const updated: ClinicTenant = {
         id: data.id,
         name: effectiveName,
-        slug: data.slug,
-        plan: data.plan,
-        max_seats: data.max_seats,
-        max_concurrent_sessions: data.max_concurrent_sessions,
-        owner_name: data.owner_name,
+        slug: data.slug || existing?.slug || 'clinic',
+        plan: data.plan || existing?.plan || 'pro',
+        max_seats: data.max_seats || existing?.max_seats || 5,
+        max_concurrent_sessions: data.max_concurrent_sessions || existing?.max_concurrent_sessions || 5,
+        owner_name: data.owner_name || existing?.owner_name || '',
         owner_email: effectiveEmail,
         phone: effectivePhone,
         address: effectiveAddress,
         tagline: effectiveTagline,
         logo_url: effectiveLogo,
-        status: data.status,
-        trial_ends_at: data.trial_ends_at,
-        created_at: data.created_at,
+        status: data.status || existing?.status || 'active',
+        trial_ends_at: data.trial_ends_at || existing?.trial_ends_at || new Date(Date.now() + 14 * 86400000).toISOString(),
+        created_at: data.created_at || existing?.created_at || new Date().toISOString(),
       };
 
       if (idx !== -1) {
@@ -724,10 +691,20 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
       saveAllClinics(all);
 
       // Keep active clinic storage key pointing to this clinic
-      const currentActiveId = localStorage.getItem(ACTIVE_CLINIC_STORAGE_KEY);
-      if (!currentActiveId || currentActiveId === clinicId || currentActiveId === data.id) {
-        localStorage.setItem(ACTIVE_CLINIC_STORAGE_KEY, data.id);
-      }
+      localStorage.setItem(ACTIVE_CLINIC_STORAGE_KEY, data.id);
+
+      // Synchronize clinicSettings storage for this clinic ID so useClinicSettings() and getClinicSettings() reflect database data
+      const existingSettings = getClinicSettings(data.id);
+      saveClinicSettings({
+        ...existingSettings,
+        clinic_name: updated.name,
+        tagline: updated.tagline || '',
+        logo_url: updated.logo_url || '',
+        address: updated.address || '',
+        phone: updated.phone || '',
+        email: updated.owner_email || '',
+        website: existingSettings.website || (updated.slug ? `www.${updated.slug}.com` : ''),
+      }, data.id);
 
       window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: updated }));
       return updated;

@@ -306,10 +306,10 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       >
         <div>
           <span className="text-white/70 text-xs uppercase font-semibold tracking-wider">
-            {clinic.clinic_name} Operations
+            {activeClinic?.name || clinic.clinic_name || 'Clinic'} Operations
           </span>
           <h2 className="font-display text-2xl sm:text-3xl text-white mt-1 font-bold">
-            {clinic.tagline || 'Dental & Aesthetics Hub'}
+            {activeClinic?.tagline || clinic.tagline || 'Dental & Aesthetics Hub'}
           </h2>
           <p className="text-white/80 text-xs sm:text-sm mt-1 max-w-xl">
             Streamline patient appointments, dental chart examinations, treatment plans, prescriptions, and stock inventory.

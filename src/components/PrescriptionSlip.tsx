@@ -1,5 +1,6 @@
 import { Printer, X, Stethoscope, Calendar, Phone } from 'lucide-react';
 import { Prescription } from '../lib/types';
+import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
 import { ClinicBadgeIcon } from './ClinicBadgeIcon';
 
@@ -9,6 +10,7 @@ interface PrescriptionSlipProps {
 }
 
 export default function PrescriptionSlip({ prescription, onClose }: PrescriptionSlipProps) {
+  const { activeClinic } = useAuth();
   const { settings: clinic } = useClinicSettings();
   const patient = prescription.patient;
   const doctor = prescription.doctor;
@@ -61,23 +63,23 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0"
                 style={{ background: '#3c5e27' }}
               >
-                {clinic.logo_url ? (
-                  <img src={clinic.logo_url} alt={clinic.clinic_name} className="w-full h-full object-contain p-1" />
+                {activeClinic?.logo_url || clinic.logo_url ? (
+                  <img src={activeClinic?.logo_url || clinic.logo_url || ''} alt={activeClinic?.name || clinic.clinic_name} className="w-full h-full object-contain p-1" />
                 ) : (
                   <ClinicBadgeIcon iconId={clinic.badge_icon} className="w-6 h-6 text-white" size={24} />
                 )}
               </div>
               <div>
                 <h2 className="font-display text-2xl font-bold text-gray-900 tracking-tight">
-                  {clinic.clinic_name || 'Dentivista'}
+                  {activeClinic?.name || clinic.clinic_name || 'Clinic'}
                 </h2>
-                {clinic.tagline && (
+                {(activeClinic?.tagline || clinic.tagline) && (
                   <p className="text-xs uppercase font-semibold text-emerald-800 tracking-wider">
-                    {clinic.tagline}
+                    {activeClinic?.tagline || clinic.tagline}
                   </p>
                 )}
                 <p className="text-[11px] text-gray-500 mt-0.5">
-                  {clinic.address} {clinic.phone ? `· Contact: ${clinic.phone}` : ''} {clinic.email ? `· ${clinic.email}` : ''}
+                  {(activeClinic?.address || clinic.address)} {(activeClinic?.phone || clinic.phone) ? `· Contact: ${activeClinic?.phone || clinic.phone}` : ''} {(activeClinic?.owner_email || clinic.email) ? `· ${activeClinic?.owner_email || clinic.email}` : ''}
                 </p>
               </div>
             </div>

@@ -69,22 +69,22 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
           title="Click to manage Clinic Setup"
         >
           <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-            {clinic.logo_url ? (
-              <img src={clinic.logo_url} alt={clinic.clinic_name} className="w-full h-full object-contain p-0.5" />
+            {activeClinic?.logo_url || clinic.logo_url ? (
+              <img src={activeClinic?.logo_url || clinic.logo_url || ''} alt={activeClinic?.name || clinic.clinic_name} className="w-full h-full object-contain p-0.5" />
             ) : (
               <ClinicBadgeIcon iconId={clinic.badge_icon} className="w-5 h-5 text-white" size={20} />
             )}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <p className="text-white font-semibold text-sm leading-none truncate">{clinic.clinic_name || activeClinic?.name || 'Clinsyst'}</p>
+              <p className="text-white font-semibold text-sm leading-none truncate">{activeClinic?.name || clinic.clinic_name || 'Clinsyst'}</p>
               {activeClinic?.plan && (
                 <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-md bg-white/20 text-white uppercase tracking-wider">
                   {activeClinic.plan}
                 </span>
               )}
             </div>
-            <p className="text-white/60 text-xs mt-1 truncate">{clinic.tagline || activeClinic?.tagline || 'Clinic Workspace'}</p>
+            <p className="text-white/60 text-xs mt-1 truncate">{activeClinic?.tagline || clinic.tagline || 'Clinic Workspace'}</p>
           </div>
         </div>
 

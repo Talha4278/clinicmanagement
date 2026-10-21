@@ -16,8 +16,8 @@ export const DEFAULT_PROCEDURES: string[] = [
 ];
 
 export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
-  clinic_name: 'Dentivista Dental & Aesthetics',
-  tagline: 'Dental & Aesthetics Healthcare',
+  clinic_name: '',
+  tagline: '',
   logo_url: '',
   badge_icon: 'stethoscope',
   address: '',
@@ -64,9 +64,9 @@ export const DEFAULT_CLINIC_SETTINGS: ClinicSettings = {
 const LEGACY_STORAGE_KEY = 'dentivista_clinic_settings';
 const EVENT_NAME = 'clinic-settings-updated';
 
-function getSettingsStorageKey(): string {
+function getSettingsStorageKey(clinicId?: string | null): string {
   try {
-    const rawActiveId = localStorage.getItem('clinsyst_active_clinic_id');
+    const rawActiveId = clinicId || localStorage.getItem('clinsyst_active_clinic_id');
     if (rawActiveId) {
       return `dentivista_clinic_${rawActiveId}_settings`;
     }
@@ -74,38 +74,38 @@ function getSettingsStorageKey(): string {
   return LEGACY_STORAGE_KEY;
 }
 
-export function getClinicSettings(): ClinicSettings {
+export function getClinicSettings(explicitClinicId?: string | null): ClinicSettings {
   try {
-    let defaultBase: ClinicSettings = { ...DEFAULT_CLINIC_SETTINGS };
+    const activeId = explicitClinicId || localStorage.getItem('clinsyst_active_clinic_id');
+    let currentTenant: any = null;
     try {
       const activeTenantRaw = localStorage.getItem('clinsyst_tenants');
-      const activeId = localStorage.getItem('clinsyst_active_clinic_id');
       if (activeTenantRaw) {
         const tenants = JSON.parse(activeTenantRaw);
-        const currentTenant = Array.isArray(tenants)
-          ? tenants.find((t: any) => t.id === activeId) || tenants[0]
-          : null;
-
-        if (currentTenant) {
-          defaultBase = {
-            ...defaultBase,
-            clinic_name: currentTenant.name || defaultBase.clinic_name,
-            tagline: currentTenant.tagline !== undefined ? currentTenant.tagline : defaultBase.tagline,
-            logo_url: currentTenant.logo_url || '',
-            address: currentTenant.address || defaultBase.address,
-            email: currentTenant.owner_email || defaultBase.email,
-            phone: currentTenant.phone || defaultBase.phone,
-            website: currentTenant.slug ? `www.${currentTenant.slug}.com` : defaultBase.website,
-          };
+        if (Array.isArray(tenants)) {
+          currentTenant = activeId
+            ? tenants.find((t: any) => t.id === activeId)
+            : tenants[0];
         }
       }
     } catch {}
 
-    const key = getSettingsStorageKey();
+    const defaultBase: ClinicSettings = {
+      ...DEFAULT_CLINIC_SETTINGS,
+      clinic_name: currentTenant?.name || '',
+      tagline: currentTenant?.tagline !== undefined && currentTenant?.tagline !== null ? currentTenant.tagline : '',
+      logo_url: currentTenant?.logo_url || '',
+      address: currentTenant?.address || '',
+      email: currentTenant?.owner_email || '',
+      phone: currentTenant?.phone || '',
+      website: currentTenant?.slug ? `www.${currentTenant.slug}.com` : '',
+    };
+
+    const key = getSettingsStorageKey(activeId);
     let raw = localStorage.getItem(key);
 
-    // Fall back to legacy key if clinic-scoped key is empty
-    if (!raw && key !== LEGACY_STORAGE_KEY) {
+    // Fall back to legacy key ONLY if explicitly looking for default demo clinic or when activeId is 'clinic-dentivista-01'
+    if (!raw && (!activeId || activeId === 'clinic-dentivista-01')) {
       const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
       if (legacyRaw) {
         raw = legacyRaw;
@@ -139,20 +139,21 @@ export function getClinicSettings(): ClinicSettings {
       return {
         ...defaultBase,
         ...parsed,
-        clinic_name: (parsed.clinic_name && parsed.clinic_name.trim()) ? parsed.clinic_name : defaultBase.clinic_name,
-        badge_icon: parsed.badge_icon || defaultBase.badge_icon || 'stethoscope',
-        logo_url: parsed.logo_url !== undefined ? parsed.logo_url : defaultBase.logo_url,
-        address: parsed.address !== undefined ? parsed.address : defaultBase.address,
-        phone: parsed.phone !== undefined ? parsed.phone : defaultBase.phone,
-        email: parsed.email !== undefined ? parsed.email : defaultBase.email,
+        // Priority for clinic identity: current tenant in store (synced from database) takes precedence over stale/cached settings
+        clinic_name: (currentTenant?.name) ? currentTenant.name : ((parsed.clinic_name && parsed.clinic_name.trim()) ? parsed.clinic_name : defaultBase.clinic_name),
+        tagline: (currentTenant?.tagline !== undefined && currentTenant?.tagline !== null) ? currentTenant.tagline : (parsed.tagline !== undefined ? parsed.tagline : defaultBase.tagline),
+        logo_url: (currentTenant?.logo_url !== undefined && currentTenant?.logo_url !== null) ? currentTenant.logo_url : (parsed.logo_url !== undefined ? parsed.logo_url : defaultBase.logo_url),
+        address: (currentTenant?.address !== undefined && currentTenant?.address !== null) ? currentTenant.address : (parsed.address !== undefined ? parsed.address : defaultBase.address),
+        phone: (currentTenant?.phone !== undefined && currentTenant?.phone !== null) ? currentTenant.phone : (parsed.phone !== undefined ? parsed.phone : defaultBase.phone),
+        email: (currentTenant?.owner_email !== undefined && currentTenant?.owner_email !== null) ? currentTenant.owner_email : (parsed.email !== undefined ? parsed.email : defaultBase.email),
         website: parsed.website !== undefined ? parsed.website : defaultBase.website,
+        badge_icon: parsed.badge_icon || defaultBase.badge_icon || 'stethoscope',
         tax_number: parsed.tax_number !== undefined ? parsed.tax_number : defaultBase.tax_number,
         tax_rate: typeof parsed.tax_rate === 'number' ? parsed.tax_rate : defaultBase.tax_rate,
         tax_label: parsed.tax_label || defaultBase.tax_label || 'GST / Tax (5%)',
         timezone: parsed.timezone || defaultBase.timezone || 'Asia/Karachi',
         tooth_notation: effectiveNotation,
         currency_symbol: parsed.currency_symbol || defaultBase.currency_symbol || 'Rs. ',
-        tagline: parsed.tagline !== undefined ? parsed.tagline : defaultBase.tagline,
         procedures: Array.isArray(parsed.procedures) && parsed.procedures.length > 0
           ? parsed.procedures
           : DEFAULT_PROCEDURES,
@@ -166,24 +167,29 @@ export function getClinicSettings(): ClinicSettings {
   return DEFAULT_CLINIC_SETTINGS;
 }
 
-export function saveClinicSettings(settings: Partial<ClinicSettings>): void {
+export function saveClinicSettings(settings: Partial<ClinicSettings>, explicitClinicId?: string | null): void {
   try {
-    const key = getSettingsStorageKey();
-    const existing = getClinicSettings();
+    const activeId = explicitClinicId || localStorage.getItem('clinsyst_active_clinic_id');
+    const key = getSettingsStorageKey(activeId);
+    const existing = getClinicSettings(activeId);
     const merged: ClinicSettings = {
       ...existing,
       ...settings,
     };
     try {
       localStorage.setItem(key, JSON.stringify(merged));
-      localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(merged));
+      if (!activeId || activeId === 'clinic-dentivista-01') {
+        localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(merged));
+      }
     } catch (storageErr) {
       console.warn('Storage set error, attempting compact storage merge:', storageErr);
       if (merged.logo_url && merged.logo_url.length > 250000) {
         const compact = { ...merged, logo_url: '' };
         try {
           localStorage.setItem(key, JSON.stringify(compact));
-          localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(compact));
+          if (!activeId || activeId === 'clinic-dentivista-01') {
+            localStorage.setItem(LEGACY_STORAGE_KEY, JSON.stringify(compact));
+          }
         } catch {}
       }
     }
@@ -191,11 +197,10 @@ export function saveClinicSettings(settings: Partial<ClinicSettings>): void {
     // Keep tenant records in clinsyst_tenants in sync
     try {
       const tenantsRaw = localStorage.getItem('clinsyst_tenants');
-      const activeId = localStorage.getItem('clinsyst_active_clinic_id');
       if (tenantsRaw) {
         const tenants = JSON.parse(tenantsRaw);
         if (Array.isArray(tenants)) {
-          const idx = tenants.findIndex((t: any) => t.id === activeId);
+          const idx = activeId ? tenants.findIndex((t: any) => t.id === activeId) : 0;
           const tIdx = idx !== -1 ? idx : 0;
           if (tenants[tIdx]) {
             if (merged.clinic_name) tenants[tIdx].name = merged.clinic_name;

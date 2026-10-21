@@ -72,6 +72,12 @@ export default function ClinicSetup() {
   const { settings, updateSettings } = useClinicSettings();
   const [form, setForm] = useState<ClinicSettings>({
     ...settings,
+    clinic_name: activeClinic?.name || settings.clinic_name || '',
+    tagline: activeClinic?.tagline !== undefined && activeClinic?.tagline !== null ? activeClinic.tagline : (settings.tagline || ''),
+    phone: activeClinic?.phone || settings.phone || '',
+    email: activeClinic?.owner_email || settings.email || '',
+    address: activeClinic?.address || settings.address || '',
+    logo_url: activeClinic?.logo_url !== undefined && activeClinic?.logo_url !== null ? activeClinic.logo_url : (settings.logo_url || ''),
     badge_icon: settings.badge_icon || 'stethoscope',
   });
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -183,7 +189,15 @@ export default function ClinicSetup() {
   // Sync settings state if updated externally, but never overwrite user's active edits
   useEffect(() => {
     if (!initialLoadedRef.current) {
-      setForm(settings);
+      setForm((prev) => ({
+        ...settings,
+        clinic_name: activeClinic?.name || settings.clinic_name || prev.clinic_name,
+        tagline: activeClinic?.tagline !== undefined && activeClinic?.tagline !== null ? activeClinic.tagline : (settings.tagline || prev.tagline),
+        phone: activeClinic?.phone || settings.phone || prev.phone,
+        email: activeClinic?.owner_email || settings.email || prev.email,
+        address: activeClinic?.address || settings.address || prev.address,
+        logo_url: activeClinic?.logo_url !== undefined && activeClinic?.logo_url !== null ? activeClinic.logo_url : (settings.logo_url || prev.logo_url),
+      }));
       if (settings.badge_icon) {
         setSelectedPresetIcon(settings.badge_icon);
       }
@@ -193,13 +207,53 @@ export default function ClinicSetup() {
     }
 
     if (!isDirtyRef.current && !savingTab) {
-      setForm(settings);
+      setForm((prev) => ({
+        ...settings,
+        clinic_name: activeClinic?.name || settings.clinic_name || prev.clinic_name,
+        tagline: activeClinic?.tagline !== undefined && activeClinic?.tagline !== null ? activeClinic.tagline : (settings.tagline || prev.tagline),
+        phone: activeClinic?.phone || settings.phone || prev.phone,
+        email: activeClinic?.owner_email || settings.email || prev.email,
+        address: activeClinic?.address || settings.address || prev.address,
+        logo_url: activeClinic?.logo_url !== undefined && activeClinic?.logo_url !== null ? activeClinic.logo_url : (settings.logo_url || prev.logo_url),
+      }));
       if (settings.badge_icon) {
         setSelectedPresetIcon(settings.badge_icon);
       }
       setBrandingMode(settings.logo_url ? 'logo' : 'badge');
     }
-  }, [settings, savingTab]);
+  }, [settings, savingTab, activeClinic?.name, activeClinic?.tagline, activeClinic?.phone, activeClinic?.owner_email, activeClinic?.address, activeClinic?.logo_url]);
+
+  // Load fresh canonical clinic identity directly from Supabase clinics table
+  useEffect(() => {
+    if (!activeClinic?.id) return;
+    let isSubscribed = true;
+    supabase
+      .from('clinics')
+      .select('*')
+      .eq('id', activeClinic.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!isSubscribed) return;
+        if (data && !error && !isDirtyRef.current) {
+          setForm((prev) => ({
+            ...prev,
+            clinic_name: data.name || prev.clinic_name,
+            tagline: data.tagline !== undefined && data.tagline !== null ? data.tagline : prev.tagline,
+            phone: data.phone || prev.phone,
+            email: data.owner_email || prev.email,
+            address: data.address || prev.address,
+            logo_url: data.logo_url !== undefined && data.logo_url !== null ? data.logo_url : prev.logo_url,
+          }));
+          if (data.logo_url) {
+            setBrandingMode('logo');
+          }
+        }
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [activeClinic?.id]);
 
   // Load real doctors from database
   useEffect(() => {
@@ -415,12 +469,35 @@ export default function ClinicSetup() {
     }, 2500);
   }
 
-  function handleResetAll() {
-    if (confirm('Reset clinic profile to default branding?')) {
+  async function handleResetAll() {
+    if (confirm('Reset clinic profile to current database identity?')) {
+      if (activeClinic?.id) {
+        const { data } = await supabase
+          .from('clinics')
+          .select('*')
+          .eq('id', activeClinic.id)
+          .maybeSingle();
+        if (data) {
+          const resetForm: ClinicSettings = {
+            ...form,
+            clinic_name: data.name || '',
+            tagline: data.tagline || '',
+            phone: data.phone || '',
+            email: data.owner_email || '',
+            address: data.address || '',
+            logo_url: data.logo_url || '',
+          };
+          isDirtyRef.current = false;
+          setForm(resetForm);
+          updateSettings(resetForm);
+          notifySuccess('Clinic profile reloaded from database.');
+          return;
+        }
+      }
       const resetDefaults = getClinicSettings();
       setForm({ ...resetDefaults });
       updateSettings({ ...resetDefaults });
-      notifySuccess('Clinic profile restored to default values.');
+      notifySuccess('Clinic profile restored.');
     }
   }
 
@@ -2129,7 +2206,7 @@ export default function ClinicSetup() {
               <div className="max-w-md mx-auto p-4 rounded-2xl bg-[#e5ddd5] shadow-inner">
                 <div className="bg-white rounded-2xl p-3.5 shadow-sm text-xs text-gray-800 space-y-2 relative border border-gray-200">
                   <p className="font-bold text-emerald-900">
-                    {form.clinic_name || 'Dentivista Dental Clinic'} 🦷
+                    {form.clinic_name || activeClinic?.name || 'Clinic'} 🦷
                   </p>
                   <p>
                     Hello <b>Sarah</b>! Your dental appointment is confirmed with{' '}

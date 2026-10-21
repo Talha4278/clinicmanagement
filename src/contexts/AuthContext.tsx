@@ -101,31 +101,106 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [terminatedNotice, setTerminatedNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function fetchStaff(userId: string) {
+  async function fetchStaff(currentUser: { id: string; email?: string | null; app_metadata?: any; user_metadata?: any }): Promise<ClinicTenant | null> {
     try {
-      const { data } = await supabase
+      let staffData: Staff | null = null;
+      let clinicId: string | null = null;
+
+      // 1. Check staff by user_id
+      const { data: byUserId, error: errUserId } = await supabase
         .from('staff')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', currentUser.id)
         .maybeSingle();
-      if (data) {
-        setStaff(data);
-        if (data.clinic_id) {
-          const synced = await syncClinicFromDatabase(data.clinic_id);
-          if (synced) {
-            setActiveClinicState(synced);
-          } else {
-            const current = getActiveClinic();
-            if (current.id !== data.clinic_id) {
-              const clinic = setActiveClinic(data.clinic_id);
-              setActiveClinicState(clinic);
-            }
+
+      if (byUserId && !errUserId) {
+        staffData = byUserId;
+        clinicId = byUserId.clinic_id;
+      }
+
+      // 2. Fallback: Check staff by email (and link user_id if missing)
+      if (!staffData && currentUser.email) {
+        const { data: byEmail, error: errEmail } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('email', currentUser.email.toLowerCase())
+          .maybeSingle();
+
+        if (byEmail && !errEmail) {
+          const matchedStaff = byEmail as Staff;
+          staffData = matchedStaff;
+          clinicId = matchedStaff.clinic_id || null;
+          if (!matchedStaff.user_id) {
+            await supabase.from('staff').update({ user_id: currentUser.id }).eq('id', matchedStaff.id);
+            matchedStaff.user_id = currentUser.id;
           }
         }
       }
-    } catch {
-      // ignore
+
+      // 3. Fallback: app_metadata / user_metadata clinic_id
+      if (!clinicId) {
+        clinicId = (currentUser.app_metadata?.clinic_id || currentUser.user_metadata?.clinic_id) as string | null;
+      }
+
+      // 4. Fallback: Check clinics table by owner_email
+      if (!clinicId && currentUser.email) {
+        const { data: clinicByOwner } = await supabase
+          .from('clinics')
+          .select('*')
+          .eq('owner_email', currentUser.email.toLowerCase())
+          .maybeSingle();
+        if (clinicByOwner?.id) {
+          clinicId = clinicByOwner.id;
+        }
+      }
+
+      // 5. Fallback: check saved staff session in localStorage
+      if (!clinicId) {
+        const savedSession = localStorage.getItem('clinsyst_active_staff_session');
+        if (savedSession) {
+          try {
+            const parsed = JSON.parse(savedSession);
+            if (parsed?.staff?.clinic_id && (parsed?.user?.id === currentUser.id || parsed?.user?.email === currentUser.email)) {
+              clinicId = parsed.staff.clinic_id;
+            }
+          } catch {}
+        }
+      }
+
+      if (clinicId) {
+        // ALWAYS fetch clinic identity directly from clinics table against user's clinic ID!
+        const synced = await syncClinicFromDatabase(clinicId);
+        if (synced) {
+          setActiveClinicState(synced);
+        } else {
+          const fallback = setActiveClinic(clinicId);
+          setActiveClinicState(fallback);
+        }
+
+        if (staffData) {
+          setStaff(staffData);
+        } else {
+          const synthesizedStaff: Staff = {
+            id: `staff-${clinicId}-admin`,
+            user_id: currentUser.id,
+            clinic_id: clinicId,
+            name: currentUser.user_metadata?.name || synced?.owner_name || 'Clinic Administrator',
+            role: (currentUser.app_metadata?.role as any) || 'admin',
+            email: currentUser.email || '',
+            phone: synced?.phone || '',
+            specialization: synced?.tagline || 'Clinic Lead',
+            active: true,
+            created_at: new Date().toISOString(),
+          };
+          setStaff(synthesizedStaff);
+        }
+
+        return synced;
+      }
+    } catch (err) {
+      console.warn('fetchStaff error:', err);
     }
+    return null;
   }
 
   function refreshSessions() {
@@ -242,13 +317,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (saved?.staff && saved?.user) {
           setStaff(saved.staff);
           setUser(saved.user);
-          setActiveClinicState(getActiveClinic());
+          const tenantClinicId = saved.staff.clinic_id || getActiveClinic().id;
+          if (tenantClinicId) {
+            syncClinicFromDatabase(tenantClinicId).then((synced) => {
+              if (synced) setActiveClinicState(synced);
+            });
+          }
 
           // Re-heartbeat or register session
           const ok = heartbeatSession();
           if (!ok) {
             registerSession({
-              clinicId: getActiveClinic().id,
+              clinicId: tenantClinicId,
               userId: saved.staff.user_id || `user-${saved.staff.id}`,
               userEmail: saved.staff.email,
               userName: saved.staff.name,
@@ -271,21 +351,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchStaff(session.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
+        await fetchStaff(session.user);
       }
+      setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchStaff(session.user.id);
+        await fetchStaff(session.user);
       } else if (!localStorage.getItem('dentivista_demo_role') && !localStorage.getItem('clinsyst_active_staff_session')) {
         setStaff(null);
       }
@@ -478,37 +557,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Register active session for Supabase user
     if (authData.user) {
-      let resolvedClinicId = activeClinic.id;
-      try {
-        const { data: staffData } = await supabase
-          .from('staff')
-          .select('*')
-          .eq('user_id', authData.user.id)
-          .maybeSingle();
-        if (staffData?.clinic_id) {
-          resolvedClinicId = staffData.clinic_id;
-          const synced = await syncClinicFromDatabase(staffData.clinic_id);
-          if (synced) {
-            setActiveClinicState(synced);
-            if (synced.status === 'suspended') {
-              await supabase.auth.signOut();
-              return {
-                error: 'Your clinic membership access is currently suspended/deactivated. Please send your subscription payment receipt on WhatsApp (03093622732) to reactivate access.',
-              };
-            }
-          } else {
-            const fallbackSynced = setActiveClinic(staffData.clinic_id);
-            setActiveClinicState(fallbackSynced);
-          }
-        }
-      } catch {}
+      const syncedClinic = await fetchStaff(authData.user);
+      const targetClinic = syncedClinic || getActiveClinic();
+
+      if (targetClinic.status === 'suspended') {
+        await supabase.auth.signOut();
+        return {
+          error: 'Your clinic membership access is currently suspended/deactivated. Please send your subscription payment receipt on WhatsApp (03093622732) to reactivate access.',
+        };
+      }
+
+      if (targetClinic.status === 'trial' && targetClinic.trial_ends_at && new Date() > new Date(targetClinic.trial_ends_at)) {
+        return {
+          error: 'Your 14-day free trial has expired. Please send your subscription payment receipt on WhatsApp (03093622732) to activate full membership access.',
+        };
+      }
 
       const sessionResult = registerSession({
-        clinicId: resolvedClinicId,
+        clinicId: targetClinic.id,
         userId: authData.user.id,
         userEmail: authData.user.email || email,
-        userName: authData.user.user_metadata?.name || 'Clinic Staff',
-        role: 'admin',
+        userName: authData.user.user_metadata?.name || targetClinic.owner_name || 'Clinic Staff',
+        role: (authData.user.app_metadata?.role as any) || 'admin',
         forceTerminateOldest,
       });
 
@@ -521,13 +591,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           maxSessions: sessionResult.maxSessions,
         };
       }
+
+      localStorage.removeItem('dentivista_demo_role');
+      cleanLegacyDemoData();
+      purgeClinicDemoData(targetClinic.id);
+      setUser(authData.user);
+      refreshSessions();
+      return { error: null };
     }
 
-    localStorage.removeItem('dentivista_demo_role');
-    localStorage.removeItem('clinsyst_active_staff_session');
-    cleanLegacyDemoData();
-    purgeClinicDemoData(activeClinic.id);
-    refreshSessions();
     return { error: null };
   }
 

@@ -310,12 +310,12 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
                 )}
               </div>
               <div>
-                <h1 className="font-display text-2xl text-white font-bold">{clinic.clinic_name || 'Dentivista'}</h1>
-                {clinic.tagline && <p className="text-white/80 text-sm font-medium">{clinic.tagline}</p>}
-                <p className="text-white/60 text-xs mt-0.5 max-w-md">{clinic.address}</p>
+                <h1 className="font-display text-2xl text-white font-bold">{activeClinic?.name || clinic.clinic_name || 'Clinic'}</h1>
+                {(activeClinic?.tagline || clinic.tagline) && <p className="text-white/80 text-sm font-medium">{activeClinic?.tagline || clinic.tagline}</p>}
+                <p className="text-white/60 text-xs mt-0.5 max-w-md">{activeClinic?.address || clinic.address}</p>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-white/70 text-xs mt-1">
-                  {clinic.phone && <span>Ph: {clinic.phone}</span>}
-                  {clinic.email && <span>• {clinic.email}</span>}
+                  {(activeClinic?.phone || clinic.phone) && <span>Ph: {activeClinic?.phone || clinic.phone}</span>}
+                  {(activeClinic?.owner_email || clinic.email) && <span>• {activeClinic?.owner_email || clinic.email}</span>}
                   {clinic.tax_number && <span>• {clinic.tax_number}</span>}
                 </div>
               </div>
@@ -482,8 +482,8 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs font-semibold text-gray-700">{clinic.clinic_name} {clinic.tagline ? `— ${clinic.tagline}` : ''}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{clinic.phone} {clinic.email ? `• ${clinic.email}` : ''}</p>
+            <p className="text-xs font-semibold text-gray-700">{activeClinic?.name || clinic.clinic_name} {(activeClinic?.tagline || clinic.tagline) ? `— ${activeClinic?.tagline || clinic.tagline}` : ''}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{activeClinic?.phone || clinic.phone} {(activeClinic?.owner_email || clinic.email) ? `• ${activeClinic?.owner_email || clinic.email}` : ''}</p>
           </div>
         </div>
       </div>
