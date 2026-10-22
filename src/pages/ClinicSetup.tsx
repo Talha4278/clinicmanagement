@@ -31,7 +31,6 @@ import {
   PRESET_BADGE_ICONS,
 } from '../components/ClinicBadgeIcon';
 import CreditCardCheckoutModal from '../components/CreditCardCheckoutModal';
-import LemonSqueezyConfigModal from '../components/LemonSqueezyConfigModal';
 import {
   isDemoMode,
   getDemoStaff,
@@ -102,7 +101,10 @@ export default function ClinicSetup() {
   const [docServicesSubTab, setDocServicesSubTab] = useState<'doctors' | 'services'>('doctors');
 
   // Pricing & Subscription state for activeTab === 'payments'
+  // Pricing & Subscription state for activeTab === 'subscriptions'
   const [pricingCurrency, setPricingCurrency] = useState<'PKR' | 'USD'>('PKR');
+  const [visitorCountryCode, setVisitorCountryCode] = useState<string>('PK');
+  const [devGeoSimulation, setDevGeoSimulation] = useState<'auto' | 'PK' | 'INTL'>('auto');
   const [pricingBillingCycle, setPricingBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [selectedPlanTier, setSelectedPlanTier] = useState<SubscriptionPlan>(activeClinic?.plan || 'pro');
   const [planSuccessNotice, setPlanSuccessNotice] = useState<string | null>(null);
@@ -112,6 +114,7 @@ export default function ClinicSetup() {
     detectVisitorCurrency().then((res) => {
       if (isMounted) {
         setPricingCurrency(res.currency === 'PKR' ? 'PKR' : 'USD');
+        setVisitorCountryCode(res.countryCode || (res.currency === 'PKR' ? 'PK' : 'US'));
       }
     });
     return () => {
@@ -119,18 +122,34 @@ export default function ClinicSetup() {
     };
   }, []);
 
-  function handleSelectPlanTier(planId: SubscriptionPlan) {
+  const isDevMode = Boolean(
+    import.meta.env.DEV ||
+    (typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' ||
+       window.location.hostname === '127.0.0.1'))
+  );
+
+  const effectiveCountryCode =
+    isDevMode && devGeoSimulation !== 'auto'
+      ? (devGeoSimulation === 'PK' ? 'PK' : 'US')
+      : visitorCountryCode;
+
+  const isPakistan = effectiveCountryCode === 'PK' || pricingCurrency === 'PKR';
+  const showCardCheckout = isDevMode && devGeoSimulation === 'auto' ? true : !isPakistan;
+  const showPakistanLocalPayment = isDevMode && devGeoSimulation === 'auto' ? true : isPakistan;
+
+  function handlePlanSelectionFlow(planId: SubscriptionPlan) {
     setSelectedPlanTier(planId);
-    if (activeClinic?.id) {
-      const ok = updateClinicPlan(activeClinic.id, planId);
-      if (ok) {
-        setPlanSuccessNotice(`Successfully switched clinic subscription plan to ${PLAN_SPECS[planId].name}!`);
-        setTimeout(() => {
-          setPlanSuccessNotice(null);
-        }, 3500);
+    if (showCardCheckout) {
+      setShowCardCheckoutModal(true);
+    } else {
+      const el = document.getElementById('pakistan-bank-payment-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
       }
     }
   }
+
 
   // Clock in clinic timezone
   const [currentTime, setCurrentTime] = useState('');
@@ -141,7 +160,6 @@ export default function ClinicSetup() {
   const [testSent, setTestSent] = useState(false);
   const [checkoutTestStatus, setCheckoutTestStatus] = useState<string | null>(null);
   const [showCardCheckoutModal, setShowCardCheckoutModal] = useState(false);
-  const [showLemonConfigModal, setShowLemonConfigModal] = useState(false);
 
 
 
@@ -2998,11 +3016,11 @@ export default function ClinicSetup() {
                 return (
                   <div
                     key={plan.id}
-                    onClick={() => setSelectedPlanTier(plan.id)}
-                    className={`rounded-2xl p-5 flex flex-col justify-between transition-all relative border-2 text-left cursor-pointer ${
+                    onClick={() => handlePlanSelectionFlow(plan.id)}
+                    className={`rounded-2xl p-5 flex flex-col justify-between transition-all relative border-2 text-left cursor-pointer hover:shadow-lg ${
                       isSelected
                         ? 'border-sky-600 bg-sky-50/40 shadow-md ring-2 ring-sky-500/10'
-                        : 'border-gray-200 bg-white hover:border-gray-300 shadow-xs'
+                        : 'border-gray-200 bg-white hover:border-sky-300 shadow-xs'
                     }`}
                   >
                     {/* Badge */}
@@ -3080,21 +3098,44 @@ export default function ClinicSetup() {
                     {/* Action Button */}
                     <div className="pt-2">
                       {isCurrent ? (
-                        <div className="w-full py-2 px-3 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 cursor-default">
-                          <Check size={14} className="text-emerald-700" />
-                          <span>Current Active Plan</span>
+                        <div className="space-y-1">
+                          <div className="w-full py-2.5 px-3 rounded-xl bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 cursor-default">
+                            <Check size={14} className="text-emerald-700" />
+                            <span>Current Active Plan</span>
+                          </div>
+                          {showCardCheckout && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePlanSelectionFlow(plan.id);
+                              }}
+                              className="w-full text-center text-[10px] text-sky-700 font-semibold hover:underline"
+                            >
+                              Renew or Pay via Card ➔
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleSelectPlanTier(plan.id);
+                            handlePlanSelectionFlow(plan.id);
                           }}
-                          className="w-full py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                          className="w-full py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
                         >
-                          <Sparkles size={13} />
-                          <span>Switch to {plan.name}</span>
+                          {showCardCheckout ? (
+                            <>
+                              <CreditCard size={14} />
+                              <span>Checkout {plan.name}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles size={14} />
+                              <span>Select {plan.name}</span>
+                            </>
+                          )}
                         </button>
                       )}
                     </div>
@@ -3104,138 +3145,214 @@ export default function ClinicSetup() {
             </div>
 
             {/* Payment Settlement Methods */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* Option 1: Credit & Debit Card Checkout (Lemon Squeezy Merchant of Record) */}
-              <div className="p-5 rounded-2xl border-2 border-sky-300 bg-gradient-to-br from-sky-50/60 via-white to-indigo-50/40 space-y-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                      <CreditCard size={18} className="text-sky-600" />
-                      Credit & Debit Card Checkout
+            <div id="payment-methods-section" className="space-y-4">
+              {/* Development Mode Multi-Region Testing Bar */}
+              {isDevMode && (
+                <div className="p-3 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-950 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-900 font-extrabold text-[10px] uppercase tracking-wider">
+                      🛠️ Dev Mode (Localhost)
                     </span>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-600 text-white shadow-xs flex items-center gap-1">
-                      <ShieldCheck size={11} />
-                      Active • Lemon Squeezy MoR
+                    <span className="text-[11px] font-medium text-amber-900">
+                      Both Pakistan Bank Transfer & International Card Checkout are enabled for testing.
                     </span>
                   </div>
-
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    Automated global subscription checkout for <strong>Visa, Mastercard, American Express, Apple Pay, & Google Pay</strong>. International VAT, compliance, and multi-currency invoicing handled seamlessly.
-                  </p>
-
-                  <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-gray-700 pt-1">
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
-                      💳 Visa, MC, Amex
-                    </span>
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
-                      🍏 Apple Pay & GPay
-                    </span>
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
-                      🛡️ MoR Tax Covered
-                    </span>
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
-                      ⚡ Instant Activation
-                    </span>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-sky-50/80 border border-sky-200/80 text-sky-950 text-xs flex items-start gap-2.5 mt-2">
-                    <Sparkles size={16} className="text-sky-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-[11px] leading-snug">
-                      <span className="font-bold text-sky-950 block">
-                        Selected Plan: {PLAN_SPECS[selectedPlanTier].name} ({pricingBillingCycle === 'annual' ? 'Annual Billing' : 'Monthly'})
-                      </span>
-                      {pricingCurrency === 'PKR'
-                        ? `Rs. ${(pricingBillingCycle === 'annual' ? (selectedPlanTier === 'starter' ? 17270 : selectedPlanTier === 'pro' ? 33590 : 57590) : (selectedPlanTier === 'starter' ? 1799 : selectedPlanTier === 'pro' ? 3499 : 5999)).toLocaleString()} total • ${PLAN_SPECS[selectedPlanTier].max_seats} Doctor Seats & ${PLAN_SPECS[selectedPlanTier].max_sessions} Concurrent Logins`
-                        : `$${pricingBillingCycle === 'annual' ? (selectedPlanTier === 'starter' ? 278 : selectedPlanTier === 'pro' ? 758 : 1430) : (selectedPlanTier === 'starter' ? 29 : selectedPlanTier === 'pro' ? 79 : 149)} total • ${PLAN_SPECS[selectedPlanTier].max_seats} Doctor Seats & ${PLAN_SPECS[selectedPlanTier].max_sessions} Concurrent Logins`}
-                    </div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold shrink-0">
+                    <span className="text-gray-500 font-normal">Simulate IP:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDevGeoSimulation('auto');
+                        setPricingCurrency(visitorCountryCode === 'PK' ? 'PKR' : 'USD');
+                      }}
+                      className={`px-2 py-1 rounded-lg border transition-all ${
+                        devGeoSimulation === 'auto'
+                          ? 'bg-amber-900 text-white border-amber-900 shadow-2xs'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      All (Dev)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDevGeoSimulation('PK');
+                        setPricingCurrency('PKR');
+                      }}
+                      className={`px-2 py-1 rounded-lg border transition-all ${
+                        devGeoSimulation === 'PK'
+                          ? 'bg-emerald-700 text-white border-emerald-700 shadow-2xs'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      🇵🇰 Pakistan Only
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDevGeoSimulation('INTL');
+                        setPricingCurrency('USD');
+                      }}
+                      className={`px-2 py-1 rounded-lg border transition-all ${
+                        devGeoSimulation === 'INTL'
+                          ? 'bg-sky-700 text-white border-sky-700 shadow-2xs'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      🌐 International Only
+                    </button>
                   </div>
                 </div>
+              )}
 
-                <div className="pt-2 space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowCardCheckoutModal(true)}
-                    className="w-full py-2.5 px-4 rounded-xl text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:opacity-95 active:scale-[0.99] transition-all"
-                    style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
-                  >
-                    <CreditCard size={15} />
-                    <span>Subscribe via Credit & Debit Card</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowLemonConfigModal(true)}
-                    className="w-full py-2 px-3 rounded-xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    <span>Configure Lemon Squeezy Gateway Keys & Webhooks</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Option 2: Direct Bank Transfer (Pakistan) */}
-              <div className="p-5 rounded-2xl border-2 border-emerald-300 bg-emerald-50/60 space-y-4 flex flex-col justify-between">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-emerald-950 flex items-center gap-2">
-                      <Landmark size={18} className="text-emerald-700" />
-                      Direct Bank / NayaPay / Raast (Pakistan Local Clinics)
-                    </span>
-
-                  </div>
-
-                  <p className="text-xs text-emerald-900/90 leading-relaxed">
-                    Direct local bank transfer for Pakistani clinics via <strong>NayaPay, UBL, Raast Instant Payment, or EasyPaisa</strong> with zero platform fees.
-                  </p>
-
-                  {/* Bank Account Details */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium text-emerald-950 bg-white/90 p-3 rounded-xl border border-emerald-200">
-                    <div>
-                      <span className="text-gray-500 text-[10px] block font-normal">Bank Names</span>
-                      <span className="font-bold">UBL (United Bank Limited)</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-[10px] block font-normal">Account Title</span>
-                      <span className="font-bold">Talha Sarfraz Malik</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-[10px] block font-normal">IBAN (UBL)</span>
-                      <span className="font-mono text-[11px] font-bold select-all">PK66 UNIL 0109 0003 6725 1495</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 text-[10px] block font-normal">Raast / NayaPay / EasyPaisa</span>
-                      <span className="font-mono text-[11px] font-bold select-all">0334 4634278</span>
-                    </div>
-                  </div>
-
-                  {/* QR Code Images */}
-                  <div className="pt-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 block mb-1.5">
-                      Scan & Pay QR Codes (NayaPay & UBL Digital)
-                    </span>
-                    <div className="grid grid-cols-2 gap-3 max-w-sm">
-                      <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
-                        <img src="/payments/nayapay_qr.jpg" alt="NayaPay QR Code" className="w-full h-32 object-contain rounded-lg" />
-                        <span className="text-[10px] font-bold text-gray-700 block">NayaPay QR</span>
+              <div
+                className={`grid ${
+                  showCardCheckout && showPakistanLocalPayment
+                    ? 'grid-cols-1 lg:grid-cols-2'
+                    : 'grid-cols-1 max-w-2xl mx-auto'
+                } gap-5`}
+              >
+                {/* Option 1: Credit & Debit Card Checkout (Shown only outside Pakistan or in Dev Mode) */}
+                {showCardCheckout && (
+                  <div className="p-5 rounded-2xl border-2 border-sky-300 bg-gradient-to-br from-sky-50/60 via-white to-indigo-50/40 space-y-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-bold text-sm text-gray-900 flex items-center gap-2">
+                          <CreditCard size={18} className="text-sky-600" />
+                          Credit & Debit Card Checkout
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-600 text-white shadow-xs flex items-center gap-1">
+                          <ShieldCheck size={11} />
+                          International Checkout
+                        </span>
                       </div>
-                      <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
-                        <img src="/payments/ubl_qr.jpg" alt="UBL Digital QR Code" className="w-full h-32 object-contain rounded-lg" />
-                        <span className="text-[10px] font-bold text-gray-700 block">UBL Bank QR</span>
+
+                      <p className="text-xs text-gray-600 leading-relaxed">
+                        Automated online subscription checkout for <strong>Visa, Mastercard, American Express, Apple Pay, & Google Pay</strong>. International VAT, compliance, and multi-currency invoicing handled seamlessly.
+                      </p>
+
+                      <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-gray-700 pt-1">
+                        <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
+                          💳 Visa, MC, Amex
+                        </span>
+                        <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
+                          🍏 Apple Pay & GPay
+                        </span>
+                        <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
+                          🛡️ 256-Bit SSL Encrypted
+                        </span>
+                        <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
+                          ⚡ Instant Activation
+                        </span>
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-sky-50/80 border border-sky-200/80 text-sky-950 text-xs flex items-start gap-2.5 mt-2">
+                        <Sparkles size={16} className="text-sky-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-[11px] leading-snug">
+                          <span className="font-bold text-sky-950 block">
+                            Selected Plan: {PLAN_SPECS[selectedPlanTier].name} ({pricingBillingCycle === 'annual' ? 'Annual Billing' : 'Monthly'})
+                          </span>
+                          {pricingCurrency === 'PKR'
+                            ? `Rs. ${(pricingBillingCycle === 'annual' ? (selectedPlanTier === 'starter' ? 17270 : selectedPlanTier === 'pro' ? 33590 : 57590) : (selectedPlanTier === 'starter' ? 1799 : selectedPlanTier === 'pro' ? 3499 : 5999)).toLocaleString()} total • ${PLAN_SPECS[selectedPlanTier].max_seats} Doctor Seats & ${PLAN_SPECS[selectedPlanTier].max_sessions} Concurrent Logins`
+                            : `$${pricingBillingCycle === 'annual' ? (selectedPlanTier === 'starter' ? 278 : selectedPlanTier === 'pro' ? 758 : 1430) : (selectedPlanTier === 'starter' ? 29 : selectedPlanTier === 'pro' ? 79 : 149)} total • ${PLAN_SPECS[selectedPlanTier].max_seats} Doctor Seats & ${PLAN_SPECS[selectedPlanTier].max_sessions} Concurrent Logins`}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
 
-                <a
-                  href={`https://wa.me/923093622732?text=${encodeURIComponent(
-                    `Hi, I am sending the subscription payment receipt for ${form.clinic_name || 'my clinic'}. Please activate my subscription.`
-                  )}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm"
-                >
-                  <MessageSquare size={14} />
-                  <span>Send Payment Receipt on WhatsApp</span>
-                </a>
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowCardCheckoutModal(true)}
+                        className="w-full py-2.5 px-4 rounded-xl text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:opacity-95 active:scale-[0.99] transition-all"
+                        style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
+                      >
+                        <CreditCard size={15} />
+                        <span>Checkout {PLAN_SPECS[selectedPlanTier].name} via Card</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Option 2: Direct Bank Transfer (Shown only inside Pakistan or in Dev Mode) */}
+                {showPakistanLocalPayment && (
+                  <div id="pakistan-bank-payment-section" className="p-5 rounded-2xl border-2 border-emerald-300 bg-emerald-50/60 space-y-4 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-emerald-950 flex items-center gap-2">
+                          <Landmark size={18} className="text-emerald-700" />
+                          Direct Bank / NayaPay / Raast (Pakistan Local Clinics)
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-700 text-white shadow-xs">
+                          Pakistan Clinics
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-emerald-900/90 leading-relaxed">
+                        Direct local bank transfer for Pakistani clinics via <strong>NayaPay, UBL, Raast Instant Payment, or EasyPaisa</strong> with zero platform fees.
+                      </p>
+
+                      {/* Selected plan price notice */}
+                      <div className="p-2.5 bg-emerald-100/70 border border-emerald-300/80 rounded-xl text-emerald-950 text-xs">
+                        <span className="font-bold">Transfer Amount for {PLAN_SPECS[selectedPlanTier].name}: </span>
+                        <strong className="text-emerald-900 text-sm">
+                          Rs. {(pricingBillingCycle === 'annual' ? (selectedPlanTier === 'starter' ? 17270 : selectedPlanTier === 'pro' ? 33590 : 57590) : (selectedPlanTier === 'starter' ? 1799 : selectedPlanTier === 'pro' ? 3499 : 5999)).toLocaleString()}
+                        </strong>
+                        <span className="text-[11px] text-emerald-800 ml-1">
+                          ({pricingBillingCycle === 'annual' ? 'Annual Billing' : 'Monthly'})
+                        </span>
+                      </div>
+
+                      {/* Bank Account Details */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium text-emerald-950 bg-white/90 p-3 rounded-xl border border-emerald-200">
+                        <div>
+                          <span className="text-gray-500 text-[10px] block font-normal">Bank Names</span>
+                          <span className="font-bold">UBL (United Bank Limited)</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-[10px] block font-normal">Account Title</span>
+                          <span className="font-bold">Talha Sarfraz Malik</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-[10px] block font-normal">IBAN (UBL)</span>
+                          <span className="font-mono text-[11px] font-bold select-all">PK66 UNIL 0109 0003 6725 1495</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-[10px] block font-normal">Raast / NayaPay / EasyPaisa</span>
+                          <span className="font-mono text-[11px] font-bold select-all">0334 4634278</span>
+                        </div>
+                      </div>
+
+                      {/* QR Code Images */}
+                      <div className="pt-2">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900 block mb-1.5">
+                          Scan & Pay QR Codes (NayaPay & UBL Digital)
+                        </span>
+                        <div className="grid grid-cols-2 gap-3 max-w-sm">
+                          <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
+                            <img src="/payments/nayapay_qr.jpg" alt="NayaPay QR Code" className="w-full h-32 object-contain rounded-lg" />
+                            <span className="text-[10px] font-bold text-gray-700 block">NayaPay QR</span>
+                          </div>
+                          <div className="bg-white p-2 rounded-xl border border-emerald-200 text-center space-y-1">
+                            <img src="/payments/ubl_qr.jpg" alt="UBL Digital QR Code" className="w-full h-32 object-contain rounded-lg" />
+                            <span className="text-[10px] font-bold text-gray-700 block">UBL Bank QR</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <a
+                      href={`https://wa.me/923093622732?text=${encodeURIComponent(
+                        `Hi, I am sending the subscription payment receipt for ${form.clinic_name || 'my clinic'} for the ${PLAN_SPECS[selectedPlanTier].name} (${pricingBillingCycle} billing). Please activate my subscription.`
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm"
+                    >
+                      <MessageSquare size={14} />
+                      <span>Send Payment Receipt on WhatsApp (03093622732)</span>
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -3269,23 +3386,12 @@ export default function ClinicSetup() {
         clinicId={activeClinic?.id || ''}
         clinicName={activeClinic?.name || form.clinic_name || ''}
         customerEmail={activeClinic?.owner_email || user?.email || ''}
-        onOpenConfig={() => {
-          setShowCardCheckoutModal(false);
-          setShowLemonConfigModal(true);
-        }}
         onSuccess={({ transactionId, planId }) => {
+          if (activeClinic?.id) {
+            updateClinicPlan(activeClinic.id, planId);
+          }
           setPlanSuccessNotice(`Payment Authorized! Activated ${PLAN_SPECS[planId].name} plan (Ref: ${transactionId}).`);
           setTimeout(() => setPlanSuccessNotice(null), 5000);
-        }}
-      />
-
-      {/* Lemon Squeezy Gateway Configuration Modal */}
-      <LemonSqueezyConfigModal
-        isOpen={showLemonConfigModal}
-        onClose={() => setShowLemonConfigModal(false)}
-        onSaved={() => {
-          setCheckoutTestStatus('Lemon Squeezy gateway settings saved successfully.');
-          setTimeout(() => setCheckoutTestStatus(null), 4000);
         }}
       />
     </div>

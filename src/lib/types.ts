@@ -286,8 +286,6 @@ export interface PaymentGatewayConfig {
   enabled: boolean;
   provider: PaymentGatewayProvider;
   publishable_key?: string;
-  secret_key?: string;
-  webhook_secret?: string;
   test_mode?: boolean;
   lemon_squeezy_store_id?: string;
   currency?: string;

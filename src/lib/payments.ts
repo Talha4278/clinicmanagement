@@ -67,8 +67,6 @@ export function validateProductionPaymentConfig(
   // 1. Lemon Squeezy Validation (Merchant of Record)
   if (provider === 'lemon_squeezy') {
     const storeId = config.lemon_squeezy_store_id || (import.meta as any).env?.VITE_LEMON_SQUEEZY_STORE_ID || '490757';
-    const apiKey = config.secret_key || (import.meta as any).env?.VITE_LEMON_SQUEEZY_API_KEY || (import.meta as any).env?.LEMON_SQUEEZY_API_KEY || '';
-    const webhookSecret = config.webhook_secret || (import.meta as any).env?.VITE_LEMON_SQUEEZY_WEBHOOK_SECRET || (import.meta as any).env?.LEMON_SQUEEZY_WEBHOOK_SECRET || 'clinsyst_secret_2026';
 
     if (!storeId) {
       checklist.push({
@@ -84,36 +82,6 @@ export function validateProductionPaymentConfig(
         status: 'pass',
         detail: `Store ID configured: ${storeId}`,
       });
-    }
-
-    if (apiKey) {
-      checklist.push({
-        label: 'Lemon Squeezy API Key',
-        status: 'pass',
-        detail: 'API key configured for backend subscription synchronization.',
-      });
-    } else {
-      checklist.push({
-        label: 'Lemon Squeezy API Key',
-        status: 'warn',
-        detail: 'Recommended for automated customer subscription management.',
-      });
-      recommendations.push('Generate an API Key in Lemon Squeezy -> Settings -> API.');
-    }
-
-    if (webhookSecret) {
-      checklist.push({
-        label: 'Webhook Signing Secret',
-        status: 'pass',
-        detail: 'Webhook secret configured for HMAC signature verification.',
-      });
-    } else {
-      checklist.push({
-        label: 'Webhook Signing Secret',
-        status: 'warn',
-        detail: 'Recommended to verify incoming subscription_created and subscription_cancelled events.',
-      });
-      recommendations.push('Create a Webhook endpoint in Lemon Squeezy pointing to your Supabase Edge Function.');
     }
 
     // Variant IDs check

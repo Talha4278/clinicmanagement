@@ -9,7 +9,6 @@ import {
   Printer,
   Check,
   RefreshCw,
-  Settings,
   ArrowRight,
 } from 'lucide-react';
 import { SubscriptionPlan } from '../lib/types';
@@ -28,7 +27,6 @@ export interface CreditCardCheckoutModalProps {
   clinicName?: string;
   customerEmail?: string;
   onSuccess?: (details: { transactionId: string; planId: SubscriptionPlan }) => void;
-  onOpenConfig?: () => void;
 }
 
 export default function CreditCardCheckoutModal({
@@ -41,7 +39,6 @@ export default function CreditCardCheckoutModal({
   clinicName = '',
   customerEmail = '',
   onSuccess,
-  onOpenConfig,
 }: CreditCardCheckoutModalProps) {
   const { settings } = useClinicSettings();
   const gatewayConfig = settings.payment_gateway_config || {
@@ -454,37 +451,6 @@ export default function CreditCardCheckoutModal({
                 </div>
               </div>
 
-              {/* Gateway Status Banner */}
-              <div className="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      isTestMode ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
-                    }`}
-                  />
-                  <div>
-                    <span className="font-bold text-gray-800">
-                      {isTestMode ? 'Lemon Squeezy Sandbox Simulator' : 'Lemon Squeezy Live Production'}
-                    </span>
-                    <span className="text-gray-500 block text-[11px]">
-                      {isTestMode
-                        ? 'Test mode active. Use quick test cards below to test instant tier upgrades.'
-                        : `Connected to Store ID: ${storeId}`}
-                    </span>
-                  </div>
-                </div>
-
-                {onOpenConfig && (
-                  <button
-                    type="button"
-                    onClick={onOpenConfig}
-                    className="px-2.5 py-1.5 rounded-lg bg-white border border-gray-300 text-gray-700 hover:text-gray-900 hover:border-gray-400 text-[11px] font-semibold flex items-center gap-1 shadow-2xs transition-colors shrink-0"
-                  >
-                    <Settings size={12} />
-                    <span>Configure Keys</span>
-                  </button>
-                )}
-              </div>
 
               {/* Realistic 3D Credit Card Preview */}
               <div className="relative rounded-2xl p-5 text-white shadow-xl overflow-hidden bg-gradient-to-tr from-slate-900 via-sky-950 to-indigo-950 border border-sky-800/40">

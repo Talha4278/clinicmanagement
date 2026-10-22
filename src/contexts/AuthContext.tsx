@@ -274,8 +274,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Initial session restore check
-    const demoRole = localStorage.getItem('dentivista_demo_role');
+    // Check if user entered via landing page "Sign In" or "Sign Up" links
+    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const isExplicitSignIn = urlParams?.get('mode') === 'signin';
+    const isExplicitSignUp = urlParams?.get('mode') === 'signup';
+
+    if (isExplicitSignIn || isExplicitSignUp) {
+      // Clear demo role so landing page "Sign In" doesn't trap the user in demo mode
+      localStorage.removeItem('dentivista_demo_role');
+    }
+
+    // Safety guard: ensure loading state is NEVER stuck indefinitely
+    let authSettled = false;
+    const safetyTimer = setTimeout(() => {
+      if (!authSettled) {
+        console.warn('Auth state resolution safety timeout reached (1500ms); releasing loading screen to prevent UI hang.');
+        authSettled = true;
+        setLoading(false);
+      }
+    }, 1500);
+
+    const markAuthSettled = () => {
+      if (!authSettled) {
+        authSettled = true;
+        clearTimeout(safetyTimer);
+        setLoading(false);
+      }
+    };
+
+    // 1. Initial session restore check for demo user (bypassed if explicit sign-in/sign-up)
+    const demoRole = !isExplicitSignIn && !isExplicitSignUp ? localStorage.getItem('dentivista_demo_role') : null;
     if (demoRole && DEMO_STAFF_MAP[demoRole]) {
       const demoStaff = DEMO_STAFF_MAP[demoRole];
       const demoUser = {
@@ -301,16 +329,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       refreshSessions();
-      setLoading(false);
-      return () => {
-        window.removeEventListener(CLINIC_TENANT_EVENT, handleTenantChange);
-        window.removeEventListener(SESSION_UPDATED_EVENT, handleSessionsUpdated);
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-        cleanupTerminationListener();
-      };
+      markAuthSettled();
     }
 
-    const savedTenantUserJson = localStorage.getItem('clinsyst_active_staff_session');
+    // 2. Initial session restore for tenant user
+    const savedTenantUserJson = !isExplicitSignIn && !isExplicitSignUp ? localStorage.getItem('clinsyst_active_staff_session') : null;
     if (savedTenantUserJson) {
       try {
         const saved = JSON.parse(savedTenantUserJson);
@@ -338,39 +361,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           refreshSessions();
-          setLoading(false);
-          return () => {
-            window.removeEventListener(CLINIC_TENANT_EVENT, handleTenantChange);
-            window.removeEventListener(SESSION_UPDATED_EVENT, handleSessionsUpdated);
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-            cleanupTerminationListener();
-          };
+          markAuthSettled();
         }
       } catch (err) {
         console.warn('Failed to parse saved tenant session:', err);
       }
     }
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchStaff(session.user);
+    // 3. Supabase Auth session restoration with timeout and automatic error recovery
+    async function initSupabaseSession() {
+      try {
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<{ data: { session: null }; error: Error }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null }, error: new Error('Session fetch timed out') }), 1200)
+        );
+
+        const result = await Promise.race([sessionPromise, timeoutPromise]);
+        const activeSession = result?.data?.session ?? null;
+
+        if (result?.error) {
+          console.warn('Supabase getSession notice:', result.error.message);
+          // If refresh token is expired or corrupted, automatically clear stale Supabase key so user never has to clear cache manually
+          const msg = (result.error.message || '').toLowerCase();
+          if (msg.includes('refresh') || msg.includes('token') || msg.includes('jwt') || msg.includes('invalid')) {
+            try {
+              Object.keys(localStorage).forEach((key) => {
+                if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                  localStorage.removeItem(key);
+                }
+              });
+            } catch {}
+          }
+        }
+
+        if (activeSession) {
+          setSession(activeSession);
+          setUser(activeSession.user ?? null);
+          if (activeSession.user) {
+            try {
+              await Promise.race([
+                fetchStaff(activeSession.user),
+                new Promise((resolve) => setTimeout(resolve, 1200)),
+              ]);
+            } catch (staffErr) {
+              console.warn('fetchStaff error during session init:', staffErr);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Supabase session restoration notice:', err);
+      } finally {
+        markAuthSettled();
       }
-      setLoading(false);
-    });
+    }
+
+    initSupabaseSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        await fetchStaff(session.user);
+        try {
+          await Promise.race([
+            fetchStaff(session.user),
+            new Promise((resolve) => setTimeout(resolve, 1500)),
+          ]);
+        } catch {}
       } else if (!localStorage.getItem('dentivista_demo_role') && !localStorage.getItem('clinsyst_active_staff_session')) {
         setStaff(null);
       }
+      markAuthSettled();
     });
 
     return () => {
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
       supabase.removeChannel(realtimeChannel);
       window.removeEventListener(CLINIC_TENANT_EVENT, handleTenantChange);

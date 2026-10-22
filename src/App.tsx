@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import Layout, { Page } from './components/Layout';
@@ -50,20 +50,56 @@ function AppContent() {
   const [viewInvoiceId, setViewInvoiceId] = useState<string | null>(null);
   const [viewPatientId, setViewPatientId] = useState<string | null>(null);
   const [patientContextId, setPatientContextId] = useState<string | null>(null);
+  const [slowLoadingNotice, setSlowLoadingNotice] = useState(false);
+
+  // Safety escape hatch: if loading takes longer than 2.5s, give the user an instant one-click reset
+  useEffect(() => {
+    if (!loading) {
+      setSlowLoadingNotice(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setSlowLoadingNotice(true);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--cream)' }}>
-        <div className="flex flex-col items-center gap-3">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--cream)' }}>
+        <div className="flex flex-col items-center gap-3 max-w-sm text-center">
           <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center"
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm"
             style={{ background: '#3c5e27' }}
           >
             <svg className="w-5 h-5 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
             </svg>
           </div>
-          <p className="text-sm text-gray-400">Loading Clinsyst...</p>
+          <p className="text-sm font-medium text-slate-500">Loading Clinsyst...</p>
+          {slowLoadingNotice && (
+            <div className="mt-2 flex flex-col items-center gap-2">
+              <p className="text-xs text-slate-400">Taking longer than expected to connect?</p>
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    localStorage.removeItem('dentivista_demo_role');
+                    localStorage.removeItem('clinsyst_active_staff_session');
+                    Object.keys(localStorage).forEach((k) => {
+                      if (k.startsWith('sb-') && k.endsWith('-auth-token')) {
+                        localStorage.removeItem(k);
+                      }
+                    });
+                  } catch {}
+                  window.location.href = '/app/?mode=signin';
+                }}
+                className="text-xs text-sky-600 hover:text-sky-700 underline font-semibold cursor-pointer"
+              >
+                Click here to reset cache and proceed to Sign In
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
