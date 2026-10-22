@@ -276,6 +276,8 @@ export interface PaymentPlanPriceIds {
   starter_annual?: string;
   pro_monthly?: string;
   pro_annual?: string;
+  enterprise_monthly?: string;
+  enterprise_annual?: string;
   network_monthly?: string;
   network_annual?: string;
 }

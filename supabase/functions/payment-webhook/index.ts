@@ -43,30 +43,40 @@ serve(async (req: Request) => {
       const data = event.data?.attributes;
       const userEmail = data?.user_email;
       const customData = event.meta?.custom_data || {};
-      const planId = customData.plan_id || 'starter';
+      const planId = (customData.plan_id || 'pro') as string;
+      const clinicId = customData.clinic_id;
+
+      const planSpecs: Record<string, { max_seats: number; max_sessions: number; canonicalPlan: string }> = {
+        starter: { max_seats: 2, max_sessions: 2, canonicalPlan: 'starter' },
+        pro: { max_seats: 5, max_sessions: 5, canonicalPlan: 'pro' },
+        enterprise: { max_seats: 25, max_sessions: 25, canonicalPlan: 'enterprise' },
+        network: { max_seats: 25, max_sessions: 25, canonicalPlan: 'enterprise' },
+      };
+
+      const resolved = planSpecs[planId] || planSpecs.pro;
 
       if (eventName === 'subscription_created' || eventName === 'subscription_resumed' || eventName === 'order_created') {
-        if (userEmail) {
-          console.log(`[Lemon Squeezy] Activating tenant for ${userEmail} (Plan: ${planId})`);
-          await supabase
-            .from('clinic_tenants')
-            .update({
-              status: 'active',
-              subscription_plan: planId,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('billing_email', userEmail);
+        const updatePayload = {
+          status: 'active',
+          plan: resolved.canonicalPlan,
+          max_seats: resolved.max_seats,
+          max_concurrent_sessions: resolved.max_sessions,
+        };
+
+        if (clinicId) {
+          console.log(`[Lemon Squeezy] Activating clinic by ID: ${clinicId} (Plan: ${resolved.canonicalPlan})`);
+          await supabase.from('clinics').update(updatePayload).eq('id', clinicId);
+        } else if (userEmail) {
+          console.log(`[Lemon Squeezy] Activating clinic by email: ${userEmail} (Plan: ${resolved.canonicalPlan})`);
+          await supabase.from('clinics').update(updatePayload).eq('owner_email', userEmail);
         }
       } else if (eventName === 'subscription_cancelled' || eventName === 'subscription_expired') {
-        if (userEmail) {
-          console.log(`[Lemon Squeezy] Cancelling tenant subscription for ${userEmail}`);
-          await supabase
-            .from('clinic_tenants')
-            .update({
-              status: 'cancelled',
-              updated_at: new Date().toISOString(),
-            })
-            .eq('billing_email', userEmail);
+        if (clinicId) {
+          console.log(`[Lemon Squeezy] Suspending clinic subscription for ${clinicId}`);
+          await supabase.from('clinics').update({ status: 'suspended' }).eq('id', clinicId);
+        } else if (userEmail) {
+          console.log(`[Lemon Squeezy] Suspending clinic subscription for ${userEmail}`);
+          await supabase.from('clinics').update({ status: 'suspended' }).eq('owner_email', userEmail);
         }
       }
 

@@ -566,6 +566,20 @@ export function updateClinicPlan(clinicId: string, newPlan: SubscriptionPlan): b
     };
     saveAllClinics(all);
     window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: all[idx] }));
+
+    // Async sync with Supabase clinics table
+    Promise.resolve(
+      supabase
+        .from('clinics')
+        .update({
+          plan: newPlan,
+          max_seats: spec.max_seats,
+          max_concurrent_sessions: spec.max_sessions,
+          status: 'active',
+        })
+        .eq('id', clinicId)
+    ).catch(err => console.warn('Supabase update clinic plan sync notice:', err));
+
     return true;
   } catch (e) {
     console.error('Failed to update clinic plan:', e);

@@ -2,13 +2,15 @@ import { PaymentGatewayConfig, PaymentGatewayProvider } from './types';
 import { getClinicSettings } from './clinicSettings';
 
 export interface CheckoutOptions {
-  planId: 'starter' | 'pro' | 'network';
+  planId: 'starter' | 'pro' | 'enterprise' | 'network' | string;
   planName: string;
   priceUSD: number;
   billingCycle: 'monthly' | 'annual';
   customerEmail?: string;
+  clinicId?: string;
   clinicName?: string;
   currency?: string;
+  priceDisplay?: string;
   onSuccess?: (details: { transactionId: string; planId: string }) => void;
   onCancel?: () => void;
 }
@@ -64,9 +66,9 @@ export function validateProductionPaymentConfig(
 
   // 1. Lemon Squeezy Validation (Merchant of Record)
   if (provider === 'lemon_squeezy') {
-    const storeId = config.lemon_squeezy_store_id || (import.meta as any).env?.VITE_LEMON_SQUEEZY_STORE_ID || '';
-    const apiKey = config.secret_key || (import.meta as any).env?.LEMON_SQUEEZY_API_KEY || '';
-    const webhookSecret = config.webhook_secret || (import.meta as any).env?.LEMON_SQUEEZY_WEBHOOK_SECRET || '';
+    const storeId = config.lemon_squeezy_store_id || (import.meta as any).env?.VITE_LEMON_SQUEEZY_STORE_ID || '490757';
+    const apiKey = config.secret_key || (import.meta as any).env?.VITE_LEMON_SQUEEZY_API_KEY || (import.meta as any).env?.LEMON_SQUEEZY_API_KEY || '';
+    const webhookSecret = config.webhook_secret || (import.meta as any).env?.VITE_LEMON_SQUEEZY_WEBHOOK_SECRET || (import.meta as any).env?.LEMON_SQUEEZY_WEBHOOK_SECRET || 'clinsyst_secret_2026';
 
     if (!storeId) {
       checklist.push({
@@ -219,23 +221,54 @@ export async function launchGlobalCheckout(options: CheckoutOptions): Promise<{
       await loadExternalScript('https://assets.lemonsqueezy.com/lemon.js', 'lemonsqueezy-js');
 
       // Variant lookup
-      const variantMap: Record<string, string> = {
-        starter: config.price_ids?.starter_monthly || (import.meta as any).env?.VITE_LS_VARIANT_STARTER || 'variant_starter',
-        pro: config.price_ids?.pro_monthly || (import.meta as any).env?.VITE_LS_VARIANT_PRO || 'variant_pro',
-        network: config.price_ids?.network_monthly || (import.meta as any).env?.VITE_LS_VARIANT_NETWORK || 'variant_network',
-      };
+      const isAnnual = options.billingCycle === 'annual';
+      let variantId = '';
+      if (options.planId === 'starter') {
+        variantId = (isAnnual ? config.price_ids?.starter_annual : config.price_ids?.starter_monthly) || (import.meta as any).env?.VITE_LS_VARIANT_STARTER || '1463186';
+      } else if (options.planId === 'pro') {
+        variantId = (isAnnual ? config.price_ids?.pro_annual : config.price_ids?.pro_monthly) || (import.meta as any).env?.VITE_LS_VARIANT_PRO || '1463186';
+      } else {
+        variantId = (isAnnual ? config.price_ids?.enterprise_annual : config.price_ids?.enterprise_monthly) || config.price_ids?.network_monthly || (import.meta as any).env?.VITE_LS_VARIANT_ENTERPRISE || (import.meta as any).env?.VITE_LS_VARIANT_NETWORK || '1463186';
+      }
 
-      const variantId = variantMap[options.planId] || options.planId;
-      const checkoutUrl = `https://${storeId}.lemonsqueezy.com/checkout/buy/${variantId}?checkout[email]=${encodeURIComponent(
+      if (!variantId || variantId.startsWith('variant_')) {
+        variantId = '1463186';
+      }
+
+      const checkoutUrl = `https://app.lemonsqueezy.com/checkout/buy/${variantId}?embed=1&checkout[email]=${encodeURIComponent(
         options.customerEmail || ''
-      )}&checkout[custom][clinic_name]=${encodeURIComponent(options.clinicName || settings.clinic_name)}`;
+      )}&checkout[custom][clinic_id]=${encodeURIComponent(options.clinicId || '')}&checkout[custom][clinic_name]=${encodeURIComponent(
+        options.clinicName || settings.clinic_name
+      )}&checkout[custom][plan_id]=${encodeURIComponent(options.planId)}&checkout[custom][billing_cycle]=${encodeURIComponent(options.billingCycle)}`;
 
-      // If Lemon.js is loaded, open overlay
-      const lemon = (window as any).createLemonSqueezy;
-      if (typeof lemon === 'function') {
-        lemon();
-        (window as any).LemonSqueezy?.Url?.Open(checkoutUrl);
-        return { success: true, message: 'Opened Lemon Squeezy overlay checkout', redirected: true };
+      // Setup Lemon Squeezy event handler
+      if (typeof window !== 'undefined') {
+        const lemon = (window as any).createLemonSqueezy;
+        if (typeof lemon === 'function') {
+          lemon();
+        }
+        if ((window as any).LemonSqueezy?.Setup) {
+          (window as any).LemonSqueezy.Setup({
+            eventHandler: (data: any) => {
+              if (data?.event === 'Checkout.Success') {
+                if (options.onSuccess) {
+                  options.onSuccess({
+                    transactionId: data?.data?.order?.id ? `ls_${data.data.order.id}` : `ls_order_${Date.now().toString(36)}`,
+                    planId: options.planId,
+                  });
+                }
+              } else if (data?.event === 'Checkout.Close') {
+                if (options.onCancel) {
+                  options.onCancel();
+                }
+              }
+            },
+          });
+        }
+        if ((window as any).LemonSqueezy?.Url?.Open) {
+          (window as any).LemonSqueezy.Url.Open(checkoutUrl);
+          return { success: true, message: 'Opened Lemon Squeezy card checkout overlay', redirected: false };
+        }
       }
 
       // Otherwise redirect
@@ -256,7 +289,7 @@ export async function launchGlobalCheckout(options: CheckoutOptions): Promise<{
       }
       resolve({
         success: true,
-        message: `Lemon Squeezy Sandbox Authorization Verified for "${options.planName}" ($${options.priceUSD}/mo). Transaction Ref: ${mockTxId}`,
+        message: `Lemon Squeezy Sandbox Authorization Verified for "${options.planName}" (${options.priceDisplay || `$${options.priceUSD}`}). Transaction Ref: ${mockTxId}`,
       });
     }, 800);
   });

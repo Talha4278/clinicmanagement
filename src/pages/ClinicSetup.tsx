@@ -30,6 +30,8 @@ import {
   ClinicBadgeIcon,
   PRESET_BADGE_ICONS,
 } from '../components/ClinicBadgeIcon';
+import CreditCardCheckoutModal from '../components/CreditCardCheckoutModal';
+import LemonSqueezyConfigModal from '../components/LemonSqueezyConfigModal';
 import {
   isDemoMode,
   getDemoStaff,
@@ -68,7 +70,7 @@ const CURRENCY_OPTIONS = [
 ];
 
 export default function ClinicSetup() {
-  const { activeClinic } = useAuth();
+  const { activeClinic, user } = useAuth();
   const { settings, updateSettings } = useClinicSettings();
   const [form, setForm] = useState<ClinicSettings>({
     ...settings,
@@ -138,6 +140,8 @@ export default function ClinicSetup() {
   const [testSending, setTestSending] = useState(false);
   const [testSent, setTestSent] = useState(false);
   const [checkoutTestStatus, setCheckoutTestStatus] = useState<string | null>(null);
+  const [showCardCheckoutModal, setShowCardCheckoutModal] = useState(false);
+  const [showLemonConfigModal, setShowLemonConfigModal] = useState(false);
 
 
 
@@ -3101,53 +3105,69 @@ export default function ClinicSetup() {
 
             {/* Payment Settlement Methods */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {/* Option 1: Credit / Debit Card Checkout (Coming Soon) */}
-              <div className="p-5 rounded-2xl border-2 border-amber-200/80 bg-gradient-to-br from-amber-50/40 via-white to-sky-50/30 space-y-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
+              {/* Option 1: Credit & Debit Card Checkout (Lemon Squeezy Merchant of Record) */}
+              <div className="p-5 rounded-2xl border-2 border-sky-300 bg-gradient-to-br from-sky-50/60 via-white to-indigo-50/40 space-y-4 flex flex-col justify-between shadow-sm relative overflow-hidden">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <span className="font-bold text-sm text-gray-900 flex items-center gap-2">
                       <CreditCard size={18} className="text-sky-600" />
                       Credit & Debit Card Checkout
                     </span>
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-white shadow-xs flex items-center gap-1">
-                      <Clock size={11} />
-                      Coming Soon
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-600 text-white shadow-xs flex items-center gap-1">
+                      <ShieldCheck size={11} />
+                      Active • Lemon Squeezy MoR
                     </span>
                   </div>
 
                   <p className="text-xs text-gray-600 leading-relaxed">
-                    Automated online card payments for <strong>Visa, Mastercard, Apple Pay, & Google Pay</strong> are currently under integration for global subscription processing.
+                    Automated global subscription checkout for <strong>Visa, Mastercard, American Express, Apple Pay, & Google Pay</strong>. International VAT, compliance, and multi-currency invoicing handled seamlessly.
                   </p>
 
                   <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-gray-700 pt-1">
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-xs flex items-center gap-1 text-gray-800">
-                      💳 Credit & Debit Cards
+                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
+                      💳 Visa, MC, Amex
                     </span>
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-xs flex items-center gap-1 text-gray-800">
+                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
                       🍏 Apple Pay & GPay
                     </span>
-                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-xs flex items-center gap-1 text-gray-800">
-                      🌐 Global Currencies
+                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
+                      🛡️ MoR Tax Covered
+                    </span>
+                    <span className="px-2.5 py-1 bg-white rounded-lg border border-gray-200 shadow-2xs flex items-center gap-1 text-gray-800">
+                      ⚡ Instant Activation
                     </span>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2 mt-2">
-                    <Sparkles size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="p-3 rounded-xl bg-sky-50/80 border border-sky-200/80 text-sky-950 text-xs flex items-start gap-2.5 mt-2">
+                    <Sparkles size={16} className="text-sky-600 flex-shrink-0 mt-0.5" />
                     <div className="text-[11px] leading-snug">
-                      <span className="font-bold text-amber-950 block">Card Checkout Method Coming Soon</span>
-                      We are currently completing verification for international card gateways. In the meantime, please use <strong>Direct Bank Transfer</strong> or WhatsApp support for instant activation.
+                      <span className="font-bold text-sky-950 block">
+                        Selected Plan: {PLAN_SPECS[selectedPlanTier].name} ({pricingBillingCycle === 'annual' ? 'Annual Billing' : 'Monthly'})
+                      </span>
+                      {pricingCurrency === 'PKR'
+                        ? `Rs. ${(pricingBillingCycle === 'annual' ? (selectedPlanTier === 'starter' ? 17270 : selectedPlanTier === 'pro' ? 33590 : 57590) : (selectedPlanTier === 'starter' ? 1799 : selectedPlanTier === 'pro' ? 3499 : 5999)).toLocaleString()} total • ${PLAN_SPECS[selectedPlanTier].max_seats} Doctor Seats & ${PLAN_SPECS[selectedPlanTier].max_sessions} Concurrent Logins`
+                        : `$${pricingBillingCycle === 'annual' ? (selectedPlanTier === 'starter' ? 278 : selectedPlanTier === 'pro' ? 758 : 1430) : (selectedPlanTier === 'starter' ? 29 : selectedPlanTier === 'pro' ? 79 : 149)} total • ${PLAN_SPECS[selectedPlanTier].max_seats} Doctor Seats & ${PLAN_SPECS[selectedPlanTier].max_sessions} Concurrent Logins`}
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 space-y-2">
                   <button
                     type="button"
-                    disabled
-                    className="w-full py-2.5 px-4 rounded-xl text-gray-400 bg-gray-100 border border-gray-200 text-xs font-bold flex items-center justify-center gap-2 cursor-not-allowed shadow-none"
+                    onClick={() => setShowCardCheckoutModal(true)}
+                    className="w-full py-2.5 px-4 rounded-xl text-white text-xs font-bold flex items-center justify-center gap-2 shadow-md hover:opacity-95 active:scale-[0.99] transition-all"
+                    style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
                   >
-                    <Clock size={14} className="text-gray-400" />
-                    <span>Card Checkout — Coming Soon</span>
+                    <CreditCard size={15} />
+                    <span>Subscribe via Credit & Debit Card</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowLemonConfigModal(true)}
+                    className="w-full py-2 px-3 rounded-xl bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span>Configure Lemon Squeezy Gateway Keys & Webhooks</span>
                   </button>
                 </div>
               </div>
@@ -3238,6 +3258,36 @@ export default function ClinicSetup() {
           </div>
         </div>
       )}
+
+      {/* Credit & Debit Card Checkout Modal */}
+      <CreditCardCheckoutModal
+        isOpen={showCardCheckoutModal}
+        onClose={() => setShowCardCheckoutModal(false)}
+        planId={selectedPlanTier}
+        initialBillingCycle={pricingBillingCycle}
+        currency={pricingCurrency}
+        clinicId={activeClinic?.id || ''}
+        clinicName={activeClinic?.name || form.clinic_name || ''}
+        customerEmail={activeClinic?.owner_email || user?.email || ''}
+        onOpenConfig={() => {
+          setShowCardCheckoutModal(false);
+          setShowLemonConfigModal(true);
+        }}
+        onSuccess={({ transactionId, planId }) => {
+          setPlanSuccessNotice(`Payment Authorized! Activated ${PLAN_SPECS[planId].name} plan (Ref: ${transactionId}).`);
+          setTimeout(() => setPlanSuccessNotice(null), 5000);
+        }}
+      />
+
+      {/* Lemon Squeezy Gateway Configuration Modal */}
+      <LemonSqueezyConfigModal
+        isOpen={showLemonConfigModal}
+        onClose={() => setShowLemonConfigModal(false)}
+        onSaved={() => {
+          setCheckoutTestStatus('Lemon Squeezy gateway settings saved successfully.');
+          setTimeout(() => setCheckoutTestStatus(null), 4000);
+        }}
+      />
     </div>
   );
 }

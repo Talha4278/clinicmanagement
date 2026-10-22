@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, Lock, ArrowUpRight, CheckCircle2, Landmark, MessageSquare } from 'lucide-react';
+import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, Lock, ArrowUpRight, CheckCircle2, Landmark, MessageSquare, CreditCard } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Staff as StaffType, StaffRole, SubscriptionPlan } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -8,6 +8,7 @@ import { isDemoMode, DEMO_STAFF_MEMBERS } from '../lib/demoData';
 import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 import { detectVisitorCurrency } from '../lib/geoPricing';
 import { INTERNATIONAL_PLANS } from '../lib/internationalPricing';
+import CreditCardCheckoutModal from '../components/CreditCardCheckoutModal';
 
 const roleColors: Record<StaffRole, string> = {
   admin: 'bg-red-50 text-red-700',
@@ -31,6 +32,7 @@ export default function Staff() {
 
   // Plan Management Modal State
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showCardCheckoutModal, setShowCardCheckoutModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan>(activeClinic?.plan || 'pro');
   const [planBillingCycle, setPlanBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [planCurrency, setPlanCurrency] = useState<'PKR' | 'USD'>('PKR');
@@ -844,6 +846,18 @@ export default function Staff() {
                 <button
                   type="button"
                   onClick={() => {
+                    setShowPlanModal(false);
+                    setShowCardCheckoutModal(true);
+                  }}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-95 shadow-md flex items-center gap-1.5"
+                  style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
+                >
+                  <CreditCard size={14} />
+                  <span>Pay with Card</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
                     if (!activeClinic?.id) return;
                     const ok = updateClinicPlan(activeClinic.id, selectedPlan);
                     if (ok) {
@@ -854,17 +868,32 @@ export default function Staff() {
                       }, 1200);
                     }
                   }}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-95 shadow-md flex items-center gap-1.5"
-                  style={{ background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' }}
+                  className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-all flex items-center gap-1.5"
                 >
                   <Sparkles size={14} />
-                  <span>Update Plan Tier</span>
+                  <span>Quick Switch</span>
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Credit & Debit Card Checkout Modal */}
+      <CreditCardCheckoutModal
+        isOpen={showCardCheckoutModal}
+        onClose={() => setShowCardCheckoutModal(false)}
+        planId={selectedPlan}
+        initialBillingCycle={planBillingCycle}
+        currency={planCurrency}
+        clinicId={activeClinic?.id || ''}
+        clinicName={activeClinic?.name || ''}
+        customerEmail={activeClinic?.owner_email || ''}
+        onSuccess={({ transactionId, planId }) => {
+          setPlanSuccessNotice(`Payment Authorized! Upgraded to ${PLAN_SPECS[planId].name} (Ref: ${transactionId}).`);
+          setTimeout(() => setPlanSuccessNotice(null), 4000);
+        }}
+      />
     </div>
   );
 }
