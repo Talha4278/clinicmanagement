@@ -88,13 +88,14 @@ export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
   // 2. Check localStorage for manual user selection (PKR or USD only)
   if (typeof window !== 'undefined') {
     try {
-      const manualCurr = localStorage.getItem(STORAGE_KEY_MANUAL);
+      const manualCurr = localStorage.getItem(STORAGE_KEY_MANUAL) || localStorage.getItem('clinsyst_manual_currency');
       if (manualCurr === 'PKR' || manualCurr === 'USD') {
-        const country = localStorage.getItem(STORAGE_KEY_COUNTRY) || '';
+        const country = localStorage.getItem(STORAGE_KEY_COUNTRY) || localStorage.getItem('clinsyst_detected_country') || '';
+        const isPak = manualCurr === 'PKR';
         return {
           currency: manualCurr as CurrencyCode,
-          countryCode: manualCurr === 'PKR' ? 'PK' : '',
-          countryName: country || (manualCurr === 'PKR' ? 'Pakistan' : 'International'),
+          countryCode: isPak ? 'PK' : (country && country !== 'Pakistan' ? 'US' : 'US'),
+          countryName: country || (isPak ? 'Pakistan' : 'International'),
           source: 'manual',
         };
       }
@@ -104,66 +105,73 @@ export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
   // 3. Check cached IP detection (PKR or USD only)
   if (typeof window !== 'undefined') {
     try {
-      const cachedCurr = localStorage.getItem(STORAGE_KEY_CURRENCY);
-      const cachedCountry = localStorage.getItem(STORAGE_KEY_COUNTRY) || '';
+      const cachedCurr = localStorage.getItem(STORAGE_KEY_CURRENCY) || localStorage.getItem('clinsyst_detected_currency');
+      const cachedCountry = localStorage.getItem(STORAGE_KEY_COUNTRY) || localStorage.getItem('clinsyst_detected_country') || '';
       if (cachedCurr === 'PKR' || cachedCurr === 'USD') {
+        const isPak = cachedCurr === 'PKR';
         return {
           currency: cachedCurr as CurrencyCode,
-          countryCode: cachedCurr === 'PKR' ? 'PK' : '',
-          countryName: cachedCountry || (cachedCurr === 'PKR' ? 'Pakistan' : 'International'),
+          countryCode: isPak ? 'PK' : 'US',
+          countryName: cachedCountry || (isPak ? 'Pakistan' : 'International'),
           source: 'cache',
         };
       }
     } catch {}
   }
 
-  // 4. Fast Async IP Geolocation with 2.5s timeout
+  // 4. Primary Fast IP Geolocation: api.country.is (Reliable, fast, no Cloudflare blocks)
   try {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 2500);
+    const timer = setTimeout(() => controller.abort(), 2000);
 
-    const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+    const res = await fetch('https://api.country.is', { signal: controller.signal });
     clearTimeout(timer);
 
     if (res.ok) {
       const data = await res.json();
-      const code = (data.country_code || data.country || '').toUpperCase();
-      const rawName = data.country_name || COUNTRY_NAMES[code] || code;
-      const isPakistan = code === 'PK' || (rawName && rawName.toLowerCase().includes('pakistan'));
+      const code = (data.country || '').toUpperCase();
+      if (code) {
+        const isPakistan = code === 'PK';
+        const mappedCurr: CurrencyCode = isPakistan ? 'PKR' : 'USD';
+        const countryName = isPakistan ? 'Pakistan' : (COUNTRY_NAMES[code] || code || 'International');
 
-      const mappedCurr: CurrencyCode = isPakistan ? 'PKR' : 'USD';
-      const countryName = isPakistan ? 'Pakistan' : (rawName || 'International');
+        try {
+          localStorage.setItem(STORAGE_KEY_CURRENCY, mappedCurr);
+          localStorage.setItem(STORAGE_KEY_COUNTRY, countryName);
+          localStorage.setItem('clinsyst_detected_currency', mappedCurr);
+          localStorage.setItem('clinsyst_detected_country', countryName);
+        } catch {}
 
-      try {
-        localStorage.setItem(STORAGE_KEY_CURRENCY, mappedCurr);
-        localStorage.setItem(STORAGE_KEY_COUNTRY, countryName);
-      } catch {}
-
-      return {
-        currency: mappedCurr,
-        countryCode: isPakistan ? 'PK' : code,
-        countryName,
-        source: 'ip',
-      };
+        return {
+          currency: mappedCurr,
+          countryCode: isPakistan ? 'PK' : code,
+          countryName,
+          source: 'ip',
+        };
+      }
     }
-  } catch {
-    // Secondary fallback to api.country.is
-    try {
-      const controller2 = new AbortController();
-      const timer2 = setTimeout(() => controller2.abort(), 1500);
-      const res2 = await fetch('https://api.country.is', { signal: controller2.signal });
-      clearTimeout(timer2);
+  } catch {}
 
-      if (res2.ok) {
-        const data2 = await res2.json();
-        const code2 = (data2.country || '').toUpperCase();
+  // 5. Secondary IP Geolocation: ipwho.is
+  try {
+    const controller2 = new AbortController();
+    const timer2 = setTimeout(() => controller2.abort(), 1800);
+    const res2 = await fetch('https://ipwho.is/', { signal: controller2.signal });
+    clearTimeout(timer2);
+
+    if (res2.ok) {
+      const data2 = await res2.json();
+      if (data2.success !== false && data2.country_code) {
+        const code2 = (data2.country_code || '').toUpperCase();
         const isPakistan = code2 === 'PK';
         const mappedCurr2: CurrencyCode = isPakistan ? 'PKR' : 'USD';
-        const countryName2 = isPakistan ? 'Pakistan' : (COUNTRY_NAMES[code2] || code2 || 'International');
+        const countryName2 = isPakistan ? 'Pakistan' : (data2.country || 'International');
 
         try {
           localStorage.setItem(STORAGE_KEY_CURRENCY, mappedCurr2);
           localStorage.setItem(STORAGE_KEY_COUNTRY, countryName2);
+          localStorage.setItem('clinsyst_detected_currency', mappedCurr2);
+          localStorage.setItem('clinsyst_detected_country', countryName2);
         } catch {}
 
         return {
@@ -173,10 +181,10 @@ export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
           source: 'ip',
         };
       }
-    } catch {}
-  }
+    }
+  } catch {}
 
-  // 5. Timezone heuristic fallback
+  // 6. Timezone heuristic fallback (reliable offline & adblocker resistant)
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     if (tz.includes('Karachi') || tz.toLowerCase().includes('pakistan')) {
@@ -184,7 +192,7 @@ export async function detectVisitorCurrency(): Promise<GeoDetectionResult> {
     }
   } catch {}
 
-  // 6. Default fallback (USD for all other countries)
+  // 7. Default fallback (USD for international clinics)
   return {
     currency: 'USD',
     countryCode: 'US',

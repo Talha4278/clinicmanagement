@@ -23,7 +23,7 @@ import {
   StaffRole,
   SubscriptionPlan,
 } from '../lib/types';
-import { detectVisitorCurrency } from '../lib/geoPricing';
+import { detectVisitorCurrency, saveManualCurrency } from '../lib/geoPricing';
 import { INTERNATIONAL_PLANS } from '../lib/internationalPricing';
 import { updateClinicPlan, updateClinicTenantProfile, PLAN_SPECS } from '../lib/tenancy';
 import {
@@ -134,20 +134,14 @@ export default function ClinicSetup() {
       ? (devGeoSimulation === 'PK' ? 'PK' : 'US')
       : visitorCountryCode;
 
-  const isPakistan = effectiveCountryCode === 'PK' || pricingCurrency === 'PKR';
+  // Real-time regional evaluation: either detected as PK or manually selected PKR
+  const isPakistan = pricingCurrency === 'PKR' || (effectiveCountryCode === 'PK' && pricingCurrency !== 'USD');
   const showCardCheckout = isDevMode && devGeoSimulation === 'auto' ? true : !isPakistan;
   const showPakistanLocalPayment = isDevMode && devGeoSimulation === 'auto' ? true : isPakistan;
 
   function handlePlanSelectionFlow(planId: SubscriptionPlan) {
     setSelectedPlanTier(planId);
-    if (showCardCheckout) {
-      setShowCardCheckoutModal(true);
-    } else {
-      const el = document.getElementById('pakistan-bank-payment-section');
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth' });
-      }
-    }
+    setShowCardCheckoutModal(true);
   }
 
 
@@ -2930,7 +2924,11 @@ export default function ClinicSetup() {
                 <div className="inline-flex items-center bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
                   <button
                     type="button"
-                    onClick={() => setPricingCurrency('USD')}
+                    onClick={() => {
+                      setPricingCurrency('USD');
+                      setVisitorCountryCode('US');
+                      saveManualCurrency('USD');
+                    }}
                     className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
                       pricingCurrency === 'USD'
                         ? 'bg-white text-sky-700 shadow-xs'
@@ -2942,7 +2940,11 @@ export default function ClinicSetup() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPricingCurrency('PKR')}
+                    onClick={() => {
+                      setPricingCurrency('PKR');
+                      setVisitorCountryCode('PK');
+                      saveManualCurrency('PKR');
+                    }}
                     className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 ${
                       pricingCurrency === 'PKR'
                         ? 'bg-white text-sky-700 shadow-xs'
@@ -3103,18 +3105,16 @@ export default function ClinicSetup() {
                             <Check size={14} className="text-emerald-700" />
                             <span>Current Active Plan</span>
                           </div>
-                          {showCardCheckout && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePlanSelectionFlow(plan.id);
-                              }}
-                              className="w-full text-center text-[10px] text-sky-700 font-semibold hover:underline"
-                            >
-                              Renew or Pay via Card ➔
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePlanSelectionFlow(plan.id);
+                            }}
+                            className="w-full text-center text-[10px] text-sky-700 font-semibold hover:underline"
+                          >
+                            {showCardCheckout ? 'Renew or Pay via Card ➔' : 'Renew / Transfer via Bank or Raast ➔'}
+                          </button>
                         </div>
                       ) : (
                         <button
@@ -3132,8 +3132,8 @@ export default function ClinicSetup() {
                             </>
                           ) : (
                             <>
-                              <Sparkles size={14} />
-                              <span>Select {plan.name}</span>
+                              <Landmark size={14} />
+                              <span>Select & Pay {plan.name}</span>
                             </>
                           )}
                         </button>
@@ -3340,17 +3340,30 @@ export default function ClinicSetup() {
                       </div>
                     </div>
 
-                    <a
-                      href={`https://wa.me/923093622732?text=${encodeURIComponent(
-                        `Hi, I am sending the subscription payment receipt for ${form.clinic_name || 'my clinic'} for the ${PLAN_SPECS[selectedPlanTier].name} (${pricingBillingCycle} billing). Please activate my subscription.`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm"
-                    >
-                      <MessageSquare size={14} />
-                      <span>Send Payment Receipt on WhatsApp (03093622732)</span>
-                    </a>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                      <a
+                        href={`https://wa.me/923093622732?text=${encodeURIComponent(
+                          `Hi, I am sending the subscription payment receipt for ${form.clinic_name || 'my clinic'} for the ${PLAN_SPECS[selectedPlanTier].name} (${pricingBillingCycle} billing). Please activate my subscription.`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm"
+                      >
+                        <MessageSquare size={14} />
+                        <span>Send Receipt on WhatsApp</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedPlanTier(selectedPlanTier);
+                          setShowCardCheckoutModal(true);
+                        }}
+                        className="py-2.5 px-4 rounded-xl border-2 border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-900 text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                      >
+                        <Landmark size={14} />
+                        <span>View Modal & Transfer ➔</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

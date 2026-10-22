@@ -1221,6 +1221,7 @@
       if (isManual) {
         try {
           localStorage.setItem('clinsyst_manual_currency', curr);
+          localStorage.setItem('clinsyst_currency', curr);
         } catch (e) {}
       }
 
@@ -1278,53 +1279,59 @@
         }
       } catch (e) {}
 
-      // 4. Async IP Geolocation API with fast timeout
+      // 4. Primary Fast IP Geolocation: api.country.is
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const res = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+        const res = await fetch('https://api.country.is', { signal: controller.signal });
         clearTimeout(timeoutId);
 
         if (res.ok) {
           const data = await res.json();
-          const countryCode = (data.country_code || data.country || '').toUpperCase();
-          const countryName = data.country_name || COUNTRY_NAMES[countryCode] || countryCode;
-          const mappedCurr = COUNTRY_TO_CURRENCY[countryCode] || (pricingRates[data.currency] ? data.currency : 'USD');
+          const countryCode = (data.country || '').toUpperCase();
+          const countryName = COUNTRY_NAMES[countryCode] || countryCode;
+          const mappedCurr = countryCode === 'PK' ? 'PKR' : 'USD';
 
           if (pricingRates[mappedCurr]) {
             try {
               localStorage.setItem('clinsyst_detected_currency', mappedCurr);
               localStorage.setItem('clinsyst_detected_country', countryName);
+              localStorage.setItem('clinsyst_currency', mappedCurr);
+              localStorage.setItem('clinsyst_country', countryName);
             } catch (e) {}
             setCurrency(mappedCurr, false, 'IP detection', countryName);
             return;
           }
         }
-      } catch (err) {
-        // Fallback to secondary country.is endpoint
-        try {
-          const controller2 = new AbortController();
-          const timeoutId2 = setTimeout(() => controller2.abort(), 1500);
-          const res2 = await fetch('https://api.country.is', { signal: controller2.signal });
-          clearTimeout(timeoutId2);
+      } catch (err) {}
 
-          if (res2.ok) {
-            const data2 = await res2.json();
-            const countryCode = (data2.country || '').toUpperCase();
-            const countryName = COUNTRY_NAMES[countryCode] || countryCode;
-            const mappedCurr = COUNTRY_TO_CURRENCY[countryCode] || 'USD';
+      // Fallback: ipwho.is
+      try {
+        const controller2 = new AbortController();
+        const timeoutId2 = setTimeout(() => controller2.abort(), 1800);
+        const res2 = await fetch('https://ipwho.is/', { signal: controller2.signal });
+        clearTimeout(timeoutId2);
+
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (data2.success !== false && data2.country_code) {
+            const countryCode = (data2.country_code || '').toUpperCase();
+            const countryName = data2.country || COUNTRY_NAMES[countryCode] || countryCode;
+            const mappedCurr = countryCode === 'PK' ? 'PKR' : 'USD';
 
             if (pricingRates[mappedCurr]) {
               try {
                 localStorage.setItem('clinsyst_detected_currency', mappedCurr);
                 localStorage.setItem('clinsyst_detected_country', countryName);
+                localStorage.setItem('clinsyst_currency', mappedCurr);
+                localStorage.setItem('clinsyst_country', countryName);
               } catch (e) {}
               setCurrency(mappedCurr, false, 'IP detection', countryName);
               return;
             }
           }
-        } catch (e2) {}
-      }
+        }
+      } catch (e2) {}
 
       // 5. Timezone heuristic fallback (reliable offline & adblocker resistant)
       try {

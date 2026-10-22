@@ -180,11 +180,10 @@ export async function launchGlobalCheckout(options: CheckoutOptions): Promise<{
   };
 
   const provider = config.provider || 'lemon_squeezy';
-  const isTestMode = config.test_mode === true;
 
   // 1. LEMON SQUEEZY OVERLAY CHECKOUT (MERCHANT OF RECORD)
-  if (provider === 'lemon_squeezy' && !isTestMode) {
-    const storeId = config.lemon_squeezy_store_id || (import.meta as any).env?.VITE_LEMON_SQUEEZY_STORE_ID;
+  if (provider === 'lemon_squeezy') {
+    const storeId = config.lemon_squeezy_store_id || (import.meta as any).env?.VITE_LEMON_SQUEEZY_STORE_ID || '490757';
     if (storeId) {
       await loadExternalScript('https://assets.lemonsqueezy.com/lemon.js', 'lemonsqueezy-js');
 
