@@ -63,7 +63,10 @@ export default function PatientDossierModal({
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
-          <div className="w-10 h-10 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+          <div
+            className="w-10 h-10 border-4 rounded-full animate-spin mx-auto mb-3"
+            style={{ borderColor: 'var(--primary-light, #e0f2fe)', borderTopColor: 'var(--primary-color, #0284c7)' }}
+          />
           <p className="text-sm font-semibold text-gray-700">Loading Patient Records...</p>
         </div>
       </div>

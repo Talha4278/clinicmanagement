@@ -572,7 +572,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
           <button
             onClick={() => openNewModal()}
             className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-white font-semibold text-sm transition-all hover:opacity-90 shadow-sm"
-            style={{ background: '#3c5e27' }}
+            style={{ background: 'var(--primary-color, #0284c7)' }}
           >
             <Plus size={18} /> Book Appointment
           </button>
@@ -746,7 +746,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                     <button
                       onClick={() => openNewModal()}
                       className="mt-3 text-sm font-medium hover:underline"
-                      style={{ color: '#3c5e27' }}
+                      style={{ color: 'var(--primary-color, #0284c7)' }}
                     >
                       Book a new appointment
                     </button>
@@ -760,7 +760,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                       <div className="flex items-center gap-3">
                         <div
                           className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                          style={{ background: '#3c5e27' }}
+                          style={{ background: 'var(--primary-color, #0284c7)' }}
                         >
                           {apt.patient?.name.charAt(0).toUpperCase() ?? 'P'}
                         </div>
@@ -1056,7 +1056,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                                 >
                                   <div
                                     className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                                    style={{ background: '#3c5e27' }}
+                                    style={{ background: 'var(--primary-color, #0284c7)' }}
                                   >
                                     {p.name.charAt(0).toUpperCase()}
                                   </div>
@@ -1416,7 +1416,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                   type="submit"
                   disabled={saving}
                   className="px-6 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-60 flex items-center gap-2"
-                  style={{ background: '#3c5e27' }}
+                  style={{ background: 'var(--primary-color, #0284c7)' }}
                 >
                   {saving
                     ? 'Processing...'

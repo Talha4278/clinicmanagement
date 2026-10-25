@@ -249,7 +249,7 @@ export default function Reports() {
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize ${
                 period === p ? 'text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'
               }`}
-              style={period === p ? { background: '#3c5e27' } : {}}
+              style={period === p ? { background: 'var(--primary-color, #0284c7)' } : {}}
             >
               {p}
             </button>
@@ -282,14 +282,20 @@ export default function Reports() {
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-semibold text-gray-900">Daily Revenue</h3>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full" style={{ background: '#4a7530' }} />
+              <div className="w-3 h-3 rounded-full" style={{ background: 'var(--primary-color, #0284c7)' }} />
               <span className="text-xs text-gray-500">Paid</span>
             </div>
           </div>
 
           {loading ? (
             <div className="h-48 flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-green-600/30 border-t-green-600 rounded-full animate-spin" />
+              <div
+                className="w-6 h-6 border-2 rounded-full animate-spin"
+                style={{
+                  borderColor: 'rgba(2, 132, 199, 0.25)',
+                  borderTopColor: 'var(--primary-color, #0284c7)',
+                }}
+              />
             </div>
           ) : daily.length === 0 ? (
             <div className="h-48 flex items-center justify-center">

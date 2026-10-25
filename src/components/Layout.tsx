@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
 import { ClinicBadgeIcon } from './ClinicBadgeIcon';
+import { useTheme } from '../contexts/ThemeContext';
 
 export type Page =
   | 'dashboard'
@@ -52,6 +53,7 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
     terminateAllOtherSessions,
   } = useAuth();
   const { settings: clinic } = useClinicSettings();
+  const { theme, themeConfig, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showSessionsModal, setShowSessionsModal] = useState(false);
 
@@ -144,11 +146,11 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--cream)' }}>
+    <div className="flex h-screen overflow-hidden transition-colors duration-200" style={{ background: themeConfig.appBg }}>
       {/* Desktop sidebar */}
       <aside
-        className="hidden lg:flex flex-col w-56 flex-shrink-0 h-full"
-        style={{ background: '#3c5e27' }}
+        className="hidden lg:flex flex-col w-56 flex-shrink-0 h-full transition-colors duration-200"
+        style={{ background: themeConfig.sidebarBg }}
       >
         <SidebarContent />
       </aside>
@@ -158,8 +160,8 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
         <div className="lg:hidden fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside
-            className="relative flex flex-col w-64 h-full z-50"
-            style={{ background: '#3c5e27' }}
+            className="relative flex flex-col w-64 h-full z-50 transition-colors duration-200"
+            style={{ background: themeConfig.sidebarBg }}
           >
             <button
               onClick={() => setSidebarOpen(false)}
@@ -192,7 +194,23 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Theme Switcher Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:scale-[1.02] shadow-2xs"
+              style={{
+                background: theme === 'blue' ? '#f0f9ff' : '#f2f7ef',
+                borderColor: theme === 'blue' ? '#bae6fd' : '#c4dcb4',
+                color: theme === 'blue' ? '#0369a1' : '#2a401d',
+              }}
+              title={`Active Theme: ${themeConfig.name}. Click to switch to ${theme === 'blue' ? 'Warm Organic Olive & Cream' : 'Modern Dental Blue & White'}.`}
+            >
+              <span className="text-sm">{themeConfig.icon}</span>
+              <span className="hidden sm:inline font-bold">{themeConfig.shortName}</span>
+              <span className="text-[10px] opacity-70 underline font-normal hidden md:inline">Switch</span>
+            </button>
 
             {/* Active Sessions Counter & Manager Button */}
             <button
@@ -211,8 +229,8 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
               <Bell size={17} />
             </button>
             <div
-              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold"
-              style={{ background: '#3c5e27' }}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold transition-colors"
+              style={{ background: themeConfig.primary }}
             >
               {staff?.name?.charAt(0).toUpperCase() ?? '?'}
             </div>

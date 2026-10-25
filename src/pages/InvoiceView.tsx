@@ -191,7 +191,13 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-green-600/30 border-t-green-600 rounded-full animate-spin mx-auto mb-3" />
+          <div
+            className="w-8 h-8 border-2 rounded-full animate-spin mx-auto mb-3"
+            style={{
+              borderColor: 'rgba(2, 132, 199, 0.25)',
+              borderTopColor: 'var(--primary-color, #0284c7)',
+            }}
+          />
           <p className="text-gray-400 text-sm">Loading invoice...</p>
         </div>
       </div>
@@ -261,7 +267,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
           <button
             onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold hover:opacity-90 transition-all"
-            style={{ background: '#3c5e27' }}
+            style={{ background: 'var(--primary-color, #0284c7)' }}
           >
             <Printer size={15} /> Print / Save PDF
           </button>
@@ -299,7 +305,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
       {/* Invoice document */}
       <div className="bg-white rounded-2xl card-shadow-md overflow-hidden" id="invoice-print">
         {/* Invoice header */}
-        <div className="p-8" style={{ background: '#3c5e27' }}>
+        <div className="p-8" style={{ background: 'var(--sidebar-bg, #0c4a6e)' }}>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -408,7 +414,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
             )}
             <div className="border-t-2 border-gray-200 pt-2 flex justify-between">
               <span className="font-bold text-gray-900 text-base">Total Bill</span>
-              <span className="font-bold text-xl" style={{ color: '#3c5e27' }}>{clinic.currency_symbol || 'AED '}{Number(invoice.total).toLocaleString()}</span>
+              <span className="font-bold text-xl" style={{ color: 'var(--primary-color, #0284c7)' }}>{clinic.currency_symbol || 'AED '}{Number(invoice.total).toLocaleString()}</span>
             </div>
 
             {/* Paid Amount */}

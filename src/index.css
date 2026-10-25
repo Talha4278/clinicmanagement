@@ -2,7 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme System: Default Modern Dental Blue & White (Landing Page) */
 :root {
+  --primary-color: #0284c7;
+  --primary-hover: #0369a1;
+  --primary-light: #f0f9ff;
+  --primary-dark: #0c4a6e;
+  --sidebar-bg: #0c4a6e;
+  --sidebar-active-bg: rgba(255, 255, 255, 0.18);
+  --app-bg: #f8fafc;
+  --app-bg-dark: #f1f5f9;
+  --banner-bg: linear-gradient(135deg, #082f49 0%, #0c4a6e 40%, #0284c7 100%);
+  --cream: #f8fafc;
+  --cream-dark: #f1f5f9;
+  --primary-50: #f0f9ff;
+  --primary-100: #e0f2fe;
+  --primary-200: #bae6fd;
+  --primary-300: #7dd3fc;
+  --primary-400: #38bdf8;
+  --primary-500: #0ea5e9;
+  --primary-600: #0284c7;
+  --primary-700: #0369a1;
+  --primary-800: #075985;
+  --primary-900: #0c4a6e;
+}
+
+/* Warm Organic Olive & Cream Theme */
+[data-theme='olive'] {
+  --primary-color: #3c5e27;
+  --primary-hover: #324e21;
+  --primary-light: #f2f7ef;
+  --primary-dark: #2a401d;
+  --sidebar-bg: #3c5e27;
+  --sidebar-active-bg: rgba(255, 255, 255, 0.20);
+  --app-bg: #f7f4ed;
+  --app-bg-dark: #ede9de;
+  --banner-bg: linear-gradient(135deg, #2a401d 0%, #3c5e27 60%, #4a7530 100%);
+  --cream: #f7f4ed;
+  --cream-dark: #ede9de;
   --primary-50: #f2f7ef;
   --primary-100: #e1edd9;
   --primary-200: #c4dcb4;
@@ -13,8 +50,6 @@
   --primary-700: #3c5e27;
   --primary-800: #324e21;
   --primary-900: #2a401d;
-  --cream: #f7f4ed;
-  --cream-dark: #ede9de;
 }
 
 * {
@@ -23,9 +58,10 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background-color: var(--cream);
+  background-color: var(--app-bg, var(--cream));
   color: #1a1a1a;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s ease;
 }
 
 .font-display {

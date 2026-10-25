@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { Appointment, Invoice, Patient } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
+import { useTheme } from '../contexts/ThemeContext';
 import {
   isDemoMode,
   getDemoPatients,
@@ -52,6 +53,7 @@ function formatDisplayDate(dateStr: string): string {
 export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
   const { staff, activeClinic } = useAuth();
   const { settings: clinic } = useClinicSettings();
+  const { themeConfig } = useTheme();
   const isReceptionist = staff?.role === 'receptionist';
 
   const [stats, setStats] = useState<Stats>({
@@ -257,8 +259,8 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
       label: 'Total Patients',
       value: stats.totalPatients.toLocaleString(),
       icon: Users,
-      color: '#3c5e27',
-      bg: '#f2f7ef',
+      color: themeConfig.primary,
+      bg: themeConfig.primaryLight,
       sub: 'Registered patients',
     },
     {
@@ -301,8 +303,8 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
     <div className="space-y-6">
       {/* Quick actions banner */}
       <div
-        className="rounded-3xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-white shadow-lg"
-        style={{ background: 'linear-gradient(135deg, #2a401d 0%, #3c5e27 60%, #4a7530 100%)' }}
+        className="rounded-3xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-white shadow-lg transition-all duration-300"
+        style={{ background: themeConfig.bannerBg }}
       >
         <div>
           <span className="text-white/70 text-xs uppercase font-semibold tracking-wider">
@@ -332,7 +334,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
           <button
             onClick={() => onNavigate('new-invoice')}
             className="flex items-center gap-2 bg-white text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl hover:bg-white/95 transition-all shadow-md"
-            style={{ color: '#3c5e27' }}
+            style={{ color: themeConfig.primary }}
           >
             <Plus size={16} /> New Invoice
           </button>

@@ -204,7 +204,7 @@ export default function Inventory() {
         <button
           onClick={openAddModal}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90 shadow-xs"
-          style={{ background: '#3c5e27' }}
+          style={{ background: 'var(--primary-color, #0284c7)' }}
         >
           <Plus size={16} /> Add Inventory Item
         </button>

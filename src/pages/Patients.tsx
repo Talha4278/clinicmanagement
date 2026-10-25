@@ -161,7 +161,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
         <button
           onClick={openAdd}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90"
-          style={{ background: '#3c5e27' }}
+          style={{ background: 'var(--primary-color, #0284c7)' }}
         >
           <Plus size={16} /> Register Patient
         </button>
@@ -408,7 +408,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                   type="submit"
                   disabled={saving}
                   className="px-6 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-60"
-                  style={{ background: '#3c5e27' }}
+                  style={{ background: 'var(--primary-color, #0284c7)' }}
                 >
                   {saving ? 'Saving...' : editPatient ? 'Save Changes' : 'Register Patient'}
                 </button>

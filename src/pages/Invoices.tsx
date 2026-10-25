@@ -178,7 +178,7 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
         <button
           onClick={onNewInvoice}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all hover:opacity-90"
-          style={{ background: '#3c5e27' }}
+          style={{ background: 'var(--primary-color, #0284c7)' }}
         >
           <Plus size={16} /> New Invoice
         </button>

@@ -430,7 +430,7 @@ export default function EditPaymentModal({
               type="submit"
               disabled={saving}
               className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-white text-xs font-semibold shadow-xs hover:opacity-90 transition-all disabled:opacity-50"
-              style={{ background: '#3c5e27' }}
+              style={{ background: 'var(--primary-color, #0284c7)' }}
             >
               {saving ? (
                 <>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import LoginPage from './pages/LoginPage';
 import Layout, { Page } from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -44,6 +45,7 @@ function readAuthEntryParams(): AuthEntryParams {
 
 function AppContent() {
   const { user, staff, activeClinic, refreshClinicStatus, signOut, loading } = useAuth();
+  const { theme, themeConfig } = useTheme();
   const [page, setPage] = useState<Page>('dashboard');
   const [authEntry] = useState<AuthEntryParams>(readAuthEntryParams);
 
@@ -66,17 +68,60 @@ function AppContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--cream)' }}>
-        <div className="flex flex-col items-center gap-3 max-w-sm text-center">
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm"
-            style={{ background: '#3c5e27' }}
-          >
-            <svg className="w-5 h-5 text-white animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.5 12.75l6 6 9-13.5" />
-            </svg>
+      <div
+        className="min-h-screen flex items-center justify-center p-4 transition-colors duration-300"
+        style={{ background: themeConfig.appBg }}
+      >
+        <div className="flex flex-col items-center gap-4 max-w-sm text-center">
+          {/* Dual-ring Spinner paired with Logo Badge matching Landing Page */}
+          <div className="relative w-16 h-16 flex items-center justify-center">
+            {/* Outer Subtle Background Track */}
+            <div
+              className="absolute inset-0 rounded-full border-3 transition-colors duration-300"
+              style={{
+                borderColor: theme === 'blue' ? '#e0f2fe' : '#e1edd9',
+              }}
+            />
+            {/* Spinning Arc with Brand Primary Color */}
+            <div
+              className="absolute inset-0 rounded-full border-3 border-transparent animate-spin transition-colors duration-300"
+              style={{
+                borderTopColor: themeConfig.primary,
+                borderRightColor: theme === 'blue' ? 'rgba(2, 132, 199, 0.4)' : 'rgba(60, 94, 39, 0.4)',
+              }}
+            />
+            {/* Center Brand Badge (matches Landing Page header logo exactly) */}
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-md transition-all duration-300"
+              style={{
+                background: themeConfig.primary,
+                boxShadow:
+                  theme === 'blue'
+                    ? '0 8px 20px -4px rgba(2, 132, 199, 0.4)'
+                    : '0 8px 20px -4px rgba(60, 94, 39, 0.4)',
+              }}
+            >
+              C
+            </div>
           </div>
-          <p className="text-sm font-medium text-slate-500">Loading Clinsyst...</p>
+
+          <div>
+            <p
+              className="text-sm font-bold tracking-tight"
+              style={{ color: theme === 'blue' ? '#0c4a6e' : '#2a401d' }}
+            >
+              Loading Clinsyst...
+            </p>
+            <div className="flex items-center justify-center gap-1.5 mt-1">
+              <span
+                className="w-1.5 h-1.5 rounded-full animate-pulse"
+                style={{ background: themeConfig.primary }}
+              />
+              <p className="text-[11px] font-medium text-slate-400">
+                {themeConfig.name}
+              </p>
+            </div>
+          </div>
           {slowLoadingNotice && (
             <div className="mt-2 flex flex-col items-center gap-2">
               <p className="text-xs text-slate-400">Taking longer than expected to connect?</p>
@@ -276,8 +321,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

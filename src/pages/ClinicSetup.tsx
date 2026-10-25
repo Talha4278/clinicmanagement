@@ -7,8 +7,9 @@ import {
   UserCheck, UserX, Loader2, Clock, Receipt, CreditCard,
   MessageSquare, Send, Smartphone, Lock,
   ShieldCheck, Zap,
-  CheckCheck, Landmark
+  CheckCheck, Landmark, Palette
 } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 import { useAuth } from '../contexts/AuthContext';
@@ -71,6 +72,7 @@ const CURRENCY_OPTIONS = [
 export default function ClinicSetup() {
   const { activeClinic, user } = useAuth();
   const { settings, updateSettings } = useClinicSettings();
+  const { theme, setTheme, themeConfig } = useTheme();
   const [form, setForm] = useState<ClinicSettings>({
     ...settings,
     clinic_name: activeClinic?.name || settings.clinic_name || '',
@@ -967,6 +969,105 @@ export default function ClinicSetup() {
               </div>
             </div>
 
+            {/* Core App Theme & Design System */}
+            <div className="space-y-4 bg-gray-50/80 p-5 rounded-2xl border border-gray-200/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200/60 pb-3">
+                <div>
+                  <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <Palette size={14} className="text-sky-600" />
+                    Workspace Color Theme (Design System)
+                  </label>
+                  <p className="text-[11px] text-gray-500">
+                    Switch between the default landing page aesthetic and the warm organic clinic theme. Changes apply across the entire portal instantly.
+                  </p>
+                </div>
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border self-start sm:self-auto"
+                  style={{
+                    background: theme === 'blue' ? '#f0f9ff' : '#f2f7ef',
+                    borderColor: theme === 'blue' ? '#bae6fd' : '#c4dcb4',
+                    color: theme === 'blue' ? '#0369a1' : '#2a401d',
+                  }}
+                >
+                  Active: {themeConfig.name}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {/* Option 1: Modern Dental Blue & White */}
+                <div
+                  onClick={() => setTheme('blue')}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    theme === 'blue'
+                      ? 'border-sky-600 bg-sky-50/40 shadow-sm ring-2 ring-sky-500/20'
+                      : 'border-gray-200 bg-white hover:border-sky-300 hover:bg-sky-50/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🌊</span>
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-900">Modern Dental Blue & White</h5>
+                        <p className="text-[10px] text-sky-700 font-semibold">Landing Page & Cloud Portal Default</p>
+                      </div>
+                    </div>
+                    {theme === 'blue' && (
+                      <span className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px] font-bold">
+                        <Check size={12} />
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mb-3">
+                    Crisp, professional high-tech aesthetic matching the public website, dental sky blues, and slate canvas.
+                  </p>
+                  {/* Swatches */}
+                  <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100">
+                    <span className="w-5 h-5 rounded-md bg-[#0284c7] shadow-2xs" title="Brand Sky Blue (#0284c7)" />
+                    <span className="w-5 h-5 rounded-md bg-[#0c4a6e] shadow-2xs" title="Dental Navy (#0c4a6e)" />
+                    <span className="w-5 h-5 rounded-md bg-[#f0f9ff] border border-sky-200" title="Soft Blue Accent (#f0f9ff)" />
+                    <span className="w-5 h-5 rounded-md bg-[#f8fafc] border border-slate-200" title="Slate 50 Background (#f8fafc)" />
+                    <span className="w-5 h-5 rounded-md bg-white border border-slate-200" title="Pure White (#ffffff)" />
+                  </div>
+                </div>
+
+                {/* Option 2: Warm Organic Olive & Cream */}
+                <div
+                  onClick={() => setTheme('olive')}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    theme === 'olive'
+                      ? 'border-emerald-700 bg-emerald-50/40 shadow-sm ring-2 ring-emerald-600/20'
+                      : 'border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">🌿</span>
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-900">Warm Organic Olive & Cream</h5>
+                        <p className="text-[10px] text-emerald-800 font-semibold">Earthy Holistic Clinical Theme</p>
+                      </div>
+                    </div>
+                    {theme === 'olive' && (
+                      <span className="w-5 h-5 rounded-full bg-emerald-800 text-white flex items-center justify-center text-[10px] font-bold">
+                        <Check size={12} />
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 mb-3">
+                    Warm, calming organic clinical ambience with forest olive tones and soothing antique cream surfaces.
+                  </p>
+                  {/* Swatches */}
+                  <div className="flex items-center gap-1.5 pt-2 border-t border-slate-100">
+                    <span className="w-5 h-5 rounded-md bg-[#3c5e27] shadow-2xs" title="Forest Olive (#3c5e27)" />
+                    <span className="w-5 h-5 rounded-md bg-[#2a401d] shadow-2xs" title="Dark Olive (#2a401d)" />
+                    <span className="w-5 h-5 rounded-md bg-[#e1edd9] border border-emerald-200" title="Olive Tint (#e1edd9)" />
+                    <span className="w-5 h-5 rounded-md bg-[#f7f4ed] border border-stone-200" title="Antique Cream (#f7f4ed)" />
+                    <span className="w-5 h-5 rounded-md bg-white border border-stone-200" title="Pure White (#ffffff)" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Logo / Badge Choice & Customization */}
             <div className="space-y-4 bg-gray-50/80 p-5 rounded-2xl border border-gray-200/80">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200/60 pb-3">
@@ -1231,7 +1332,7 @@ export default function ClinicSetup() {
                     ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-offset-2 scale-[1.02]'
                     : 'hover:opacity-90 active:scale-[0.98]'
                 }`}
-                style={savedTab === 'profile' ? undefined : { background: '#3c5e27' }}
+                style={savedTab === 'profile' ? undefined : { background: 'var(--primary-color, #0284c7)' }}
               >
                 {savingTab === 'profile' ? (
                   <>
@@ -1266,7 +1367,7 @@ export default function ClinicSetup() {
               {/* Rendered mini invoice preview */}
               <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm text-white">
                 {/* Header */}
-                <div className="p-4" style={{ background: '#3c5e27' }}>
+                <div className="p-4" style={{ background: 'var(--sidebar-bg, #0c4a6e)' }}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 transition-all">
@@ -1331,7 +1432,7 @@ export default function ClinicSetup() {
                   <div className="flex items-center gap-2.5">
                     <div
                       className="w-8 h-8 rounded-lg flex items-center justify-center text-white overflow-hidden transition-all"
-                      style={{ background: '#3c5e27' }}
+                      style={{ background: 'var(--primary-color, #0284c7)' }}
                     >
                       {brandingMode === 'logo' && form.logo_url ? (
                         <img src={form.logo_url} alt="Logo" className="w-full h-full object-cover" />
@@ -1782,7 +1883,7 @@ export default function ClinicSetup() {
                   ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-offset-2 scale-[1.02]'
                   : 'hover:opacity-90 active:scale-[0.98]'
               }`}
-              style={savedTab === 'localization' ? undefined : { background: '#3c5e27' }}
+              style={savedTab === 'localization' ? undefined : { background: 'var(--primary-color, #0284c7)' }}
             >
               {savingTab === 'localization' ? (
                 <>
@@ -2254,7 +2355,7 @@ export default function ClinicSetup() {
                   ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-offset-2 scale-[1.02]'
                   : 'hover:opacity-90 active:scale-[0.98]'
               }`}
-              style={savedTab === 'whatsapp' ? undefined : { background: '#3c5e27' }}
+              style={savedTab === 'whatsapp' ? undefined : { background: 'var(--primary-color, #0284c7)' }}
             >
               {savingTab === 'whatsapp' ? (
                 <>
@@ -2365,7 +2466,7 @@ export default function ClinicSetup() {
                 type="button"
                 onClick={() => setShowAddDoctorForm(!showAddDoctorForm)}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-white text-xs font-bold transition-all shadow-xs"
-                style={{ background: '#3c5e27' }}
+                style={{ background: 'var(--primary-color, #0284c7)' }}
               >
                 <UserPlus size={13} /> {showAddDoctorForm ? 'Close Form' : 'Add New Doctor'}
               </button>
@@ -2459,7 +2560,7 @@ export default function ClinicSetup() {
                   type="submit"
                   disabled={savingDoctor}
                   className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50"
-                  style={{ background: '#3c5e27' }}
+                  style={{ background: 'var(--primary-color, #0284c7)' }}
                 >
                   {savingDoctor ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save Doctor
                 </button>
@@ -2619,7 +2720,7 @@ export default function ClinicSetup() {
                           onClick={handleSaveEditDoctor}
                           disabled={savingDoctor}
                           className="flex items-center gap-1 px-3 py-1 rounded-lg text-white text-xs font-bold shadow-xs disabled:opacity-50"
-                          style={{ background: '#3c5e27' }}
+                          style={{ background: 'var(--primary-color, #0284c7)' }}
                         >
                           {savingDoctor ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Save
                         </button>
@@ -2642,7 +2743,7 @@ export default function ClinicSetup() {
                       <div className="flex items-center gap-3">
                         <div
                           className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-xs"
-                          style={{ background: isActive ? '#3c5e27' : '#6b7280' }}
+                          style={{ background: isActive ? 'var(--primary-color, #0284c7)' : '#6b7280' }}
                         >
                           {doc.name.replace(/^Dr\.?\s*/i, '').charAt(0).toUpperCase() || 'D'}
                         </div>
@@ -2764,7 +2865,7 @@ export default function ClinicSetup() {
                 type="submit"
                 disabled={!newProcedureName.trim()}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-white text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 shadow-sm"
-                style={{ background: '#3c5e27' }}
+                style={{ background: 'var(--primary-color, #0284c7)' }}
               >
                 <Plus size={15} /> Add Procedure
               </button>

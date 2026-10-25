@@ -331,7 +331,7 @@ export default function Staff() {
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all ${
               seatInfo.allowed ? 'hover:opacity-90' : 'opacity-80'
             }`}
-            style={{ background: seatInfo.allowed ? '#3c5e27' : '#5c7a48' }}
+            style={{ background: seatInfo.allowed ? 'var(--primary-color, #0284c7)' : 'var(--primary-hover, #0369a1)' }}
           >
             <Plus size={16} /> Add Staff
           </button>
@@ -610,7 +610,7 @@ export default function Staff() {
                   type="submit"
                   disabled={saving}
                   className="px-6 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 disabled:opacity-60 transition-all"
-                  style={{ background: '#3c5e27' }}
+                  style={{ background: 'var(--primary-color, #0284c7)' }}
                 >
                   {saving ? 'Saving...' : editStaff ? 'Save Changes' : 'Add Staff'}
                 </button>

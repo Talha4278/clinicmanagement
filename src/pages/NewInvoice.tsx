@@ -391,7 +391,7 @@ export default function NewInvoice({ onSuccess }: Props) {
               type="button"
               onClick={addItem}
               className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-lg transition-colors hover:opacity-90"
-              style={{ background: '#f2f7ef', color: '#3c5e27' }}
+              style={{ background: 'var(--primary-light, #f0f9ff)', color: 'var(--primary-color, #0284c7)' }}
             >
               <Plus size={14} /> Add Item
             </button>
@@ -549,7 +549,7 @@ export default function NewInvoice({ onSuccess }: Props) {
 
               <div className="border-t border-gray-100 pt-3 flex justify-between items-baseline">
                 <span className="font-semibold text-gray-900">Total Bill</span>
-                <span className="text-xl font-bold" style={{ color: '#3c5e27' }}>
+                <span className="text-xl font-bold" style={{ color: 'var(--primary-color, #0284c7)' }}>
                   {settings.currency_symbol || 'Rs. '}{total.toLocaleString()}
                 </span>
               </div>
@@ -637,7 +637,7 @@ export default function NewInvoice({ onSuccess }: Props) {
             type="submit"
             disabled={saving}
             className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white rounded-xl hover:opacity-90 transition-all disabled:opacity-60"
-            style={{ background: '#3c5e27' }}
+            style={{ background: 'var(--primary-color, #0284c7)' }}
           >
             {saving ? 'Creating...' : (
               <>

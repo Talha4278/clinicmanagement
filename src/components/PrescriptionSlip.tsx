@@ -61,7 +61,7 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
             <div className="flex items-center gap-3">
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0"
-                style={{ background: '#3c5e27' }}
+                style={{ background: 'var(--primary-color, #0284c7)' }}
               >
                 {activeClinic?.logo_url || clinic.logo_url ? (
                   <img src={activeClinic?.logo_url || clinic.logo_url || ''} alt={activeClinic?.name || clinic.clinic_name} className="w-full h-full object-contain p-1" />
