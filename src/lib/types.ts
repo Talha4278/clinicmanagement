@@ -348,6 +348,12 @@ export interface ClinicTenant {
   tagline?: string;
   logo_url?: string | null;
   badge_icon?: string | null;
+  tax_number?: string | null;
+  tooth_notation?: 'fdi' | 'universal' | null;
+  timezone?: string | null;
+  tax_rate?: number | null;
+  tax_label?: string | null;
+  currency_symbol?: string | null;
   status: 'trial' | 'active' | 'suspended';
   trial_ends_at: string;
   created_at: string;

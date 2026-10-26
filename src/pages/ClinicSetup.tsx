@@ -274,6 +274,12 @@ export default function ClinicSetup({ initialTab = 'profile' }: ClinicSetupProps
             address: data.address || prev.address,
             logo_url: branding.logoUrl,
             badge_icon: branding.badgeIcon,
+            tax_number: data.tax_number !== undefined && data.tax_number !== null ? data.tax_number : prev.tax_number,
+            tooth_notation: (data.tooth_notation as any) || prev.tooth_notation,
+            timezone: data.timezone || prev.timezone,
+            tax_rate: typeof data.tax_rate === 'number' ? data.tax_rate : prev.tax_rate,
+            tax_label: data.tax_label || prev.tax_label,
+            currency_symbol: data.currency_symbol || prev.currency_symbol,
           }));
           setSelectedPresetIcon(branding.badgeIcon);
           setBrandingMode(branding.brandingMode);
@@ -291,14 +297,27 @@ export default function ClinicSetup({ initialTab = 'profile' }: ClinicSetupProps
     setTimeout(() => setSavedSuccess(false), 3500);
   }
 
-  function handleSaveLocalization(e?: React.FormEvent) {
+  async function handleSaveLocalization(e?: React.FormEvent) {
     if (e) e.preventDefault();
     setSavingTab('localization');
     updateSettings(form);
     isDirtyRef.current = false;
+
+    // Persist to Supabase clinics table
+    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
+    await updateClinicTenantProfile(clinicId, {
+      name: form.clinic_name,
+      tax_number: form.tax_number,
+      tooth_notation: form.tooth_notation,
+      timezone: form.timezone,
+      tax_rate: form.tax_rate,
+      tax_label: form.tax_label,
+      currency_symbol: form.currency_symbol,
+    });
+
     setSavingTab(null);
     setSavedTab('localization');
-    notifySuccess('Tooth notation, time zone & VAT settings saved and applied!');
+    notifySuccess('Tooth notation, time zone & VAT settings saved to database and applied!');
     setTimeout(() => {
       setSavedTab((curr) => curr === 'localization' ? null : curr);
     }, 2500);
@@ -447,6 +466,11 @@ export default function ClinicSetup({ initialTab = 'profile' }: ClinicSetupProps
       website: updatedForm.website,
       tax_number: updatedForm.tax_number,
       badge_icon: activeBadge,
+      tooth_notation: updatedForm.tooth_notation,
+      timezone: updatedForm.timezone,
+      tax_rate: updatedForm.tax_rate,
+      tax_label: updatedForm.tax_label,
+      currency_symbol: updatedForm.currency_symbol,
     });
 
     setSavingTab(null);
@@ -476,6 +500,12 @@ export default function ClinicSetup({ initialTab = 'profile' }: ClinicSetupProps
             address: data.address || '',
             logo_url: branding.logoUrl,
             badge_icon: branding.badgeIcon,
+            tax_number: data.tax_number !== undefined && data.tax_number !== null ? data.tax_number : form.tax_number,
+            tooth_notation: (data.tooth_notation as any) || form.tooth_notation,
+            timezone: data.timezone || form.timezone,
+            tax_rate: typeof data.tax_rate === 'number' ? data.tax_rate : form.tax_rate,
+            tax_label: data.tax_label || form.tax_label,
+            currency_symbol: data.currency_symbol || form.currency_symbol,
           };
           isDirtyRef.current = false;
           setSelectedPresetIcon(branding.badgeIcon);

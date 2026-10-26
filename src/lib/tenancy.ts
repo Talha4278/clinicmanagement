@@ -66,6 +66,12 @@ export const DEFAULT_CLINIC_TENANT: ClinicTenant = {
   address: '',
   tagline: 'Dental & Aesthetics',
   logo_url: '',
+  tax_number: '',
+  tooth_notation: 'fdi',
+  timezone: 'Asia/Dubai',
+  tax_rate: 5,
+  tax_label: 'VAT (5%)',
+  currency_symbol: 'AED ',
   status: 'active',
   trial_ends_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
   created_at: new Date().toISOString(),
@@ -129,6 +135,11 @@ export async function updateClinicTenantProfile(
     website?: string | null;
     tax_number?: string | null;
     badge_icon?: string | null;
+    tooth_notation?: 'fdi' | 'universal' | null;
+    timezone?: string | null;
+    tax_rate?: number | null;
+    tax_label?: string | null;
+    currency_symbol?: string | null;
   }
 ): Promise<ClinicTenant> {
   const all = getAllClinics();
@@ -147,6 +158,12 @@ export async function updateClinicTenantProfile(
     address: profile.address !== undefined && profile.address !== null ? profile.address.trim() : (profile.address === null ? '' : current.address),
     phone: profile.phone !== undefined && profile.phone !== null ? profile.phone.trim() : (profile.phone === null ? '' : current.phone),
     owner_email: profile.owner_email !== undefined && profile.owner_email !== null ? profile.owner_email.trim() : (profile.owner_email === null ? '' : current.owner_email),
+    tax_number: profile.tax_number !== undefined ? profile.tax_number : current.tax_number,
+    tooth_notation: profile.tooth_notation !== undefined ? profile.tooth_notation : current.tooth_notation,
+    timezone: profile.timezone !== undefined ? profile.timezone : current.timezone,
+    tax_rate: profile.tax_rate !== undefined ? profile.tax_rate : current.tax_rate,
+    tax_label: profile.tax_label !== undefined ? profile.tax_label : current.tax_label,
+    currency_symbol: profile.currency_symbol !== undefined ? profile.currency_symbol : current.currency_symbol,
   };
 
   if (idx !== -1) {
@@ -167,6 +184,11 @@ export async function updateClinicTenantProfile(
     email: updated.owner_email || '',
     ...(profile.website !== undefined ? { website: profile.website || '' } : {}),
     ...(profile.tax_number !== undefined ? { tax_number: profile.tax_number || '' } : {}),
+    ...(profile.tooth_notation !== undefined ? { tooth_notation: profile.tooth_notation || 'fdi' } : {}),
+    ...(profile.timezone !== undefined ? { timezone: profile.timezone || 'Asia/Dubai' } : {}),
+    ...(profile.tax_rate !== undefined ? { tax_rate: profile.tax_rate ?? 5 } : {}),
+    ...(profile.tax_label !== undefined ? { tax_label: profile.tax_label || 'VAT (5%)' } : {}),
+    ...(profile.currency_symbol !== undefined ? { currency_symbol: profile.currency_symbol || 'AED ' } : {}),
   }, clinicId);
 
   // Sync with Supabase clinics table
@@ -178,6 +200,12 @@ export async function updateClinicTenantProfile(
       phone: updated.phone,
       owner_email: updated.owner_email,
       logo_url: updated.logo_url,
+      tax_number: updated.tax_number !== undefined ? updated.tax_number : null,
+      tooth_notation: updated.tooth_notation || 'fdi',
+      timezone: updated.timezone || 'Asia/Dubai',
+      tax_rate: typeof updated.tax_rate === 'number' ? updated.tax_rate : 5,
+      tax_label: updated.tax_label || 'VAT (5%)',
+      currency_symbol: updated.currency_symbol || 'AED ',
     };
     const { error } = await supabase
       .from('clinics')
@@ -203,7 +231,27 @@ export async function updateClinicTenantProfile(
  */
 export function setActiveClinic(clinicId: string): ClinicTenant {
   const all = getAllClinics();
-  const found = all.find(c => c.id === clinicId) || all[0];
+  let found = all.find(c => c.id === clinicId);
+  if (!found && clinicId) {
+    found = {
+      ...DEFAULT_CLINIC_TENANT,
+      id: clinicId,
+      name: 'Loading Clinic...',
+      slug: clinicId,
+      owner_name: '',
+      owner_email: '',
+      phone: '',
+      address: '',
+      tagline: '',
+      status: 'active',
+      created_at: new Date().toISOString(),
+    };
+    all.push(found);
+    saveAllClinics(all);
+  }
+  if (!found) {
+    found = all[0] || DEFAULT_CLINIC_TENANT;
+  }
   if (found) {
     localStorage.setItem(ACTIVE_CLINIC_STORAGE_KEY, found.id);
     const existing = getClinicSettings(found.id);
@@ -217,12 +265,12 @@ export function setActiveClinic(clinicId: string): ClinicTenant {
       address: found.address || '',
       email: found.owner_email || '',
       phone: found.phone || '',
-      website: existing.website || (found.slug ? `www.${found.slug}.com` : ''),
-      tooth_notation: existing.tooth_notation || 'fdi',
-      timezone: existing.timezone || 'Asia/Karachi',
-      currency_symbol: existing.currency_symbol || 'Rs. ',
-      tax_rate: typeof existing.tax_rate === 'number' ? existing.tax_rate : 5,
-      tax_label: existing.tax_label || 'GST / Tax (5%)',
+      tooth_notation: (found.tooth_notation as any) || existing.tooth_notation || 'fdi',
+      timezone: found.timezone || existing.timezone || 'Asia/Dubai',
+      currency_symbol: found.currency_symbol || existing.currency_symbol || 'AED ',
+      tax_rate: typeof found.tax_rate === 'number' ? found.tax_rate : (typeof existing.tax_rate === 'number' ? existing.tax_rate : 5),
+      tax_label: found.tax_label || existing.tax_label || 'VAT (5%)',
+      tax_number: found.tax_number !== undefined && found.tax_number !== null ? found.tax_number : (existing.tax_number || ''),
     };
     saveClinicSettings(settings, found.id);
     window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: found }));
@@ -382,6 +430,12 @@ export async function registerNewClinic(data: ClinicSignUpData): Promise<{
       address: data.address.trim(),
       tagline: data.tagline?.trim() || '',
       logo_url: '',
+      tax_number: '',
+      tooth_notation: 'fdi',
+      timezone: 'Asia/Dubai',
+      tax_rate: 5,
+      tax_label: 'VAT (5%)',
+      currency_symbol: 'AED ',
       status: 'trial',
       trial_ends_at: trialEnds,
       created_at: new Date().toISOString(),
@@ -455,6 +509,12 @@ export async function registerNewClinic(data: ClinicSignUpData): Promise<{
         address: newClinic.address || null,
         tagline: newClinic.tagline || null,
         logo_url: null,
+        tax_number: null,
+        tooth_notation: 'fdi',
+        timezone: 'Asia/Dubai',
+        tax_rate: 5,
+        tax_label: 'VAT (5%)',
+        currency_symbol: 'AED ',
         status: 'trial',
         trial_ends_at: newClinic.trial_ends_at,
         created_at: newClinic.created_at,
@@ -679,6 +739,7 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
       const effectiveTagline = data.tagline !== undefined && data.tagline !== null ? data.tagline.trim() : (existing?.tagline || '');
       const effectivePhone = data.phone !== undefined && data.phone !== null ? data.phone.trim() : (existing?.phone || '');
       const effectiveAddress = data.address !== undefined && data.address !== null ? data.address.trim() : (existing?.address || '');
+      const effectiveEmail = data.owner_email !== undefined && data.owner_email !== null ? data.owner_email.trim() : (existing?.owner_email || '');
       const rawLogo = data.logo_url !== undefined && data.logo_url !== null ? data.logo_url : (existing?.logo_url || '');
       const rawBadge = (data as any).badge_icon || existing?.badge_icon || 'stethoscope';
       const branding = parseClinicBranding(rawLogo, rawBadge);
@@ -697,6 +758,12 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
         tagline: effectiveTagline,
         logo_url: branding.isCustomLogo ? branding.logoUrl : `badge:${branding.badgeIcon}`,
         badge_icon: branding.badgeIcon,
+        tax_number: data.tax_number !== undefined && data.tax_number !== null ? data.tax_number : (existing?.tax_number || null),
+        tooth_notation: (data.tooth_notation as any) || existing?.tooth_notation || 'fdi',
+        timezone: data.timezone || existing?.timezone || 'Asia/Dubai',
+        tax_rate: typeof data.tax_rate === 'number' ? data.tax_rate : (typeof existing?.tax_rate === 'number' ? existing.tax_rate : 5),
+        tax_label: data.tax_label || existing?.tax_label || 'VAT (5%)',
+        currency_symbol: data.currency_symbol || existing?.currency_symbol || 'AED ',
         status: data.status || existing?.status || 'active',
         trial_ends_at: data.trial_ends_at || existing?.trial_ends_at || new Date(Date.now() + 14 * 86400000).toISOString(),
         created_at: data.created_at || existing?.created_at || new Date().toISOString(),
@@ -724,6 +791,12 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
         phone: updated.phone || '',
         email: updated.owner_email || '',
         website: existingSettings.website || (updated.slug ? `www.${updated.slug}.com` : ''),
+        tax_number: updated.tax_number || '',
+        tooth_notation: (updated.tooth_notation as any) || 'fdi',
+        timezone: updated.timezone || 'Asia/Dubai',
+        tax_rate: typeof updated.tax_rate === 'number' ? updated.tax_rate : 5,
+        tax_label: updated.tax_label || 'VAT (5%)',
+        currency_symbol: updated.currency_symbol || 'AED ',
       }, data.id);
 
       window.dispatchEvent(new CustomEvent(CLINIC_TENANT_EVENT, { detail: updated }));

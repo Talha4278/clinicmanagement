@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: byEmail, error: errEmail } = await supabase
           .from('staff')
           .select('*')
-          .eq('email', currentUser.email.toLowerCase())
+          .ilike('email', currentUser.email.trim())
           .maybeSingle();
 
         if (byEmail && !errEmail) {
@@ -147,7 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: clinicByOwner } = await supabase
           .from('clinics')
           .select('*')
-          .eq('owner_email', currentUser.email.toLowerCase())
+          .ilike('owner_email', currentUser.email.trim())
           .maybeSingle();
         if (clinicByOwner?.id) {
           clinicId = clinicByOwner.id;
@@ -167,11 +167,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      // 6. Fallback: check all registered clinics in local storage
+      if (!clinicId && currentUser.email) {
+        const all = getAllClinics();
+        const foundLocal = all.find(c => c.owner_email && c.owner_email.toLowerCase() === currentUser.email?.toLowerCase());
+        if (foundLocal?.id) {
+          clinicId = foundLocal.id;
+        }
+      }
+
       if (clinicId) {
         // ALWAYS fetch clinic identity directly from clinics table against user's clinic ID!
         const synced = await syncClinicFromDatabase(clinicId);
         if (synced) {
           setActiveClinicState(synced);
+          localStorage.setItem('clinsyst_active_clinic_id', synced.id);
         } else {
           const fallback = setActiveClinic(clinicId);
           setActiveClinicState(fallback);
@@ -700,6 +710,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     endCurrentSession();
     localStorage.removeItem('dentivista_demo_role');
     localStorage.removeItem('clinsyst_active_staff_session');
+    localStorage.removeItem('clinsyst_active_clinic_id');
+    localStorage.removeItem('clinsyst_clinic_settings');
     setUser(null);
     setStaff(null);
     setSession(null);
