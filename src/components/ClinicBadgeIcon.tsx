@@ -42,3 +42,56 @@ export function ClinicBadgeIcon({
   const IconComp = getClinicBadgeComponent(iconId);
   return <IconComp className={className} size={size} />;
 }
+
+export interface ParsedBranding {
+  brandingMode: 'badge' | 'logo';
+  logoUrl: string;
+  badgeIcon: string;
+  isCustomLogo: boolean;
+}
+
+export function parseClinicBranding(
+  logoUrl?: string | null,
+  badgeIcon?: string | null
+): ParsedBranding {
+  const rawLogo = (logoUrl || '').trim();
+  const rawBadge = (badgeIcon || '').trim();
+
+  // If logo specifies a database badge: identifier
+  if (rawLogo.startsWith('badge:') || rawLogo.startsWith('icon:')) {
+    const extractedBadge = rawLogo.replace(/^(badge|icon):/, '').trim();
+    return {
+      brandingMode: 'badge',
+      logoUrl: '',
+      badgeIcon: extractedBadge || rawBadge || 'stethoscope',
+      isCustomLogo: false,
+    };
+  }
+
+  // If logo is a real custom image (data URI, remote URL, or local path)
+  if (
+    rawLogo.startsWith('data:') ||
+    rawLogo.startsWith('http://') ||
+    rawLogo.startsWith('https://') ||
+    rawLogo.startsWith('/') ||
+    rawLogo.includes('.png') ||
+    rawLogo.includes('.jpg') ||
+    rawLogo.includes('.webp') ||
+    rawLogo.includes('.svg')
+  ) {
+    return {
+      brandingMode: 'logo',
+      logoUrl: rawLogo,
+      badgeIcon: rawBadge || 'stethoscope',
+      isCustomLogo: true,
+    };
+  }
+
+  // Otherwise badge mode
+  return {
+    brandingMode: 'badge',
+    logoUrl: '',
+    badgeIcon: rawBadge || 'stethoscope',
+    isCustomLogo: false,
+  };
+}

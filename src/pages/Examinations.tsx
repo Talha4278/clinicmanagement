@@ -179,7 +179,7 @@ export default function Examinations({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl text-gray-900 flex items-center gap-2.5">
-            <Stethoscope className="text-emerald-700" size={26} />
+            <Stethoscope size={26} style={{ color: 'var(--primary-color)' }} />
             Dental Examination & Odontogram
           </h2>
           <p className="text-xs text-gray-500 mt-1">
@@ -203,7 +203,7 @@ export default function Examinations({
           <div className="relative bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden my-6 border border-gray-100 flex flex-col max-h-[92vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-slate-50/80 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg text-white flex items-center justify-center" style={{ background: 'var(--primary-color)' }}>
                   <Stethoscope size={18} />
                 </div>
                 <h3 className="font-semibold text-base text-gray-900">
@@ -401,7 +401,8 @@ export default function Examinations({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-all shadow-xs"
+                  className="px-6 py-2.5 text-xs font-semibold text-white rounded-xl transition-all shadow-xs hover:opacity-90"
+                  style={{ background: 'var(--primary-color)' }}
                 >
                   {saving ? 'Saving Examination...' : 'Save Examination Record'}
                 </button>
@@ -446,13 +447,14 @@ export default function Examinations({
                     key={exam.id}
                     onClick={() => setViewExam(exam)}
                     className={`bg-white p-4 rounded-2xl border transition-all cursor-pointer card-shadow hover:shadow-md ${
-                      isSelected ? 'border-emerald-600 ring-2 ring-emerald-600/10' : 'border-gray-100'
+                      isSelected ? 'ring-2 ring-sky-500/20' : 'border-gray-100'
                     }`}
+                    style={isSelected ? { borderColor: 'var(--primary-color)' } : {}}
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2">
-                          <User size={14} className="text-emerald-700" />
+                          <User size={14} style={{ color: 'var(--primary-color)' }} />
                           <h4 className="font-bold text-gray-900 text-sm">
                             {exam.patient?.name || 'Patient'}
                           </h4>
@@ -462,7 +464,10 @@ export default function Examinations({
                         </p>
                       </div>
 
-                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span
+                        className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border"
+                        style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)', borderColor: 'rgba(2, 132, 199, 0.25)' }}
+                      >
                         {toothCount} teeth charted
                       </span>
                     </div>
@@ -475,7 +480,7 @@ export default function Examinations({
 
                     <div className="mt-3 pt-2 border-t border-gray-50 flex items-center justify-between text-[11px] text-gray-500">
                       <span>{exam.dentition_type === 'child' ? 'Pediatric' : 'Adult'} Dentition</span>
-                      <span className="text-emerald-700 font-semibold flex items-center">
+                      <span className="font-semibold flex items-center" style={{ color: 'var(--primary-color)' }}>
                         View Chart <ChevronRight size={13} />
                       </span>
                     </div>
@@ -494,7 +499,7 @@ export default function Examinations({
               <div className="bg-white p-5 rounded-2xl border border-gray-100 card-shadow">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider">
+                    <span className="text-[10px] uppercase font-bold tracking-wider" style={{ color: 'var(--primary-color)' }}>
                       Examination Details
                     </span>
                     <h3 className="font-display text-xl font-bold text-gray-900 mt-0.5">
@@ -509,7 +514,8 @@ export default function Examinations({
                     {onViewPatientDossier && viewExam.patient_id && (
                       <button
                         onClick={() => onViewPatientDossier(viewExam.patient_id)}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-colors flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors flex items-center gap-1 hover:opacity-90"
+                        style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)' }}
                       >
                         <FileText size={13} /> Open Patient Dossier
                       </button>

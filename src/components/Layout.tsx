@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
-import { ClinicBadgeIcon } from './ClinicBadgeIcon';
+import { ClinicBadgeIcon, parseClinicBranding } from './ClinicBadgeIcon';
 import { useTheme } from '../contexts/ThemeContext';
 
 export type Page =
@@ -39,7 +39,6 @@ const navItems = [
   { id: 'inventory' as Page, label: 'Inventory', icon: Package },
   { id: 'invoices' as Page, label: 'Billing & Invoices', icon: FileText },
   { id: 'reports' as Page, label: 'Reports', icon: BarChart3, roles: ['admin', 'doctor'] as const },
-  { id: 'staff' as Page, label: 'Staff', icon: UserCog, roles: ['admin', 'doctor'] as const },
   { id: 'setup' as Page, label: 'Clinic Setup', icon: Settings, roles: ['admin', 'doctor'] as const },
 ];
 
@@ -62,6 +61,11 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
   );
 
   function SidebarContent() {
+    const branding = parseClinicBranding(
+      activeClinic?.logo_url || clinic.logo_url,
+      activeClinic?.badge_icon || clinic.badge_icon
+    );
+
     return (
       <>
         {/* Logo & Clinic Branding */}
@@ -71,10 +75,10 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
           title="Click to manage Clinic Setup"
         >
           <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden">
-            {activeClinic?.logo_url || clinic.logo_url ? (
-              <img src={activeClinic?.logo_url || clinic.logo_url || ''} alt={activeClinic?.name || clinic.clinic_name} className="w-full h-full object-contain p-0.5" />
+            {branding.isCustomLogo ? (
+              <img src={branding.logoUrl} alt={activeClinic?.name || clinic.clinic_name} className="w-full h-full object-contain p-0.5" />
             ) : (
-              <ClinicBadgeIcon iconId={clinic.badge_icon} className="w-5 h-5 text-white" size={20} />
+              <ClinicBadgeIcon iconId={branding.badgeIcon} className="w-5 h-5 text-white" size={20} />
             )}
           </div>
           <div className="min-w-0 flex-1">
@@ -249,13 +253,16 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-gray-100 animate-in fade-in">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-800">
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+                >
                   <ShieldCheck size={18} />
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-gray-900">Active Clinic Sessions</h3>
                   <p className="text-xs text-gray-500">
-                    {activeClinic?.name} • Plan: <span className="font-bold uppercase text-emerald-700">{activeClinic?.plan}</span>
+                    {activeClinic?.name} • Plan: <span className="font-bold uppercase" style={{ color: 'var(--primary-color)' }}>{activeClinic?.plan}</span>
                   </p>
                 </div>
               </div>
@@ -269,12 +276,15 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
 
             <div className="p-6 space-y-4">
               {/* Plan Session Quota Banner */}
-              <div className="p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl flex items-center justify-between">
+              <div
+                className="p-3.5 rounded-xl border flex items-center justify-between"
+                style={{ background: 'var(--badge-bg)', borderColor: 'var(--primary-color)' }}
+              >
                 <div>
-                  <p className="text-xs font-bold text-emerald-900">
+                  <p className="text-xs font-bold" style={{ color: 'var(--badge-text)' }}>
                     Concurrent Session Limit: {activeClinic?.max_concurrent_sessions || 2} Logins
                   </p>
-                  <p className="text-xs text-emerald-700 mt-0.5">
+                  <p className="text-xs mt-0.5" style={{ color: 'var(--badge-text)', opacity: 0.85 }}>
                     {activeSessions.length} of {activeClinic?.max_concurrent_sessions || 2} active devices connected.
                   </p>
                 </div>
@@ -296,21 +306,28 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
                   activeSessions.map((s) => (
                     <div
                       key={s.id}
+                      style={s.is_current ? { background: 'var(--badge-bg)', borderColor: 'var(--primary-color)' } : {}}
                       className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${
-                        s.is_current ? 'bg-emerald-50/30 border-emerald-200' : 'bg-white border-gray-200'
+                        s.is_current ? 'shadow-2xs' : 'bg-white border-gray-200'
                       }`}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                          s.is_current ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-600'
-                        }`}>
+                        <div
+                          style={s.is_current ? { background: 'var(--primary-color)', color: 'white' } : {}}
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                            s.is_current ? '' : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
                           <Laptop size={18} />
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="text-xs font-bold text-gray-900 truncate">{s.device || 'Web Browser'}</p>
                             {s.is_current && (
-                              <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded-md">
+                              <span
+                                className="text-[10px] font-bold px-1.5 py-0.2 rounded-md"
+                                style={{ background: 'var(--primary-color)', color: 'white' }}
+                              >
                                 This Window
                               </span>
                             )}

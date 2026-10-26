@@ -244,7 +244,7 @@ export default function Prescriptions({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl text-gray-900 flex items-center gap-2.5">
-            <Pill className="text-emerald-700" size={26} />
+            <Pill size={26} style={{ color: 'var(--primary-color)' }} />
             Patient Prescriptions
           </h2>
           <p className="text-xs text-gray-500 mt-1">
@@ -270,7 +270,7 @@ export default function Prescriptions({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search prescriptions by patient name, medication, or diagnosis..."
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 text-gray-900"
           />
           {search && (
             <button
@@ -306,7 +306,7 @@ export default function Prescriptions({
                   <div className="flex items-start justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <User size={15} className="text-emerald-700" />
+                        <User size={15} style={{ color: 'var(--primary-color)' }} />
                         <h4 className="font-bold text-gray-900 text-sm">{patient?.name || 'Patient'}</h4>
                       </div>
                       <p className="text-[11px] text-gray-400 flex items-center gap-1 mt-0.5">
@@ -364,7 +364,8 @@ export default function Prescriptions({
 
                   <button
                     onClick={() => setPreviewRx({ ...rx, patient, doctor })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition-colors shadow-xs"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-xs font-semibold transition-opacity hover:opacity-90 shadow-xs"
+                    style={{ background: 'var(--primary-color)' }}
                   >
                     <Printer size={13} /> Print Prescription
                   </button>
@@ -382,7 +383,7 @@ export default function Prescriptions({
           <div className="relative bg-white w-full max-w-3xl rounded-3xl shadow-2xl overflow-hidden my-6 border border-gray-100 flex flex-col max-h-[92vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-slate-50/80 flex-shrink-0">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-700 text-white flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg text-white flex items-center justify-center" style={{ background: 'var(--primary-color)' }}>
                   <Pill size={18} />
                 </div>
                 <h3 className="font-semibold text-base text-gray-900">Issue Medical Prescription</h3>
@@ -479,7 +480,8 @@ export default function Prescriptions({
                       key={med.name}
                       type="button"
                       onClick={() => addMedicationRow(med)}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[11px] font-medium border border-emerald-200 transition-colors"
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-colors hover:opacity-90"
+                      style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)', borderColor: 'rgba(2, 132, 199, 0.25)' }}
                     >
                       + {med.name}
                     </button>
@@ -496,7 +498,8 @@ export default function Prescriptions({
                   <button
                     type="button"
                     onClick={() => addMedicationRow()}
-                    className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+                    className="text-xs font-semibold flex items-center gap-1 hover:underline"
+                    style={{ color: 'var(--primary-color)' }}
                   >
                     <Plus size={14} /> Add Medicine Row
                   </button>
@@ -608,7 +611,8 @@ export default function Prescriptions({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-all shadow-xs"
+                  className="px-6 py-2.5 text-xs font-semibold text-white rounded-xl transition-all shadow-xs hover:opacity-90"
+                  style={{ background: 'var(--primary-color)' }}
                 >
                   {saving ? 'Generating...' : 'Save & Print Prescription'}
                 </button>

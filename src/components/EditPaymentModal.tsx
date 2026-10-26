@@ -310,7 +310,7 @@ export default function EditPaymentModal({
                   setPaidAmount(isNaN(val) ? 0 : val);
                 }}
                 placeholder="0"
-                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 bg-white text-base font-bold text-gray-900 focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 bg-white text-base font-bold text-gray-900 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                 autoFocus
               />
             </div>
@@ -349,39 +349,42 @@ export default function EditPaymentModal({
               <button
                 type="button"
                 onClick={() => setPaymentMethod('cash')}
+                style={paymentMethod === 'cash' ? { borderColor: 'var(--primary-color)', background: 'var(--primary-50)', color: 'var(--primary-color)' } : {}}
                 className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border text-xs font-medium transition-all ${
                   paymentMethod === 'cash'
-                    ? 'border-green-700 bg-green-50 text-green-900 shadow-2xs font-semibold'
+                    ? 'shadow-2xs font-semibold'
                     : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                <Banknote size={15} className={paymentMethod === 'cash' ? 'text-green-700' : 'text-gray-400'} />
+                <Banknote size={15} style={paymentMethod === 'cash' ? { color: 'var(--primary-color)' } : { color: '#9ca3af' }} />
                 Cash
               </button>
 
               <button
                 type="button"
                 onClick={() => setPaymentMethod('card')}
+                style={paymentMethod === 'card' ? { borderColor: 'var(--primary-color)', background: 'var(--primary-50)', color: 'var(--primary-color)' } : {}}
                 className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border text-xs font-medium transition-all ${
                   paymentMethod === 'card'
-                    ? 'border-green-700 bg-green-50 text-green-900 shadow-2xs font-semibold'
+                    ? 'shadow-2xs font-semibold'
                     : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                <CreditCard size={15} className={paymentMethod === 'card' ? 'text-green-700' : 'text-gray-400'} />
+                <CreditCard size={15} style={paymentMethod === 'card' ? { color: 'var(--primary-color)' } : { color: '#9ca3af' }} />
                 Card
               </button>
 
               <button
                 type="button"
                 onClick={() => setPaymentMethod('bank_transfer')}
+                style={paymentMethod === 'bank_transfer' ? { borderColor: 'var(--primary-color)', background: 'var(--primary-50)', color: 'var(--primary-color)' } : {}}
                 className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border text-xs font-medium transition-all ${
                   paymentMethod === 'bank_transfer'
-                    ? 'border-green-700 bg-green-50 text-green-900 shadow-2xs font-semibold'
+                    ? 'shadow-2xs font-semibold'
                     : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                <Building2 size={15} className={paymentMethod === 'bank_transfer' ? 'text-green-700' : 'text-gray-400'} />
+                <Building2 size={15} style={paymentMethod === 'bank_transfer' ? { color: 'var(--primary-color)' } : { color: '#9ca3af' }} />
                 Bank Transfer
               </button>
             </div>
@@ -395,7 +398,7 @@ export default function EditPaymentModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Received partial advance via online transfer, ref #..."
-              className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all resize-none"
+              className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all resize-none"
             />
           </div>
 

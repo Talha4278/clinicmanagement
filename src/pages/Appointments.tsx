@@ -565,7 +565,8 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
         <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={() => openNewModal(undefined, true)}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 font-semibold text-sm transition-all hover:bg-emerald-100 shadow-2xs"
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-2xs hover:opacity-90 border"
+            style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)', borderColor: 'rgba(2, 132, 199, 0.25)' }}
           >
             <UserPlus size={16} /> + New Patient & Book
           </button>
@@ -632,7 +633,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
             placeholder="Search by patient name, phone, doctor or procedure..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
           />
           {search && (
             <button
@@ -670,7 +671,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
               setCustomDate(e.target.value);
               setDateFilter('custom');
             }}
-            className={`px-2 py-1 rounded-lg border text-xs font-medium focus:ring-2 focus:ring-green-600/20 ${dateFilter === 'custom'
+            className={`px-2 py-1 rounded-lg border text-xs font-medium focus:ring-2 focus:ring-[var(--primary-color)]/20 ${dateFilter === 'custom'
                 ? 'border-gray-900 bg-gray-900 text-white'
                 : 'border-gray-200 bg-gray-50 text-gray-700'
               }`}
@@ -682,7 +683,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
           <select
             value={doctorFilter}
             onChange={e => setDoctorFilter(e.target.value)}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-700 focus:bg-white focus:ring-2 focus:ring-green-600/20"
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-700 focus:bg-white focus:ring-2 focus:ring-[var(--primary-color)]/20"
           >
             <option value="all">All Doctors</option>
             {doctors.map(d => (
@@ -695,7 +696,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
           <select
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-700 focus:bg-white focus:ring-2 focus:ring-green-600/20"
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-700 focus:bg-white focus:ring-2 focus:ring-[var(--primary-color)]/20"
           >
             <option value="all">All Statuses</option>
             <option value="scheduled">Scheduled</option>
@@ -760,7 +761,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                       <div className="flex items-center gap-3">
                         <div
                           className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                          style={{ background: 'var(--primary-color, #0284c7)' }}
+                          style={{ background: 'var(--avatar-bg, var(--primary-color))' }}
                         >
                           {apt.patient?.name.charAt(0).toUpperCase() ?? 'P'}
                         </div>
@@ -968,9 +969,10 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                         }}
                         className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${
                           patientMode === 'new'
-                            ? 'bg-emerald-700 text-white shadow-xs'
+                            ? 'text-white shadow-xs'
                             : 'text-gray-500 hover:text-gray-800'
                         }`}
+                        style={patientMode === 'new' ? { background: 'var(--primary-color)' } : {}}
                       >
                         <UserPlus size={13} /> + New Patient
                       </button>
@@ -1001,7 +1003,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                         }}
                         onFocus={() => setShowPatientDropdown(true)}
                         placeholder="Search registered patient by name or phone..."
-                        className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all bg-white"
+                        className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all bg-white"
                       />
                       {selectedPatient ? (
                         <button
@@ -1035,7 +1037,8 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                                 }));
                                 setShowPatientDropdown(false);
                               }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-xs"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-semibold transition-colors shadow-xs hover:opacity-90"
+                              style={{ background: 'var(--primary-color)' }}
                             >
                               <UserPlus size={13} /> Create &ldquo;{patientSearch || 'New Patient'}&rdquo; Record
                             </button>
@@ -1056,7 +1059,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                                 >
                                   <div
                                     className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                                    style={{ background: 'var(--primary-color, #0284c7)' }}
+                                    style={{ background: 'var(--avatar-bg, var(--primary-color))' }}
                                   >
                                     {p.name.charAt(0).toUpperCase()}
                                   </div>
@@ -1077,7 +1080,8 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                                   }
                                   setShowPatientDropdown(false);
                                 }}
-                                className="w-full py-1.5 px-2 rounded-lg text-xs font-semibold text-emerald-800 hover:bg-emerald-100/60 transition-colors flex items-center justify-center gap-1"
+                                className="w-full py-1.5 px-2 rounded-lg text-xs font-semibold hover:opacity-80 transition-colors flex items-center justify-center gap-1"
+                                style={{ color: 'var(--primary-color)' }}
                               >
                                 <Plus size={13} /> Not in the list? Register a New Patient
                               </button>
@@ -1089,7 +1093,10 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
 
                     {/* Selected patient preview card */}
                     {selectedPatient && (
-                      <div className="mt-2.5 p-3 rounded-xl bg-green-50/70 border border-green-200/60 flex items-center justify-between">
+                      <div
+                        className="mt-2.5 p-3 rounded-xl border flex items-center justify-between"
+                        style={{ background: 'var(--badge-bg)', borderColor: 'var(--primary-color)' }}
+                      >
                         <div>
                           <p className="text-sm font-semibold text-gray-900">{selectedPatient.name}</p>
                           <p className="text-xs text-gray-600">Phone: {selectedPatient.phone}</p>
@@ -1099,7 +1106,10 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                             </p>
                           )}
                         </div>
-                        <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-800 rounded-lg">
+                        <span
+                          className="text-xs font-semibold px-2 py-1 rounded-lg text-white"
+                          style={{ background: 'var(--primary-color)' }}
+                        >
                           Registered
                         </span>
                       </div>
@@ -1107,17 +1117,26 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                   </div>
                 ) : (
                   /* New Patient Quick Form */
-                  <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 space-y-3">
+                  <div
+                    className="p-4 rounded-2xl space-y-3 border"
+                    style={{ background: 'var(--primary-light)', borderColor: 'rgba(2, 132, 199, 0.2)' }}
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-full bg-emerald-200 text-emerald-900 flex items-center justify-center text-xs font-bold">
+                        <span
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                          style={{ background: 'var(--primary-color)', color: '#ffffff' }}
+                        >
                           <UserPlus size={13} />
                         </span>
-                        <span className="text-xs font-bold text-emerald-900 uppercase tracking-wide">
+                        <span className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                           New Patient Record Details
                         </span>
                       </div>
-                      <span className="text-[11px] text-emerald-800 bg-white/90 border border-emerald-200 px-2 py-0.5 rounded-full font-semibold">
+                      <span
+                        className="text-[11px] px-2 py-0.5 rounded-full font-semibold border"
+                        style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)', borderColor: 'rgba(2, 132, 199, 0.25)' }}
+                      >
                         Saves to Patient Directory
                       </span>
                     </div>
@@ -1135,7 +1154,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                           onChange={e =>
                             setNewPatientForm({ ...newPatientForm, name: e.target.value })
                           }
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] bg-white"
                         />
                       </div>
                       <div>
@@ -1150,7 +1169,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                           onChange={e =>
                             setNewPatientForm({ ...newPatientForm, phone: e.target.value })
                           }
-                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 bg-white"
+                          className="w-full px-3 py-2 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] bg-white"
                         />
                       </div>
                     </div>
@@ -1304,7 +1323,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                   <select
                     value={selectedDoctor}
                     onChange={e => setSelectedDoctor(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all bg-white"
                   >
                     <option value="">No Doctor Assigned</option>
                     {doctors.map(d => (
@@ -1320,7 +1339,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                   <select
                     value={modalStatus}
                     onChange={e => setModalStatus(e.target.value as AppointmentStatus)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all bg-white"
                   >
                     <option value="scheduled">Scheduled</option>
                     <option value="completed">Completed</option>
@@ -1340,7 +1359,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                     type="date"
                     value={appointmentDate}
                     onChange={e => setAppointmentDate(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                 </div>
 
@@ -1349,7 +1368,10 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                     <label className="block text-sm font-medium text-gray-700">
                       Appointment Time *
                     </label>
-                    <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 rounded-md border"
+                      style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)', borderColor: 'var(--primary-200, rgba(2, 132, 199, 0.3))' }}
+                    >
                       {formatFriendlyTime(appointmentTime)}
                     </span>
                   </div>
@@ -1368,7 +1390,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                 <select
                   value={procedure}
                   onChange={e => setProcedure(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all bg-white mb-2"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all bg-white mb-2"
                 >
                   {proceduresList.map(p => (
                     <option key={p} value={p}>
@@ -1384,7 +1406,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                     value={customProcedure}
                     onChange={e => setCustomProcedure(e.target.value)}
                     placeholder="Enter custom procedure name..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                 )}
               </div>
@@ -1399,7 +1421,7 @@ export default function Appointments({ onNewInvoiceForPatient, preselectedPatien
                   onChange={e => setNotes(e.target.value)}
                   rows={3}
                   placeholder="Add any specific requirements or notes..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm resize-none focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm resize-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                 />
               </div>
 

@@ -112,10 +112,13 @@ export default function DentalChart({
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-              <Stethoscope className="text-emerald-700" size={18} />
+              <Stethoscope size={18} style={{ color: 'var(--primary-color)' }} />
               Interactive Dental Chart ({activeNotation === 'fdi' ? 'FDI Two-Digit 11–48' : 'Universal 1–32'})
             </h3>
-            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span
+              className="text-xs px-2 py-0.5 rounded-full font-medium border"
+              style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)', borderColor: 'rgba(2, 132, 199, 0.25)' }}
+            >
               {dentitionType === 'adult' ? 'Permanent 32 Teeth' : 'Primary 20 Teeth'}
             </span>
           </div>
@@ -132,9 +135,10 @@ export default function DentalChart({
               type="button"
               onClick={() => setActiveNotation('fdi')}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${activeNotation === 'fdi'
-                  ? 'bg-emerald-700 text-white shadow-xs'
+                  ? 'text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
                 }`}
+              style={activeNotation === 'fdi' ? { background: 'var(--primary-color)' } : {}}
               title="FDI Two-Digit notation (Standard in UAE, GCC, UK, Europe, Southeast Asia)"
             >
               FDI (11–48)
@@ -143,9 +147,10 @@ export default function DentalChart({
               type="button"
               onClick={() => setActiveNotation('universal')}
               className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${activeNotation === 'universal'
-                  ? 'bg-emerald-700 text-white shadow-xs'
+                  ? 'text-white shadow-xs'
                   : 'text-gray-600 hover:text-gray-900'
                 }`}
+              style={activeNotation === 'universal' ? { background: 'var(--primary-color)' } : {}}
               title="Universal numbering system (1–32 / A–T, US Standard)"
             >
               Universal (1–32)
@@ -159,9 +164,10 @@ export default function DentalChart({
                 type="button"
                 onClick={() => onChangeDentitionType('adult')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${dentitionType === 'adult'
-                    ? 'bg-white text-emerald-800 shadow-sm'
+                    ? 'bg-white shadow-sm font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                   }`}
+                style={dentitionType === 'adult' ? { color: 'var(--primary-color)' } : {}}
               >
                 Adult (32)
               </button>
@@ -169,9 +175,10 @@ export default function DentalChart({
                 type="button"
                 onClick={() => onChangeDentitionType('child')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${dentitionType === 'child'
-                    ? 'bg-white text-emerald-800 shadow-sm'
+                    ? 'bg-white shadow-sm font-bold'
                     : 'text-gray-600 hover:text-gray-900'
                   }`}
+                style={dentitionType === 'child' ? { color: 'var(--primary-color)' } : {}}
               >
                 Pediatric (20)
               </button>
@@ -233,7 +240,10 @@ export default function DentalChart({
           {/* Upper Arch Label */}
           <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider px-2">
             <span>Patient Right (UR)</span>
-            <span className="bg-emerald-100/70 text-emerald-800 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+            <span
+              className="px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+              style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+            >
               Maxilla (Upper Arch)
             </span>
             <span>Patient Left (UL)</span>
@@ -257,10 +267,10 @@ export default function DentalChart({
             </div>
 
             {/* Midline Divider */}
-            <div className="h-16 w-0.5 bg-emerald-600/30 flex flex-col justify-between items-center py-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-              <span className="text-[9px] font-bold text-emerald-700">MID</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            <div className="h-16 w-0.5 flex flex-col justify-between items-center py-1" style={{ background: 'var(--badge-bg)' }}>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--primary-color)' }} />
+              <span className="text-[9px] font-bold" style={{ color: 'var(--primary-color)' }}>MID</span>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--primary-color)' }} />
             </div>
 
             {/* Upper Left Quadrant */}
@@ -305,10 +315,10 @@ export default function DentalChart({
             </div>
 
             {/* Midline Divider */}
-            <div className="h-16 w-0.5 bg-emerald-600/30 flex flex-col justify-between items-center py-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
-              <span className="text-[9px] font-bold text-emerald-700">MID</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            <div className="h-16 w-0.5 flex flex-col justify-between items-center py-1" style={{ background: 'var(--badge-bg)' }}>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--primary-color)' }} />
+              <span className="text-[9px] font-bold" style={{ color: 'var(--primary-color)' }}>MID</span>
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--primary-color)' }} />
             </div>
 
             {/* Lower Left Quadrant */}
@@ -330,7 +340,10 @@ export default function DentalChart({
           {/* Lower Arch Label */}
           <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider px-2">
             <span>Patient Right (LR)</span>
-            <span className="bg-emerald-100/70 text-emerald-800 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+            <span
+              className="px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+              style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+            >
               Mandible (Lower Arch)
             </span>
             <span>Patient Left (LL)</span>
@@ -342,7 +355,7 @@ export default function DentalChart({
       <div className="bg-gray-50 rounded-xl px-4 py-2.5 flex items-center justify-between min-h-[44px] text-xs">
         {hoveredTooth ? (
           <div className="flex items-center gap-2">
-            <span className="font-bold text-emerald-800 text-sm">
+            <span className="font-bold text-sm" style={{ color: 'var(--primary-color)' }}>
               {getToothDisplayName(hoveredTooth.number, activeNotation, true)}
             </span>
             <span className="text-gray-800 font-medium">
@@ -638,7 +651,10 @@ function ToothDetailModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-slate-50/70">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-emerald-700 text-white font-bold text-base flex flex-col items-center justify-center shadow-xs">
+            <div
+              className="w-11 h-11 rounded-xl text-white font-bold text-base flex flex-col items-center justify-center shadow-xs"
+              style={{ background: 'var(--primary-color)' }}
+            >
               <span className="text-xs font-medium opacity-80 uppercase leading-none">
                 {notation === 'universal' ? 'Univ' : 'FDI'}
               </span>
@@ -681,8 +697,9 @@ function ToothDetailModal({
                     key={key}
                     type="button"
                     onClick={() => toggleFinding(code)}
+                    style={active ? { borderColor: 'var(--primary-color)', background: 'var(--badge-bg)', color: 'var(--badge-text)' } : {}}
                     className={`flex items-center justify-between p-2.5 rounded-xl border text-xs font-medium transition-all text-left ${active
-                        ? 'border-emerald-600 ring-2 ring-emerald-600/20 bg-emerald-50/50 text-emerald-900'
+                        ? 'shadow-2xs font-semibold'
                         : 'border-gray-200 hover:bg-gray-50 text-gray-700'
                       }`}
                   >
@@ -693,7 +710,7 @@ function ToothDetailModal({
                       />
                       <span className="truncate">{cfg.label}</span>
                     </div>
-                    {active && <Check size={14} className="text-emerald-700 flex-shrink-0" />}
+                    {active && <Check size={14} style={{ color: 'var(--primary-color)' }} className="flex-shrink-0" />}
                   </button>
                 );
               })}
@@ -714,9 +731,10 @@ function ToothDetailModal({
                     type="button"
                     onClick={() => toggleSurface(surf.code)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${active
-                        ? 'bg-emerald-700 text-white border-emerald-700 shadow-xs'
+                        ? 'text-white shadow-xs'
                         : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
                       }`}
+                    style={active ? { background: 'var(--primary-color)', borderColor: 'var(--primary-color)' } : {}}
                   >
                     {surf.code} — {surf.full}
                   </button>
@@ -759,7 +777,7 @@ function ToothDetailModal({
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="e.g., Deep occlusal cavity, sensitivity to percussion, fracture line on mesial cusp..."
-              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 transition-all resize-none"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all resize-none"
             />
           </div>
 
@@ -839,7 +857,8 @@ function ToothDetailModal({
             <button
               type="button"
               onClick={handleSave}
-              className="px-5 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-all shadow-xs"
+              className="px-5 py-2 text-xs font-semibold text-white rounded-xl transition-all shadow-xs hover:opacity-90"
+              style={{ background: 'var(--primary-color)' }}
             >
               Apply Findings
             </button>

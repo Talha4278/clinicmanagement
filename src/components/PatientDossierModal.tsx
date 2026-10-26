@@ -103,10 +103,13 @@ export default function PatientDossierModal({
 
       <div className="relative bg-white w-full max-w-6xl max-h-[92vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 z-10 animate-in fade-in zoom-in-95 duration-200">
         {/* Top Header & Patient Details */}
-        <div className="p-6 bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-900 text-white flex-shrink-0">
+        <div className="p-6 text-white flex-shrink-0" style={{ background: 'var(--dossier-gradient)' }}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-800 border-2 border-emerald-500/50 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 shadow-lg">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 shadow-lg border-2"
+                style={{ background: 'var(--avatar-bg, var(--primary-color))', borderColor: 'rgba(255, 255, 255, 0.35)' }}
+              >
                 {patient.name.charAt(0).toUpperCase()}
               </div>
 
@@ -115,28 +118,28 @@ export default function PatientDossierModal({
                   <h2 className="text-xl sm:text-2xl font-bold font-display tracking-tight">
                     {patient.name}
                   </h2>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-800/80 text-emerald-200 border border-emerald-700">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-white/20 text-white border border-white/20">
                     Patient ID #{patient.id.slice(0, 8)}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-4 text-xs text-white/80 mt-1.5 flex-wrap">
                   <span className="flex items-center gap-1.5 font-medium">
-                    <User size={13} className="text-emerald-400" />
+                    <User size={13} className="opacity-80" />
                     {calculateAge(patient.date_of_birth) ? `${calculateAge(patient.date_of_birth)} Yrs` : 'Age N/A'} ·{' '}
                     {patient.gender || 'Gender unassigned'}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <Phone size={13} className="text-emerald-400" /> {patient.phone}
+                    <Phone size={13} className="opacity-80" /> {patient.phone}
                   </span>
                   {patient.email && (
                     <span className="flex items-center gap-1.5">
-                      <Mail size={13} className="text-emerald-400" /> {patient.email}
+                      <Mail size={13} className="opacity-80" /> {patient.email}
                     </span>
                   )}
                   {patient.address && (
                     <span className="flex items-center gap-1.5 hidden md:flex">
-                      <MapPin size={13} className="text-emerald-400" /> {patient.address}
+                      <MapPin size={13} className="opacity-80" /> {patient.address}
                     </span>
                   )}
                 </div>
@@ -179,7 +182,8 @@ export default function PatientDossierModal({
                 onClose();
                 onNavigatePage?.('appointments', patient.id);
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-xl text-xs font-semibold shadow-xs transition-opacity hover:opacity-90"
+              style={{ background: 'var(--primary-color)' }}
             >
               <Calendar size={13} /> Book Appointment
             </button>
@@ -314,7 +318,7 @@ export default function PatientDossierModal({
                     value={timelineSearch}
                     onChange={(e) => setTimelineSearch(e.target.value)}
                     placeholder="Search clinical notes, diagnosis, procedures across patient timeline..."
-                    className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-xs border-0 focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full pl-9 pr-4 py-2 bg-gray-50 rounded-xl text-xs border-0 focus:ring-2 focus:ring-[var(--primary-color)]/20 text-gray-900"
                   />
                   {timelineSearch && (
                     <button
@@ -334,9 +338,10 @@ export default function PatientDossierModal({
                         key={type}
                         onClick={() => setTimelineTypeFilter(type)}
                         className={`px-2.5 py-1.5 rounded-lg capitalize font-medium transition-all ${timelineTypeFilter === type
-                            ? 'bg-emerald-800 text-white shadow-xs'
+                            ? 'text-white shadow-xs'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200/70'
                           }`}
+                        style={timelineTypeFilter === type ? { background: 'var(--primary-color)' } : {}}
                       >
                         {type === 'all' ? 'All Events' : type}
                       </button>
@@ -401,7 +406,7 @@ export default function PatientDossierModal({
                             <h5 className="text-sm font-semibold text-gray-900">{item.title}</h5>
 
                             {item.subtitle && (
-                              <p className="text-xs text-emerald-700 font-medium">{item.subtitle}</p>
+                              <p className="text-xs font-medium" style={{ color: 'var(--primary-color)' }}>{item.subtitle}</p>
                             )}
                             {item.details && (
                               <p className="text-xs text-gray-600 bg-gray-50 p-2.5 rounded-xl border border-gray-100 mt-1.5 whitespace-pre-line leading-relaxed">
@@ -414,7 +419,8 @@ export default function PatientDossierModal({
                           {item.type === 'prescription' && (
                             <button
                               onClick={() => setViewPrescription(item.rawRecord)}
-                              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors flex-shrink-0"
+                              style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+                              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg hover:opacity-80 transition-colors flex-shrink-0"
                             >
                               <Printer size={12} /> View Slip
                             </button>
@@ -451,7 +457,8 @@ export default function PatientDossierModal({
                     onClose();
                     onNavigatePage?.('appointments', patient.id);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-xl text-xs font-semibold transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--primary-color)' }}
                 >
                   <Plus size={14} /> Schedule Appointment
                 </button>
@@ -523,7 +530,8 @@ export default function PatientDossierModal({
                     onClose();
                     onNavigatePage?.('examinations', patient.id);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-xl text-xs font-semibold transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--primary-color)' }}
                 >
                   <Plus size={14} /> Full Examination Editor
                 </button>
@@ -583,7 +591,8 @@ export default function PatientDossierModal({
                     onClose();
                     onNavigatePage?.('treatments', patient.id);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-xl text-xs font-semibold transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--primary-color)' }}
                 >
                   <Plus size={14} /> Add Treatment
                 </button>
@@ -651,7 +660,8 @@ export default function PatientDossierModal({
                     onClose();
                     onNavigatePage?.('prescriptions', patient.id);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-xl text-xs font-semibold transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--primary-color)' }}
                 >
                   <Plus size={14} /> New Prescription
                 </button>
@@ -677,7 +687,8 @@ export default function PatientDossierModal({
                         </div>
                         <button
                           onClick={() => setViewPrescription({ ...rx, patient })}
-                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-colors"
+                          style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-xl hover:opacity-80 transition-colors"
                         >
                           <Printer size={13} /> View / Print Prescription Slip
                         </button>
@@ -702,7 +713,7 @@ export default function PatientDossierModal({
                             >
                               <div>
                                 <span className="font-bold text-gray-900">{item.medicine_name}</span>
-                                <span className="text-emerald-700 font-medium ml-2">({item.dosage})</span>
+                                <span className="font-medium ml-2" style={{ color: 'var(--primary-color)' }}>({item.dosage})</span>
                               </div>
                               <div className="text-gray-500">
                                 <span>{item.frequency}</span> · <span>{item.duration}</span>
@@ -736,7 +747,8 @@ export default function PatientDossierModal({
                     onClose();
                     onNavigatePage?.('new-invoice', patient.id);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-xl text-xs font-semibold transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--primary-color)' }}
                 >
                   <Plus size={14} /> New Invoice
                 </button>
@@ -791,7 +803,8 @@ export default function PatientDossierModal({
                                   onClose();
                                   onViewInvoice(inv.id);
                                 }}
-                                className="text-emerald-700 hover:underline font-semibold flex items-center gap-1"
+                                className="hover:underline font-semibold flex items-center gap-1"
+                                style={{ color: 'var(--primary-color)' }}
                               >
                                 <Eye size={13} /> View
                               </button>
@@ -837,15 +850,16 @@ function TabButton({
     <button
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-3.5 text-xs font-semibold border-b-2 whitespace-nowrap transition-all ${active
-          ? 'border-emerald-700 text-emerald-800 bg-white'
+          ? 'bg-white'
           : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-100/50'
         }`}
+      style={active ? { borderColor: 'var(--primary-color)', color: 'var(--primary-color)' } : {}}
     >
-      <Icon size={14} className={active ? 'text-emerald-700' : 'text-gray-400'} />
+      <Icon size={14} style={active ? { color: 'var(--primary-color)' } : undefined} className={active ? '' : 'text-gray-400'} />
       <span>{label}</span>
       <span
-        className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'
-          }`}
+        className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${active ? '' : 'bg-gray-200 text-gray-600'}`}
+        style={active ? { background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)' } : undefined}
       >
         {count}
       </span>

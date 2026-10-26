@@ -347,6 +347,7 @@ export interface ClinicTenant {
   address: string;
   tagline?: string;
   logo_url?: string | null;
+  badge_icon?: string | null;
   status: 'trial' | 'active' | 'suspended';
   trial_ends_at: string;
   created_at: string;

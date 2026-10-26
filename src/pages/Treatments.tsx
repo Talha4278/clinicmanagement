@@ -227,7 +227,7 @@ export default function Treatments({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl text-gray-900 flex items-center gap-2.5">
-            <CheckCircle2 className="text-emerald-700" size={26} />
+            <CheckCircle2 size={26} style={{ color: 'var(--primary-color)' }} />
             Dental Treatments & Procedures
           </h2>
           <p className="text-xs text-gray-500 mt-1">
@@ -253,7 +253,7 @@ export default function Treatments({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search treatments by patient, tooth #, or procedure..."
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 text-gray-900"
           />
           {search && (
             <button
@@ -274,9 +274,10 @@ export default function Treatments({
               onClick={() => setStatusFilter(st)}
               className={`px-3 py-1.5 rounded-xl capitalize font-semibold transition-all ${
                 statusFilter === st
-                  ? 'bg-emerald-800 text-white shadow-xs'
+                  ? 'text-white shadow-xs'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200/70'
               }`}
+              style={statusFilter === st ? { background: 'var(--primary-color)' } : {}}
             >
               {st.replace('_', ' ')}
             </button>
@@ -322,7 +323,10 @@ export default function Treatments({
                     </td>
                     <td className="py-3.5 px-4">
                       {t.tooth_number ? (
-                        <span className="font-bold text-xs bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200">
+                        <span
+                          className="font-bold text-xs px-2 py-0.5 rounded-md border"
+                          style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)', borderColor: 'rgba(2, 132, 199, 0.25)' }}
+                        >
                           #{t.tooth_number}
                         </span>
                       ) : (
@@ -368,7 +372,8 @@ export default function Treatments({
                           <button
                             onClick={() => onNewInvoice(t.patient_id, t.procedure_name, Number(t.cost))}
                             title="Generate Invoice for this Treatment"
-                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-semibold flex items-center gap-1"
+                            className="p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 hover:opacity-90"
+                            style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)' }}
                           >
                             <FileText size={13} /> Bill
                           </button>
@@ -567,7 +572,8 @@ export default function Treatments({
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-all shadow-xs"
+                  className="px-5 py-2 text-xs font-semibold text-white rounded-xl transition-all shadow-xs hover:opacity-90"
+                  style={{ background: 'var(--primary-color)' }}
                 >
                   {saving ? 'Saving...' : editingTreatment ? 'Update Treatment' : 'Save Treatment'}
                 </button>

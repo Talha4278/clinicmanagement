@@ -1,6 +1,7 @@
 import { ClinicTenant, ClinicSignUpData, SubscriptionPlan, Staff, ClinicSettings } from './types';
 import { saveClinicSettings, getClinicSettings } from './clinicSettings';
 import { supabase } from './supabase';
+import { parseClinicBranding } from '../components/ClinicBadgeIcon';
 
 const TENANTS_STORAGE_KEY = 'clinsyst_tenants';
 const ACTIVE_CLINIC_STORAGE_KEY = 'clinsyst_active_clinic_id';
@@ -134,11 +135,15 @@ export async function updateClinicTenantProfile(
   const idx = all.findIndex(c => c.id === clinicId);
   const current = idx !== -1 ? all[idx] : getActiveClinic();
 
+  const rawBadge = profile.badge_icon !== undefined && profile.badge_icon !== null ? profile.badge_icon : (current.badge_icon || 'stethoscope');
+  const branding = parseClinicBranding(profile.logo_url, rawBadge);
+
   const updated: ClinicTenant = {
     ...current,
     name: profile.name.trim(),
     tagline: profile.tagline !== undefined && profile.tagline !== null ? profile.tagline.trim() : (profile.tagline === null ? '' : current.tagline),
-    logo_url: profile.logo_url !== undefined && profile.logo_url !== null ? profile.logo_url : (profile.logo_url === null ? '' : current.logo_url),
+    logo_url: branding.isCustomLogo ? branding.logoUrl : `badge:${branding.badgeIcon}`,
+    badge_icon: branding.badgeIcon,
     address: profile.address !== undefined && profile.address !== null ? profile.address.trim() : (profile.address === null ? '' : current.address),
     phone: profile.phone !== undefined && profile.phone !== null ? profile.phone.trim() : (profile.phone === null ? '' : current.phone),
     owner_email: profile.owner_email !== undefined && profile.owner_email !== null ? profile.owner_email.trim() : (profile.owner_email === null ? '' : current.owner_email),
@@ -155,14 +160,14 @@ export async function updateClinicTenantProfile(
   saveClinicSettings({
     clinic_name: updated.name,
     tagline: updated.tagline || '',
-    logo_url: updated.logo_url || '',
+    logo_url: branding.isCustomLogo ? branding.logoUrl : '',
+    badge_icon: branding.badgeIcon,
     address: updated.address || '',
     phone: updated.phone || '',
     email: updated.owner_email || '',
     ...(profile.website !== undefined ? { website: profile.website || '' } : {}),
     ...(profile.tax_number !== undefined ? { tax_number: profile.tax_number || '' } : {}),
-    ...(profile.badge_icon !== undefined ? { badge_icon: profile.badge_icon || 'stethoscope' } : {}),
-  });
+  }, clinicId);
 
   // Sync with Supabase clinics table
   try {
@@ -172,10 +177,8 @@ export async function updateClinicTenantProfile(
       address: updated.address,
       phone: updated.phone,
       owner_email: updated.owner_email,
+      logo_url: updated.logo_url,
     };
-    if (updated.logo_url !== undefined) {
-      dbUpdate.logo_url = updated.logo_url;
-    }
     const { error } = await supabase
       .from('clinics')
       .update(dbUpdate)
@@ -676,8 +679,9 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
       const effectiveTagline = data.tagline !== undefined && data.tagline !== null ? data.tagline.trim() : (existing?.tagline || '');
       const effectivePhone = data.phone !== undefined && data.phone !== null ? data.phone.trim() : (existing?.phone || '');
       const effectiveAddress = data.address !== undefined && data.address !== null ? data.address.trim() : (existing?.address || '');
-      const effectiveEmail = (data.owner_email && data.owner_email.trim()) ? data.owner_email.trim() : (existing?.owner_email || '');
-      const effectiveLogo = data.logo_url !== undefined && data.logo_url !== null ? data.logo_url : (existing?.logo_url || '');
+      const rawLogo = data.logo_url !== undefined && data.logo_url !== null ? data.logo_url : (existing?.logo_url || '');
+      const rawBadge = (data as any).badge_icon || existing?.badge_icon || 'stethoscope';
+      const branding = parseClinicBranding(rawLogo, rawBadge);
 
       const updated: ClinicTenant = {
         id: data.id,
@@ -691,7 +695,8 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
         phone: effectivePhone,
         address: effectiveAddress,
         tagline: effectiveTagline,
-        logo_url: effectiveLogo,
+        logo_url: branding.isCustomLogo ? branding.logoUrl : `badge:${branding.badgeIcon}`,
+        badge_icon: branding.badgeIcon,
         status: data.status || existing?.status || 'active',
         trial_ends_at: data.trial_ends_at || existing?.trial_ends_at || new Date(Date.now() + 14 * 86400000).toISOString(),
         created_at: data.created_at || existing?.created_at || new Date().toISOString(),
@@ -713,7 +718,8 @@ export async function syncClinicFromDatabase(clinicId: string): Promise<ClinicTe
         ...existingSettings,
         clinic_name: updated.name,
         tagline: updated.tagline || '',
-        logo_url: updated.logo_url || '',
+        logo_url: branding.isCustomLogo ? branding.logoUrl : '',
+        badge_icon: branding.badgeIcon,
         address: updated.address || '',
         phone: updated.phone || '',
         email: updated.owner_email || '',

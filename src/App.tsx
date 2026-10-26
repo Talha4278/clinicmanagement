@@ -279,7 +279,7 @@ function AppContent() {
         return <Reports />;
 
       case 'staff':
-        return <Staff />;
+        return <ClinicSetup initialTab="staff_services" />;
 
       case 'setup':
         return <ClinicSetup />;
@@ -290,7 +290,7 @@ function AppContent() {
   }
 
   // Determine which sidebar item to highlight
-  const layoutPage = viewInvoiceId ? 'invoices' : page;
+  const layoutPage = viewInvoiceId ? 'invoices' : (page === 'staff' ? 'setup' : page);
 
   return (
     <Layout

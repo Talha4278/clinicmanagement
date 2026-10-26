@@ -25,6 +25,10 @@
   --primary-700: #0369a1;
   --primary-800: #075985;
   --primary-900: #0c4a6e;
+  --avatar-bg: #0284c7;
+  --badge-bg: #e0f2fe;
+  --badge-text: #0369a1;
+  --dossier-gradient: linear-gradient(135deg, #082f49 0%, #0c4a6e 45%, #0284c7 100%);
 }
 
 /* Warm Organic Olive & Cream Theme */
@@ -50,6 +54,40 @@
   --primary-700: #3c5e27;
   --primary-800: #324e21;
   --primary-900: #2a401d;
+  --avatar-bg: #4a7530;
+  --badge-bg: #e1edd9;
+  --badge-text: #2a401d;
+  --dossier-gradient: linear-gradient(135deg, #1b2e13 0%, #2a401d 45%, #3c5e27 100%);
+}
+
+.theme-avatar {
+  background-color: var(--avatar-bg, var(--primary-color)) !important;
+  color: #ffffff !important;
+}
+
+.theme-badge {
+  background-color: var(--badge-bg, var(--primary-light)) !important;
+  color: var(--badge-text, var(--primary-color)) !important;
+}
+
+.theme-btn-primary {
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+}
+.theme-btn-primary:hover {
+  background-color: var(--primary-hover) !important;
+}
+
+.theme-btn-secondary {
+  background-color: var(--primary-light) !important;
+  color: var(--primary-color) !important;
+}
+
+.theme-link {
+  color: var(--primary-color) !important;
+}
+.theme-link:hover {
+  color: var(--primary-hover) !important;
 }
 
 * {
@@ -136,14 +174,14 @@ input:focus, select:focus, textarea:focus {
 
 /* Sidebar active state */
 .sidebar-item-active {
-  background: rgba(90, 143, 60, 0.12);
-  color: #3c5e27;
-  border-left: 3px solid #4a7530;
+  background: var(--primary-50);
+  color: var(--primary-color);
+  border-left: 3px solid var(--primary-color);
 }
 
 /* Table hover */
 .table-row-hover:hover {
-  background-color: rgba(90, 143, 60, 0.04);
+  background-color: var(--primary-50);
 }
 
 /* Status badges */

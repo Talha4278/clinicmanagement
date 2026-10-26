@@ -19,6 +19,8 @@ export interface ThemeConfig {
   badgeBg: string;
   badgeText: string;
   accentGradient: string;
+  avatarBg: string;
+  dossierGradient: string;
   icon: string;
 }
 
@@ -40,6 +42,8 @@ export const THEMES: Record<AppTheme, ThemeConfig> = {
     badgeBg: '#e0f2fe',
     badgeText: '#0369a1',
     accentGradient: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
+    avatarBg: '#0284c7',
+    dossierGradient: 'linear-gradient(135deg, #082f49 0%, #0c4a6e 45%, #0284c7 100%)',
     icon: '🌊',
   },
   olive: {
@@ -59,6 +63,8 @@ export const THEMES: Record<AppTheme, ThemeConfig> = {
     badgeBg: '#e1edd9',
     badgeText: '#2a401d',
     accentGradient: 'linear-gradient(135deg, #3c5e27 0%, #4a7530 100%)',
+    avatarBg: '#4a7530',
+    dossierGradient: 'linear-gradient(135deg, #1b2e13 0%, #2a401d 45%, #3c5e27 100%)',
     icon: '🌿',
   },
 };
@@ -119,6 +125,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty('--primary-600', themeConfig.primaryHover);
     root.style.setProperty('--primary-900', themeConfig.primaryDark);
     root.style.setProperty('--primary-50', themeConfig.primaryLight);
+    root.style.setProperty('--avatar-bg', themeConfig.avatarBg);
+    root.style.setProperty('--badge-bg', themeConfig.badgeBg);
+    root.style.setProperty('--badge-text', themeConfig.badgeText);
+    root.style.setProperty('--dossier-gradient', themeConfig.dossierGradient);
+    root.style.setProperty('--accent-gradient', themeConfig.accentGradient);
   }, [theme, themeConfig]);
 
   return (

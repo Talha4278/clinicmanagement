@@ -400,7 +400,8 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
             </button>
             <button
               onClick={() => onNavigate('appointments')}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-700 text-white rounded-xl text-xs font-semibold hover:bg-emerald-800 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-xl text-xs font-semibold transition-all hover:opacity-90 shadow-2xs"
+              style={{ background: 'var(--primary-color)' }}
             >
               <Plus size={14} /> Book New
             </button>
@@ -465,9 +466,10 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                       isSelected
                         ? 'bg-purple-700 text-white font-bold shadow-xs'
                         : isToday
-                        ? 'bg-emerald-100 text-emerald-900 font-bold border border-emerald-300'
+                        ? 'font-bold border border-sky-400'
                         : 'text-gray-700 hover:bg-gray-200/60'
                     }`}
+                    style={isToday && !isSelected ? { background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)' } : undefined}
                   >
                     <span>{dayNum}</span>
                     {hasApt && (
@@ -539,7 +541,8 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                   )}
                   <button
                     onClick={() => onNavigate('appointments')}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors"
+                    className="px-3 py-1.5 rounded-xl text-white text-xs font-semibold transition-all hover:opacity-90 shadow-2xs"
+                    style={{ background: 'var(--primary-color)' }}
                   >
                     Book an appointment
                   </button>
@@ -594,7 +597,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                           </span>
                         </div>
 
-                        <p className="text-xs text-emerald-800 font-semibold mt-0.5">
+                        <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--primary-color)' }}>
                           {apt.procedure || 'Clinical Consultation & Checkup'}
                         </p>
 
@@ -615,7 +618,8 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                       )}
                       <button
                         onClick={() => onNavigate('appointments', apt.patient_id)}
-                        className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold transition-colors"
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors hover:opacity-90"
+                        style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)' }}
                       >
                         Manage
                       </button>
@@ -638,7 +642,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
               <button
                 onClick={() => onNavigate('invoices')}
                 className="flex items-center gap-1 text-xs font-semibold hover:underline"
-                style={{ color: '#4a7530' }}
+                style={{ color: 'var(--primary-color)' }}
               >
                 View all <ArrowRight size={14} />
               </button>
@@ -681,7 +685,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
             <button
               onClick={() => onNavigate('patients')}
               className="flex items-center gap-1 text-xs font-semibold hover:underline"
-              style={{ color: '#4a7530' }}
+              style={{ color: 'var(--primary-color)' }}
             >
               View all <ArrowRight size={14} />
             </button>
@@ -700,7 +704,7 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                 >
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                    style={{ background: '#4a7530' }}
+                    style={{ background: 'var(--avatar-bg, var(--primary-color))' }}
                   >
                     {p.name.charAt(0).toUpperCase()}
                   </div>
@@ -709,7 +713,10 @@ export default function Dashboard({ onNavigate, onViewPatientDossier }: Props) {
                     <p className="text-[11px] text-gray-400">{p.phone}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-[10px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold">
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
+                      style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)' }}
+                    >
                       View Records
                     </span>
                     <ArrowRight size={12} className="text-gray-400" />

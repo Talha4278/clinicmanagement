@@ -193,7 +193,7 @@ export default function Inventory() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl text-gray-900 flex items-center gap-2.5">
-            <Package className="text-emerald-700" size={26} />
+            <Package style={{ color: 'var(--primary-color)' }} size={26} />
             Clinic Inventory & Supplies
           </h2>
           <p className="text-xs text-gray-500 mt-1">
@@ -218,7 +218,10 @@ export default function Inventory() {
             <p className="text-2xl font-bold text-gray-900 mt-1">{items.length}</p>
             <p className="text-xs text-gray-500 mt-0.5">Across {CATEGORIES.length} categories</p>
           </div>
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center"
+            style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+          >
             <Package size={22} />
           </div>
         </div>
@@ -267,7 +270,7 @@ export default function Inventory() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search items by name, SKU, or supplier..."
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
           />
           {search && (
             <button
@@ -409,7 +412,8 @@ export default function Inventory() {
                               setAdjustType('add');
                             }}
                             title="Restock or Consume"
-                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                            style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+                            className="p-1.5 rounded-lg hover:opacity-80 transition-colors"
                           >
                             <RefreshCw size={14} />
                           </button>
@@ -467,7 +471,7 @@ export default function Inventory() {
                     required
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                     placeholder="e.g. Composite Resin Syringe (A2)"
                   />
                 </div>
@@ -477,7 +481,7 @@ export default function Inventory() {
                   <select
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value as InventoryCategory })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                   >
                     {CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
@@ -493,7 +497,7 @@ export default function Inventory() {
                     type="text"
                     value={form.sku}
                     onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                     placeholder="e.g. DM-COMP-01"
                   />
                 </div>
@@ -505,7 +509,7 @@ export default function Inventory() {
                     min="0"
                     value={form.quantity}
                     onChange={(e) => setForm({ ...form, quantity: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                   />
                 </div>
 
@@ -515,7 +519,7 @@ export default function Inventory() {
                     type="text"
                     value={form.unit}
                     onChange={(e) => setForm({ ...form, unit: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                     placeholder="pcs, boxes, ampoules, packs"
                   />
                 </div>
@@ -527,7 +531,7 @@ export default function Inventory() {
                     min="0"
                     value={form.min_stock_level}
                     onChange={(e) => setForm({ ...form, min_stock_level: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                   />
                 </div>
 
@@ -538,7 +542,7 @@ export default function Inventory() {
                     min="0"
                     value={form.cost_price}
                     onChange={(e) => setForm({ ...form, cost_price: Number(e.target.value) })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                   />
                 </div>
 
@@ -549,7 +553,7 @@ export default function Inventory() {
                     min="0"
                     value={form.sale_price}
                     onChange={(e) => setForm({ ...form, sale_price: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                     placeholder="Optional selling price"
                   />
                 </div>
@@ -560,7 +564,7 @@ export default function Inventory() {
                     type="date"
                     value={form.expiry_date}
                     onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                   />
                 </div>
 
@@ -570,7 +574,7 @@ export default function Inventory() {
                     type="text"
                     value={form.supplier}
                     onChange={(e) => setForm({ ...form, supplier: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                     placeholder="Supplier name"
                   />
                 </div>
@@ -581,7 +585,7 @@ export default function Inventory() {
                     type="text"
                     value={form.location}
                     onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900"
                     placeholder="Cabinet A, Shelf 2"
                   />
                 </div>
@@ -592,7 +596,7 @@ export default function Inventory() {
                     rows={2}
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-emerald-600/20 text-gray-900 resize-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900 resize-none"
                     placeholder="Special storage directions, batch comments..."
                   />
                 </div>
@@ -609,7 +613,8 @@ export default function Inventory() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-5 py-2 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-xl transition-all shadow-xs"
+                  style={{ background: 'var(--primary-color)' }}
+                  className="px-5 py-2 text-xs font-semibold text-white rounded-xl transition-all shadow-xs hover:opacity-90"
                 >
                   {saving ? 'Saving...' : editingItem ? 'Update Item' : 'Add Item'}
                 </button>
@@ -635,9 +640,10 @@ export default function Inventory() {
               <button
                 type="button"
                 onClick={() => setAdjustType('add')}
+                style={adjustType === 'add' ? { background: 'var(--primary-color)', borderColor: 'var(--primary-color)' } : {}}
                 className={`flex-1 py-2 rounded-xl text-xs font-semibold border ${
                   adjustType === 'add'
-                    ? 'bg-emerald-700 text-white border-emerald-700'
+                    ? 'text-white'
                     : 'bg-white text-gray-700 border-gray-200'
                 }`}
               >
@@ -680,7 +686,8 @@ export default function Inventory() {
               <button
                 type="button"
                 onClick={handleConfirmAdjust}
-                className="px-4 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg"
+                style={{ background: 'var(--primary-color)' }}
+                className="px-4 py-1.5 text-xs font-semibold text-white rounded-lg hover:opacity-90"
               >
                 Confirm Update
               </button>

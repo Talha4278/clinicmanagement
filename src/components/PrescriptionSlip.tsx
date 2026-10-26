@@ -2,7 +2,7 @@ import { Printer, X, Stethoscope, Calendar, Phone } from 'lucide-react';
 import { Prescription } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useClinicSettings } from '../lib/clinicSettings';
-import { ClinicBadgeIcon } from './ClinicBadgeIcon';
+import { ClinicBadgeIcon, parseClinicBranding } from './ClinicBadgeIcon';
 
 interface PrescriptionSlipProps {
   prescription: Prescription;
@@ -32,13 +32,14 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
         {/* Top Action Toolbar (fixed/sticky at top, hidden during print) */}
         <div className="sticky top-0 z-20 flex items-center justify-between px-4 sm:px-6 py-3 bg-gray-900 text-white no-print flex-shrink-0 border-b border-gray-800">
           <div className="flex items-center gap-2">
-            <Stethoscope size={18} className="text-emerald-400 flex-shrink-0" />
+            <Stethoscope size={18} style={{ color: 'var(--primary-color)' }} className="flex-shrink-0" />
             <span className="text-xs sm:text-sm font-semibold truncate">Clinical Prescription Slip</span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-lg text-xs font-semibold transition-colors shadow-xs hover:shadow"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-semibold transition-all shadow-xs hover:opacity-90"
+              style={{ background: 'var(--primary-color)' }}
             >
               <Printer size={14} /> Print Prescription
             </button>
@@ -57,24 +58,32 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
         {/* Prescription Paper Sheet (Scrollable container) */}
         <div className="p-6 sm:p-10 space-y-6 bg-white text-gray-900 overflow-y-auto flex-1" id="printable-prescription">
           {/* Clinic Header */}
-          <div className="flex items-start justify-between border-b-2 border-emerald-800/80 pb-5">
+          <div className="flex items-start justify-between border-b-2 pb-5" style={{ borderColor: 'var(--primary-color)' }}>
             <div className="flex items-center gap-3">
-              <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0"
-                style={{ background: 'var(--primary-color, #0284c7)' }}
-              >
-                {activeClinic?.logo_url || clinic.logo_url ? (
-                  <img src={activeClinic?.logo_url || clinic.logo_url || ''} alt={activeClinic?.name || clinic.clinic_name} className="w-full h-full object-contain p-1" />
-                ) : (
-                  <ClinicBadgeIcon iconId={clinic.badge_icon} className="w-6 h-6 text-white" size={24} />
-                )}
-              </div>
+              {(() => {
+                const branding = parseClinicBranding(
+                  activeClinic?.logo_url || clinic.logo_url,
+                  activeClinic?.badge_icon || clinic.badge_icon
+                );
+                return (
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold overflow-hidden flex-shrink-0"
+                    style={{ background: 'var(--primary-color, #0284c7)' }}
+                  >
+                    {branding.isCustomLogo ? (
+                      <img src={branding.logoUrl} alt={activeClinic?.name || clinic.clinic_name} className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <ClinicBadgeIcon iconId={branding.badgeIcon} className="w-6 h-6 text-white" size={24} />
+                    )}
+                  </div>
+                );
+              })()}
               <div>
                 <h2 className="font-display text-2xl font-bold text-gray-900 tracking-tight">
                   {activeClinic?.name || clinic.clinic_name || 'Clinic'}
                 </h2>
                 {(activeClinic?.tagline || clinic.tagline) && (
-                  <p className="text-xs uppercase font-semibold text-emerald-800 tracking-wider">
+                  <p className="text-xs uppercase font-semibold tracking-wider" style={{ color: 'var(--primary-color)' }}>
                     {activeClinic?.tagline || clinic.tagline}
                   </p>
                 )}
@@ -86,7 +95,7 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
 
             <div className="text-right">
               <p className="text-sm font-bold text-gray-900">{doctor?.name || 'Dr. Attending Dentist'}</p>
-              <p className="text-xs text-emerald-700 font-medium">{doctor?.specialization || 'Dental Surgeon & Aesthetician'}</p>
+              <p className="text-xs font-medium" style={{ color: 'var(--primary-color)' }}>{doctor?.specialization || 'Dental Surgeon & Aesthetician'}</p>
               <p className="text-[11px] text-gray-400 mt-0.5">PMDC / License Reg. #8921-D</p>
             </div>
           </div>
@@ -142,7 +151,7 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
           {/* Rx Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="font-display text-2xl font-bold text-emerald-800 italic">℞</span>
+              <span className="font-display text-2xl font-bold italic" style={{ color: 'var(--primary-color)' }}>℞</span>
               <span className="text-xs uppercase font-bold text-gray-400 tracking-wider">
                 Prescribed Medications
               </span>
@@ -166,7 +175,7 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
                         <td className="py-3 px-3 font-semibold text-gray-400">{idx + 1}</td>
                         <td className="py-3 px-3">
                           <p className="font-bold text-gray-900 text-sm">{item.medicine_name}</p>
-                          <p className="text-xs text-emerald-700 font-medium">{item.dosage}</p>
+                          <p className="text-xs font-medium" style={{ color: 'var(--primary-color)' }}>{item.dosage}</p>
                         </td>
                         <td className="py-3 px-3 font-medium text-gray-700">{item.frequency}</td>
                         <td className="py-3 px-3 font-semibold text-gray-800">{item.duration}</td>
@@ -201,7 +210,7 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
               {prescription.follow_up_date && (
                 <p className="font-semibold text-gray-800">
                   Next Follow-up Visit:{' '}
-                  <span className="text-emerald-700 font-bold">
+                  <span className="font-bold" style={{ color: 'var(--primary-color)' }}>
                     {new Date(prescription.follow_up_date).toLocaleDateString('en-US', {
                       weekday: 'short',
                       month: 'short',

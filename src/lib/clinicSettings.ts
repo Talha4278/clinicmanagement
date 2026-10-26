@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ClinicSettings } from './types';
+import { parseClinicBranding } from '../components/ClinicBadgeIcon';
 
 export const DEFAULT_PROCEDURES: string[] = [
   'General Consultation',
@@ -100,11 +101,14 @@ export function getClinicSettings(explicitClinicId?: string | null): ClinicSetti
       }
     } catch {}
 
+    const tenantBranding = parseClinicBranding(currentTenant?.logo_url, currentTenant?.badge_icon);
+
     const defaultBase: ClinicSettings = {
       ...DEFAULT_CLINIC_SETTINGS,
       clinic_name: currentTenant?.name || '',
       tagline: currentTenant?.tagline !== undefined && currentTenant?.tagline !== null ? currentTenant.tagline : '',
-      logo_url: currentTenant?.logo_url || '',
+      logo_url: tenantBranding.isCustomLogo ? tenantBranding.logoUrl : '',
+      badge_icon: tenantBranding.badgeIcon,
       address: currentTenant?.address || '',
       email: currentTenant?.owner_email || '',
       phone: currentTenant?.phone || '',
@@ -146,18 +150,25 @@ export function getClinicSettings(explicitClinicId?: string | null): ClinicSetti
         ? fallbackNotation
         : (defaultBase.tooth_notation || 'fdi');
 
+      const branding = parseClinicBranding(
+        currentTenant?.logo_url,
+        currentTenant?.badge_icon || parsed?.badge_icon
+      );
+
       return {
         ...defaultBase,
         ...parsed,
         // Priority for clinic identity: current tenant in store (synced from database) takes precedence over stale/cached settings
         clinic_name: (currentTenant?.name) ? currentTenant.name : ((parsed.clinic_name && parsed.clinic_name.trim()) ? parsed.clinic_name : defaultBase.clinic_name),
         tagline: (currentTenant?.tagline !== undefined && currentTenant?.tagline !== null) ? currentTenant.tagline : (parsed.tagline !== undefined ? parsed.tagline : defaultBase.tagline),
-        logo_url: (currentTenant?.logo_url !== undefined && currentTenant?.logo_url !== null) ? currentTenant.logo_url : (parsed.logo_url !== undefined ? parsed.logo_url : defaultBase.logo_url),
+        logo_url: branding.isCustomLogo
+          ? branding.logoUrl
+          : ((parsed.logo_url && !parsed.logo_url.startsWith('badge:')) ? parsed.logo_url : defaultBase.logo_url),
         address: (currentTenant?.address !== undefined && currentTenant?.address !== null) ? currentTenant.address : (parsed.address !== undefined ? parsed.address : defaultBase.address),
         phone: (currentTenant?.phone !== undefined && currentTenant?.phone !== null) ? currentTenant.phone : (parsed.phone !== undefined ? parsed.phone : defaultBase.phone),
         email: (currentTenant?.owner_email !== undefined && currentTenant?.owner_email !== null) ? currentTenant.owner_email : (parsed.email !== undefined ? parsed.email : defaultBase.email),
         website: parsed.website !== undefined ? parsed.website : defaultBase.website,
-        badge_icon: parsed.badge_icon || defaultBase.badge_icon || 'stethoscope',
+        badge_icon: branding.badgeIcon || parsed.badge_icon || defaultBase.badge_icon || 'stethoscope',
         tax_number: parsed.tax_number !== undefined ? parsed.tax_number : defaultBase.tax_number,
         tax_rate: typeof parsed.tax_rate === 'number' ? parsed.tax_rate : defaultBase.tax_rate,
         tax_label: parsed.tax_label || defaultBase.tax_label || 'GST / Tax (5%)',

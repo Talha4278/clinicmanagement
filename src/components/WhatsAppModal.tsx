@@ -101,7 +101,10 @@ export default function WhatsAppModal({
           {/* Recipient Strip */}
           <div className="bg-gray-50 border border-gray-200/80 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center font-bold"
+                style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+              >
                 <User size={15} />
               </div>
               <div>
@@ -117,10 +120,13 @@ export default function WhatsAppModal({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="e.g. 03001234567"
-                className="px-2.5 py-1.5 rounded-lg border border-gray-300 font-mono text-xs font-semibold text-gray-800 bg-white focus:ring-2 focus:ring-emerald-500/20 outline-none w-36"
+                className="px-2.5 py-1.5 rounded-lg border border-gray-300 font-mono text-xs font-semibold text-gray-800 bg-white focus:ring-2 focus:ring-[var(--primary-color)]/20 outline-none w-36"
               />
               {cleaned && (
-                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md font-medium">
+                <span
+                  className="text-[10px] px-2 py-0.5 rounded-md font-semibold"
+                  style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+                >
                   +{cleaned}
                 </span>
               )}
@@ -173,9 +179,9 @@ export default function WhatsAppModal({
                 <button
                   type="button"
                   onClick={handleCopy}
-                  className="flex items-center gap-1 text-[11px] font-semibold text-gray-600 hover:text-emerald-700 transition-colors"
+                  className="flex items-center gap-1 text-[11px] font-semibold text-gray-600 hover:text-[var(--primary-color)] transition-colors"
                 >
-                  {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                  {copied ? <Check size={12} style={{ color: 'var(--primary-color)' }} /> : <Copy size={12} />}
                   <span>{copied ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
@@ -184,7 +190,7 @@ export default function WhatsAppModal({
               rows={9}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              className="w-full p-3.5 rounded-2xl border border-gray-200 bg-gray-50/50 text-xs font-sans text-gray-900 leading-relaxed focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 outline-none resize-none transition-all shadow-inner"
+              className="w-full p-3.5 rounded-2xl border border-gray-200 bg-gray-50/50 text-xs font-sans text-gray-900 leading-relaxed focus:bg-white focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] outline-none resize-none transition-all shadow-inner"
             />
             <p className="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
               <ShieldCheck size={12} className="text-emerald-600" />

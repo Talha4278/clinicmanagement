@@ -175,7 +175,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
           placeholder="Search by name, phone, or email..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-white rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+          className="w-full pl-10 pr-4 py-3 bg-white rounded-xl border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
         />
         {search && (
           <button onClick={() => setSearch('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -207,7 +207,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                   <td colSpan={5} className="text-center py-12">
                     <p className="text-gray-400 text-sm">{search ? 'No patients found matching your search' : 'No patients registered yet'}</p>
                     {!search && (
-                      <button onClick={openAdd} className="mt-3 text-sm font-medium hover:underline" style={{ color: '#4a7530' }}>
+                      <button onClick={openAdd} className="mt-3 text-sm font-medium hover:underline" style={{ color: 'var(--primary-color)' }}>
                         Register your first patient
                       </button>
                     )}
@@ -220,7 +220,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                       <div className="flex items-center gap-3">
                         <div
                           className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                          style={{ background: '#4a7530' }}
+                          style={{ background: 'var(--avatar-bg, var(--primary-color))' }}
                         >
                           {p.name.charAt(0).toUpperCase()}
                         </div>
@@ -260,7 +260,8 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                       <div className="flex items-center gap-2 justify-end">
                         <button
                           onClick={(e) => { e.stopPropagation(); onViewPatient?.(p.id); }}
-                          className="text-xs font-semibold text-emerald-800 bg-emerald-100/70 hover:bg-emerald-200/80 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                          className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-xs hover:opacity-90"
+                          style={{ background: 'var(--badge-bg, #e0f2fe)', color: 'var(--badge-text, #0369a1)' }}
                         >
                           Records / Dossier
                         </button>
@@ -318,7 +319,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                     placeholder="Patient full name"
                   />
                 </div>
@@ -328,7 +329,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                     type="tel"
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                     placeholder="+92 300 0000000"
                   />
                 </div>
@@ -338,7 +339,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                     placeholder="patient@email.com"
                   />
                 </div>
@@ -348,7 +349,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                     type="date"
                     value={form.date_of_birth}
                     onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                 </div>
                 <div>
@@ -356,7 +357,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                   <select
                     value={form.gender}
                     onChange={(e) => setForm({ ...form, gender: e.target.value as GenderType })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   >
                     <option value="">Select gender</option>
                     <option value="male">Male</option>
@@ -370,7 +371,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                     type="text"
                     value={form.address}
                     onChange={(e) => setForm({ ...form, address: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                     placeholder="Street address, city"
                   />
                 </div>
@@ -380,7 +381,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                     value={form.allergies}
                     onChange={(e) => setForm({ ...form, allergies: e.target.value })}
                     rows={2}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all resize-none"
                     placeholder="Known allergies..."
                   />
                 </div>
@@ -390,7 +391,7 @@ export default function Patients({ onViewPatient, onBookAppointment }: Props) {
                     value={form.medical_history}
                     onChange={(e) => setForm({ ...form, medical_history: e.target.value })}
                     rows={2}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all resize-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all resize-none"
                     placeholder="Medical conditions, history..."
                   />
                 </div>

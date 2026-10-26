@@ -6,7 +6,7 @@ import { useClinicSettings } from '../lib/clinicSettings';
 import { generatePaymentWhatsAppMessage, formatFriendlyDate } from '../lib/whatsapp';
 import WhatsAppModal, { WhatsAppModalProps } from '../components/WhatsAppModal';
 import EditPaymentModal from '../components/EditPaymentModal';
-import { ClinicBadgeIcon } from '../components/ClinicBadgeIcon';
+import { ClinicBadgeIcon, parseClinicBranding } from '../components/ClinicBadgeIcon';
 import { isDemoMode, getDemoInvoices, updateDemoInvoicePayment } from '../lib/demoData';
 import { useAuth } from '../contexts/AuthContext';
 import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
@@ -208,7 +208,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
     return (
       <div className="text-center py-24">
         <p className="text-gray-400">Invoice not found</p>
-        <button onClick={onBack} className="mt-3 text-sm hover:underline" style={{ color: '#4a7530' }}>Go back</button>
+        <button onClick={onBack} className="mt-3 text-sm hover:underline" style={{ color: 'var(--primary-color)' }}>Go back</button>
       </div>
     );
   }
@@ -308,13 +308,21 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
         <div className="p-8" style={{ background: 'var(--sidebar-bg, #0c4a6e)' }}>
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0">
-                {clinic.logo_url ? (
-                  <img src={clinic.logo_url} alt={clinic.clinic_name} className="w-full h-full object-contain p-1" />
-                ) : (
-                  <ClinicBadgeIcon iconId={clinic.badge_icon} className="w-7 h-7 text-white" size={28} />
-                )}
-              </div>
+              {(() => {
+                const branding = parseClinicBranding(
+                  activeClinic?.logo_url || clinic.logo_url,
+                  activeClinic?.badge_icon || clinic.badge_icon
+                );
+                return (
+                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {branding.isCustomLogo ? (
+                      <img src={branding.logoUrl} alt={activeClinic?.name || clinic.clinic_name} className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <ClinicBadgeIcon iconId={branding.badgeIcon} className="w-7 h-7 text-white" size={28} />
+                    )}
+                  </div>
+                );
+              })()}
               <div>
                 <h1 className="font-display text-2xl text-white font-bold">{activeClinic?.name || clinic.clinic_name || 'Clinic'}</h1>
                 {(activeClinic?.tagline || clinic.tagline) && <p className="text-white/80 text-sm font-medium">{activeClinic?.tagline || clinic.tagline}</p>}

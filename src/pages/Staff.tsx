@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, Lock, ArrowUpRight, CheckCircle2, Landmark, MessageSquare, CreditCard } from 'lucide-react';
+import { Plus, UserCheck, UserX, X, AlertCircle, Shield, Eye, EyeOff, Sparkles, Lock, ArrowUpRight, CheckCircle2, Landmark, MessageSquare, CreditCard, UserCog } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Staff as StaffType, StaffRole, SubscriptionPlan } from '../lib/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -16,7 +16,11 @@ const roleColors: Record<StaffRole, string> = {
   doctor: 'bg-purple-50 text-purple-700',
 };
 
-export default function Staff() {
+export interface StaffProps {
+  embedded?: boolean;
+}
+
+export default function Staff({ embedded = false }: StaffProps = {}) {
   const { staff: currentStaff, activeClinic } = useAuth();
   const isAdmin = currentStaff?.role === 'admin';
   const [staffList, setStaffList] = useState<StaffType[]>([]);
@@ -320,34 +324,65 @@ export default function Staff() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="font-display text-2xl text-gray-900">Staff Management</h2>
-          <p className="text-sm text-gray-500 mt-0.5">{activeStaff.length} active staff members</p>
+      {!embedded ? (
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h2 className="font-display text-2xl text-gray-900">Staff Management</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{activeStaff.length} active staff members</p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={openAdd}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all ${
+                seatInfo.allowed ? 'hover:opacity-90' : 'opacity-80'
+              }`}
+              style={{ background: seatInfo.allowed ? 'var(--primary-color, #0284c7)' : 'var(--primary-hover, #0369a1)' }}
+            >
+              <Plus size={16} /> Add Staff
+            </button>
+          )}
         </div>
-        {isAdmin && (
-          <button
-            onClick={openAdd}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold transition-all ${
-              seatInfo.allowed ? 'hover:opacity-90' : 'opacity-80'
-            }`}
-            style={{ background: seatInfo.allowed ? 'var(--primary-color, #0284c7)' : 'var(--primary-hover, #0369a1)' }}
-          >
-            <Plus size={16} /> Add Staff
-          </button>
-        )}
-      </div>
+      ) : (
+        <div className="flex items-center justify-between gap-4 flex-wrap pb-1">
+          <div>
+            <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+              <UserCog style={{ color: 'var(--primary-color)' }} size={18} />
+              Clinic Staff & Attending Doctors Directory
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {activeStaff.length} active staff accounts · Attending doctors appear automatically in appointment booking, treatment plans, and invoicing.
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              onClick={openAdd}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-white text-xs font-bold transition-all shadow-xs ${
+                seatInfo.allowed ? 'hover:opacity-90' : 'opacity-80'
+              }`}
+              style={{ background: seatInfo.allowed ? 'var(--primary-color, #0284c7)' : 'var(--primary-hover, #0369a1)' }}
+            >
+              <Plus size={15} /> Add Staff / Doctor
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Clinic Plan & Seat Allocation Bar */}
       <div className="bg-white rounded-2xl p-4 border border-gray-100 card-shadow flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold flex-shrink-0">
-            <Sparkles size={18} className="text-emerald-700" />
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center font-bold flex-shrink-0"
+            style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+          >
+            <Sparkles size={18} style={{ color: 'var(--primary-color)' }} />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <p className="font-bold text-gray-900 text-sm">{seatInfo.clinicName}</p>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wide">
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
+                style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+              >
                 {seatInfo.plan} Plan
               </span>
             </div>
@@ -361,9 +396,12 @@ export default function Staff() {
           <div className="w-32 bg-gray-100 rounded-full h-2.5 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                seatInfo.currentCount >= seatInfo.maxSeats ? 'bg-amber-500' : 'bg-emerald-600'
+                seatInfo.currentCount >= seatInfo.maxSeats ? 'bg-amber-500' : ''
               }`}
-              style={{ width: `${Math.min(100, (seatInfo.currentCount / seatInfo.maxSeats) * 100)}%` }}
+              style={{
+                width: `${Math.min(100, (seatInfo.currentCount / seatInfo.maxSeats) * 100)}%`,
+                background: seatInfo.currentCount >= seatInfo.maxSeats ? '#f59e0b' : 'var(--primary-color)',
+              }}
             />
           </div>
           {seatInfo.currentCount >= seatInfo.maxSeats ? (
@@ -371,7 +409,10 @@ export default function Staff() {
               <Lock size={12} /> Limit Reached
             </span>
           ) : (
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+            <span
+              className="text-xs font-semibold px-2.5 py-1 rounded-lg"
+              style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+            >
               {seatInfo.remainingSeats} Seats Free
             </span>
           )}
@@ -422,7 +463,7 @@ export default function Staff() {
               <div key={s.id} className="flex items-center gap-4 px-6 py-4 table-row-hover">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold flex-shrink-0"
-                  style={{ background: '#4a7530' }}
+                  style={{ background: 'var(--avatar-bg, var(--primary-color))' }}
                 >
                   {s.name.charAt(0).toUpperCase()}
                 </div>
@@ -522,7 +563,7 @@ export default function Staff() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="Dr. John Smith"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                 />
               </div>
               <div>
@@ -533,7 +574,7 @@ export default function Staff() {
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   placeholder="staff@dentivista.com"
                   required
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                 />
                 {editStaff && (
                   <p className="text-xs text-gray-400 mt-1.5">Changing email also updates their login email</p>
@@ -551,7 +592,7 @@ export default function Staff() {
                     placeholder={editStaff ? 'Leave blank to keep current password' : 'Minimum 6 characters'}
                     required={!editStaff}
                     minLength={editStaff ? undefined : 6}
-                    className="w-full px-4 py-2.5 pr-11 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 pr-11 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                   <button
                     type="button"
@@ -572,7 +613,7 @@ export default function Staff() {
                   <select
                     value={form.role}
                     onChange={(e) => setForm({ ...form, role: e.target.value as StaffRole })}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   >
                     <option value="admin">Admin</option>
                     <option value="receptionist">Receptionist</option>
@@ -586,7 +627,7 @@ export default function Staff() {
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     placeholder="+92 300..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                 </div>
               </div>
@@ -598,7 +639,7 @@ export default function Staff() {
                     value={form.specialization}
                     onChange={(e) => setForm({ ...form, specialization: e.target.value })}
                     placeholder="e.g. Orthodontics, Endodontics..."
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                 </div>
               )}

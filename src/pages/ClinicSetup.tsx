@@ -7,8 +7,9 @@ import {
   UserCheck, UserX, Loader2, Clock, Receipt, CreditCard,
   MessageSquare, Send, Smartphone, Lock,
   ShieldCheck, Zap,
-  CheckCheck, Landmark, Palette
+  CheckCheck, Landmark, Palette, UserCog
 } from 'lucide-react';
+import StaffManagement from './Staff';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
@@ -30,6 +31,7 @@ import { updateClinicPlan, updateClinicTenantProfile, PLAN_SPECS } from '../lib/
 import {
   ClinicBadgeIcon,
   PRESET_BADGE_ICONS,
+  parseClinicBranding,
 } from '../components/ClinicBadgeIcon';
 import CreditCardCheckoutModal from '../components/CreditCardCheckoutModal';
 import {
@@ -69,10 +71,25 @@ const CURRENCY_OPTIONS = [
   { code: 'PKR', symbol: 'Rs. ', name: 'Pakistani Rupee (Rs.)' },
 ];
 
-export default function ClinicSetup() {
+export type SetupTab =
+  | 'profile'
+  | 'localization'
+  | 'staff_services'
+  | 'doctors_services'
+  | 'subscriptions';
+
+export interface ClinicSetupProps {
+  initialTab?: SetupTab;
+}
+
+export default function ClinicSetup({ initialTab = 'profile' }: ClinicSetupProps = {}) {
   const { activeClinic, user } = useAuth();
   const { settings, updateSettings } = useClinicSettings();
   const { theme, setTheme, themeConfig } = useTheme();
+  const initialBranding = parseClinicBranding(
+    activeClinic?.logo_url !== undefined && activeClinic?.logo_url !== null ? activeClinic.logo_url : settings.logo_url,
+    activeClinic?.badge_icon || settings.badge_icon
+  );
   const [form, setForm] = useState<ClinicSettings>({
     ...settings,
     clinic_name: activeClinic?.name || settings.clinic_name || '',
@@ -80,27 +97,33 @@ export default function ClinicSetup() {
     phone: activeClinic?.phone || settings.phone || '',
     email: activeClinic?.owner_email || settings.email || '',
     address: activeClinic?.address || settings.address || '',
-    logo_url: activeClinic?.logo_url !== undefined && activeClinic?.logo_url !== null ? activeClinic.logo_url : (settings.logo_url || ''),
-    badge_icon: settings.badge_icon || 'stethoscope',
+    logo_url: initialBranding.logoUrl,
+    badge_icon: initialBranding.badgeIcon,
   });
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('Clinic settings successfully updated!');
   const [selectedPresetIcon, setSelectedPresetIcon] = useState<string>(
-    settings.badge_icon || 'stethoscope'
+    initialBranding.badgeIcon
   );
   const [savingTab, setSavingTab] = useState<string | null>(null);
   const [savedTab, setSavedTab] = useState<string | null>(null);
 
   const [brandingMode, setBrandingMode] = useState<'badge' | 'logo'>(
-    settings.logo_url ? 'logo' : 'badge'
+    initialBranding.brandingMode
   );
   const isDirtyRef = useRef(false);
   const initialLoadedRef = useRef(false);
-  // Navigation tab: Doctors & Services are merged, and Subscriptions is placed after it (at last)
-  const [activeTab, setActiveTab] = useState<
-    'profile' | 'localization' | 'doctors_services' | 'subscriptions'
-  >('profile');
-  const [docServicesSubTab, setDocServicesSubTab] = useState<'doctors' | 'services'>('doctors');
+  // Navigation tab: Staff & Services are merged, and Subscriptions is placed after it (at last)
+  const [activeTab, setActiveTab] = useState<SetupTab>(
+    initialTab === 'doctors_services' ? 'staff_services' : initialTab
+  );
+  const [staffServicesSubTab, setStaffServicesSubTab] = useState<'staff' | 'services'>('staff');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab === 'doctors_services' ? 'staff_services' : initialTab);
+    }
+  }, [initialTab]);
 
   // Pricing & Subscription state for activeTab === 'payments'
   // Pricing & Subscription state for activeTab === 'subscriptions'
@@ -189,23 +212,13 @@ export default function ClinicSetup() {
   const [editingProcedureValue, setEditingProcedureValue] = useState('');
   const [procedureSearch, setProcedureSearch] = useState('');
 
-  // Real Database Attending Doctors State
-  const [doctors, setDoctors] = useState<Staff[]>([]);
-  const [loadingDoctors, setLoadingDoctors] = useState(false);
-  const [showAddDoctorForm, setShowAddDoctorForm] = useState(false);
-  const [savingDoctor, setSavingDoctor] = useState(false);
-  const [newDoctor, setNewDoctor] = useState({
-    name: '',
-    specialization: '',
-    phone: '',
-    email: '',
-  });
-  const [editingDoctorId, setEditingDoctorId] = useState<string | null>(null);
-  const [editingDoctorForm, setEditingDoctorForm] = useState<Staff | null>(null);
-  const [doctorSearch, setDoctorSearch] = useState('');
-
   // Sync settings state if updated externally, but never overwrite user's active edits
   useEffect(() => {
+    const branding = parseClinicBranding(
+      activeClinic?.logo_url !== undefined && activeClinic?.logo_url !== null ? activeClinic.logo_url : settings.logo_url,
+      activeClinic?.badge_icon || settings.badge_icon
+    );
+
     if (!initialLoadedRef.current) {
       setForm((prev) => ({
         ...settings,
@@ -214,12 +227,11 @@ export default function ClinicSetup() {
         phone: activeClinic?.phone || settings.phone || prev.phone,
         email: activeClinic?.owner_email || settings.email || prev.email,
         address: activeClinic?.address || settings.address || prev.address,
-        logo_url: activeClinic?.logo_url !== undefined && activeClinic?.logo_url !== null ? activeClinic.logo_url : (settings.logo_url || prev.logo_url),
+        logo_url: branding.logoUrl,
+        badge_icon: branding.badgeIcon,
       }));
-      if (settings.badge_icon) {
-        setSelectedPresetIcon(settings.badge_icon);
-      }
-      setBrandingMode(settings.logo_url ? 'logo' : 'badge');
+      setSelectedPresetIcon(branding.badgeIcon);
+      setBrandingMode(branding.brandingMode);
       initialLoadedRef.current = true;
       return;
     }
@@ -232,14 +244,13 @@ export default function ClinicSetup() {
         phone: activeClinic?.phone || settings.phone || prev.phone,
         email: activeClinic?.owner_email || settings.email || prev.email,
         address: activeClinic?.address || settings.address || prev.address,
-        logo_url: activeClinic?.logo_url !== undefined && activeClinic?.logo_url !== null ? activeClinic.logo_url : (settings.logo_url || prev.logo_url),
+        logo_url: branding.logoUrl,
+        badge_icon: branding.badgeIcon,
       }));
-      if (settings.badge_icon) {
-        setSelectedPresetIcon(settings.badge_icon);
-      }
-      setBrandingMode(settings.logo_url ? 'logo' : 'badge');
+      setSelectedPresetIcon(branding.badgeIcon);
+      setBrandingMode(branding.brandingMode);
     }
-  }, [settings, savingTab, activeClinic?.name, activeClinic?.tagline, activeClinic?.phone, activeClinic?.owner_email, activeClinic?.address, activeClinic?.logo_url]);
+  }, [settings, savingTab, activeClinic?.name, activeClinic?.tagline, activeClinic?.phone, activeClinic?.owner_email, activeClinic?.address, activeClinic?.logo_url, activeClinic?.badge_icon]);
 
   // Load fresh canonical clinic identity directly from Supabase clinics table
   useEffect(() => {
@@ -253,6 +264,7 @@ export default function ClinicSetup() {
       .then(({ data, error }) => {
         if (!isSubscribed) return;
         if (data && !error && !isDirtyRef.current) {
+          const branding = parseClinicBranding(data.logo_url, (data as any).badge_icon || settings.badge_icon);
           setForm((prev) => ({
             ...prev,
             clinic_name: data.name || prev.clinic_name,
@@ -260,11 +272,11 @@ export default function ClinicSetup() {
             phone: data.phone || prev.phone,
             email: data.owner_email || prev.email,
             address: data.address || prev.address,
-            logo_url: data.logo_url !== undefined && data.logo_url !== null ? data.logo_url : prev.logo_url,
+            logo_url: branding.logoUrl,
+            badge_icon: branding.badgeIcon,
           }));
-          if (data.logo_url) {
-            setBrandingMode('logo');
-          }
+          setSelectedPresetIcon(branding.badgeIcon);
+          setBrandingMode(branding.brandingMode);
         }
       });
 
@@ -272,49 +284,6 @@ export default function ClinicSetup() {
       isSubscribed = false;
     };
   }, [activeClinic?.id]);
-
-  // Load real doctors from database
-  useEffect(() => {
-    fetchDoctors();
-  }, [activeClinic?.id]);
-
-  async function fetchDoctors() {
-    setLoadingDoctors(true);
-    const clinicId = activeClinic?.id || 'clinic-dentivista-01';
-    try {
-      if (isDemoMode()) {
-        const staff = getDemoStaff();
-        setDoctors(staff.filter((s) => s.role === 'doctor'));
-      } else {
-        let query = supabase
-          .from('staff')
-          .select('*')
-          .eq('role', 'doctor')
-          .order('name');
-        
-        query = applyClinicFilter(query, clinicId);
-        let { data, error } = await query;
-
-        if (error && isMissingClinicIdColumnError(error)) {
-          const fallback = await supabase
-            .from('staff')
-            .select('*')
-            .eq('role', 'doctor')
-            .order('name');
-          data = fallback.data;
-          error = fallback.error;
-        }
-
-        if (!error && data) {
-          setDoctors(data);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching attending doctors:', err);
-    } finally {
-      setLoadingDoctors(false);
-    }
-  }
 
   function notifySuccess(msg: string) {
     setSuccessMessage(msg);
@@ -445,8 +414,9 @@ export default function ClinicSetup() {
     }
 
     setSavingTab('profile');
-    const activeLogo = brandingMode === 'logo' ? (form.logo_url?.trim() || '') : '';
     const activeBadge = form.badge_icon || selectedPresetIcon || 'stethoscope';
+    const activeLogo = brandingMode === 'logo' ? (form.logo_url?.trim() || '') : '';
+    const dbLogoUrl = brandingMode === 'logo' && activeLogo ? activeLogo : `badge:${activeBadge}`;
 
     const updatedForm: ClinicSettings = {
       ...form,
@@ -470,13 +440,13 @@ export default function ClinicSetup() {
     await updateClinicTenantProfile(clinicId, {
       name: updatedForm.clinic_name,
       tagline: updatedForm.tagline,
-      logo_url: updatedForm.logo_url || '',
+      logo_url: dbLogoUrl,
       address: updatedForm.address,
       phone: updatedForm.phone,
       owner_email: updatedForm.email,
       website: updatedForm.website,
       tax_number: updatedForm.tax_number,
-      badge_icon: updatedForm.badge_icon,
+      badge_icon: activeBadge,
     });
 
     setSavingTab(null);
@@ -496,6 +466,7 @@ export default function ClinicSetup() {
           .eq('id', activeClinic.id)
           .maybeSingle();
         if (data) {
+          const branding = parseClinicBranding(data.logo_url, (data as any).badge_icon);
           const resetForm: ClinicSettings = {
             ...form,
             clinic_name: data.name || '',
@@ -503,9 +474,12 @@ export default function ClinicSetup() {
             phone: data.phone || '',
             email: data.owner_email || '',
             address: data.address || '',
-            logo_url: data.logo_url || '',
+            logo_url: branding.logoUrl,
+            badge_icon: branding.badgeIcon,
           };
           isDirtyRef.current = false;
+          setSelectedPresetIcon(branding.badgeIcon);
+          setBrandingMode(branding.brandingMode);
           setForm(resetForm);
           updateSettings(resetForm);
           notifySuccess('Clinic profile reloaded from database.');
@@ -590,182 +564,9 @@ export default function ClinicSetup() {
     }
   }
 
-  // ─── ATTENDING DOCTORS MANAGEMENT (REAL DATABASE) ───────────────────
-  async function handleAddDoctor(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmedName = newDoctor.name.trim();
-    if (!trimmedName) {
-      alert('Doctor Name is required.');
-      return;
-    }
-
-    setSavingDoctor(true);
-    const formattedName = trimmedName.startsWith('Dr') ? trimmedName : `Dr. ${trimmedName.replace(/^Dr\.?\s*/i, '')}`;
-    const emailToUse = newDoctor.email.trim() || `dr.${trimmedName.toLowerCase().replace(/[^a-z0-9]/g, '')}@clinic.local`;
-
-    try {
-      if (isDemoMode()) {
-        saveDemoStaff({
-          name: formattedName,
-          role: 'doctor' as StaffRole,
-          specialization: newDoctor.specialization.trim() || 'General Dental Practitioner',
-          phone: newDoctor.phone.trim() || null,
-          email: emailToUse,
-          active: true,
-        });
-      } else {
-        const { error } = await supabase.from('staff').insert({
-          clinic_id: activeClinic?.id || 'clinic-dentivista-01',
-          name: formattedName,
-          role: 'doctor',
-          specialization: newDoctor.specialization.trim() || 'General Dental Practitioner',
-          phone: newDoctor.phone.trim() || null,
-          email: emailToUse,
-          active: true,
-        });
-
-        if (error) {
-          alert(`Error adding doctor to database: ${error.message}`);
-          setSavingDoctor(false);
-          return;
-        }
-      }
-
-      await fetchDoctors();
-      setNewDoctor({ name: '', specialization: '', phone: '', email: '' });
-      setShowAddDoctorForm(false);
-      notifySuccess(`Doctor ${formattedName} added to database!`);
-    } catch (err: any) {
-      alert(`Error saving doctor: ${err?.message || err}`);
-    } finally {
-      setSavingDoctor(false);
-    }
-  }
-
-  function handleStartEditDoctor(doc: Staff) {
-    setEditingDoctorId(doc.id);
-    setEditingDoctorForm({ ...doc });
-  }
-
-  async function handleSaveEditDoctor() {
-    if (!editingDoctorForm || !editingDoctorForm.name.trim()) {
-      alert('Doctor Name is required.');
-      return;
-    }
-
-    setSavingDoctor(true);
-    const formattedName = editingDoctorForm.name.trim();
-
-    try {
-      if (isDemoMode()) {
-        saveDemoStaff({
-          id: editingDoctorId || undefined,
-          name: formattedName,
-          role: 'doctor' as StaffRole,
-          specialization: editingDoctorForm.specialization?.trim() || null,
-          phone: editingDoctorForm.phone?.trim() || null,
-          email: editingDoctorForm.email?.trim() || `dr.${formattedName.toLowerCase().replace(/[^a-z0-9]/g, '')}@clinic.local`,
-          active: editingDoctorForm.active,
-        });
-      } else {
-          const clinicId = activeClinic?.id || 'clinic-dentivista-01';
-          const { error } = await supabase
-            .from('staff')
-            .update({
-              name: formattedName,
-              specialization: editingDoctorForm.specialization?.trim() || null,
-              phone: editingDoctorForm.phone?.trim() || null,
-              email: editingDoctorForm.email?.trim() || undefined,
-              active: editingDoctorForm.active,
-            })
-            .eq('id', editingDoctorId)
-            .eq('clinic_id', clinicId);
-
-          if (error) {
-            alert(`Error updating doctor in database: ${error.message}`);
-            setSavingDoctor(false);
-            return;
-          }
-        }
-
-        await fetchDoctors();
-        setEditingDoctorId(null);
-        setEditingDoctorForm(null);
-        notifySuccess(`Doctor ${formattedName} updated successfully in database!`);
-      } catch (err: any) {
-        alert(`Error updating doctor: ${err?.message || err}`);
-      } finally {
-        setSavingDoctor(false);
-      }
-    }
-
-    async function handleToggleDoctorActive(doc: Staff) {
-      const clinicId = activeClinic?.id || 'clinic-dentivista-01';
-      try {
-        if (isDemoMode()) {
-          toggleDemoStaff(doc.id);
-        } else {
-          const { error } = await supabase
-            .from('staff')
-            .update({ active: !doc.active })
-            .eq('id', doc.id)
-            .eq('clinic_id', clinicId);
-
-          if (error) {
-            alert(`Error toggling doctor status: ${error.message}`);
-            return;
-          }
-        }
-        await fetchDoctors();
-      } catch (err: any) {
-        console.error('Error toggling doctor status:', err);
-      }
-    }
-
-    async function handleRemoveDoctor(doc: Staff) {
-      if (!confirm(`Are you sure you want to remove ${doc.name} from the attending doctors list?`)) {
-        return;
-      }
-
-      const clinicId = activeClinic?.id || 'clinic-dentivista-01';
-      try {
-        if (isDemoMode()) {
-          deleteDemoStaff(doc.id);
-          notifySuccess(`Doctor ${doc.name} removed.`);
-        } else {
-          const { error } = await supabase
-            .from('staff')
-            .delete()
-            .eq('id', doc.id)
-            .eq('clinic_id', clinicId);
-          if (error) {
-            // If foreign key constraint blocks deletion, deactivate instead
-            await supabase
-              .from('staff')
-              .update({ active: false })
-              .eq('id', doc.id)
-              .eq('clinic_id', clinicId);
-            notifySuccess(`Doctor ${doc.name} has clinical records in database and was deactivated.`);
-          } else {
-            notifySuccess(`Doctor ${doc.name} removed from database.`);
-          }
-        }
-        await fetchDoctors();
-      } catch (err: any) {
-        alert(`Error removing doctor: ${err?.message || err}`);
-      }
-    }
-
   // Filtered views
   const filteredProcedures = currentProcedures.filter((p) =>
     p.toLowerCase().includes(procedureSearch.toLowerCase())
-  );
-
-  const filteredDoctors = doctors.filter(
-    (d) =>
-      d.name.toLowerCase().includes(doctorSearch.toLowerCase()) ||
-      (d.specialization && d.specialization.toLowerCase().includes(doctorSearch.toLowerCase())) ||
-      (d.phone && d.phone.includes(doctorSearch))
   );
 
   return (
@@ -774,11 +575,11 @@ export default function ClinicSetup() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-2xl text-gray-900 flex items-center gap-2.5">
-            <Building2 className="text-emerald-700" size={26} />
+            <Building2 style={{ color: 'var(--primary-color)' }} size={26} />
             Clinic Setup & Clinical Configuration
           </h2>
           <p className="text-xs text-gray-500 mt-1">
-            Configure clinic profile branding, clinical procedures catalog, and attending doctors directory
+            Configure clinic profile branding, clinical procedures, attending doctors & staff, and regional localization
           </p>
         </div>
 
@@ -796,18 +597,21 @@ export default function ClinicSetup() {
       {/* Floating Viewport Toast Notification (Always in view) */}
       {savedSuccess && (
         <div className="fixed top-6 right-6 z-[100] max-w-sm w-full animate-in slide-in-from-top-4 fade-in duration-300 drop-shadow-2xl">
-          <div className="bg-gradient-to-br from-emerald-900 to-emerald-950 text-white p-4 rounded-2xl border border-emerald-500/40 shadow-2xl flex items-start gap-3.5 backdrop-blur-md">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <div
+            className="text-white p-4 rounded-2xl shadow-2xl flex items-start gap-3.5 backdrop-blur-md border border-white/20"
+            style={{ background: 'var(--dossier-gradient)' }}
+          >
+            <div className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center flex-shrink-0 mt-0.5">
               <CheckCircle2 size={19} className="animate-pulse" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-300">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-white">
                   Saved & Applied
                 </h4>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
               </div>
-              <p className="text-xs text-emerald-100/90 mt-0.5 font-medium leading-relaxed">
+              <p className="text-xs text-white/90 mt-0.5 font-medium leading-relaxed">
                 {successMessage}
               </p>
             </div>
@@ -825,12 +629,18 @@ export default function ClinicSetup() {
 
       {/* Success Notification Banner (In-Page) */}
       {savedSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-3 text-emerald-800 text-sm font-semibold shadow-xs animate-in fade-in duration-200">
+        <div
+          className="p-4 rounded-2xl flex items-center justify-between gap-3 text-sm font-semibold shadow-xs animate-in fade-in duration-200 border"
+          style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+        >
           <div className="flex items-center gap-3">
-            <CheckCircle2 size={18} className="text-emerald-600 flex-shrink-0" />
+            <CheckCircle2 size={18} style={{ color: 'var(--primary-color)' }} className="flex-shrink-0" />
             <span>{successMessage}</span>
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-white/70 px-2 py-0.5 rounded-md border border-emerald-200">
+          <span
+            className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border"
+            style={{ background: 'rgba(255,255,255,0.8)', color: 'var(--badge-text)' }}
+          >
             Active & Synchronized
           </span>
         </div>
@@ -841,9 +651,10 @@ export default function ClinicSetup() {
         <button
           type="button"
           onClick={() => setActiveTab('profile')}
+          style={activeTab === 'profile' ? { background: 'var(--primary-color)' } : {}}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'profile'
-              ? 'bg-emerald-800 text-white shadow-sm'
+              ? 'text-white shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
           }`}
         >
@@ -854,18 +665,21 @@ export default function ClinicSetup() {
         <button
           type="button"
           onClick={() => setActiveTab('localization')}
+          style={activeTab === 'localization' ? { background: 'var(--primary-color)' } : {}}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'localization'
-              ? 'bg-emerald-800 text-white shadow-sm'
+              ? 'text-white shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
           }`}
         >
           <Globe size={14} />
           Tooth Notation, Time Zone & VAT
           <span
-            className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold ${
-              activeTab === 'localization' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-            }`}
+            className="px-1.5 py-0.2 rounded-md text-[10px] font-bold"
+            style={{
+              background: activeTab === 'localization' ? 'rgba(255,255,255,0.2)' : 'var(--badge-bg)',
+              color: activeTab === 'localization' ? 'white' : 'var(--badge-text)',
+            }}
           >
             {form.tooth_notation === 'universal' ? 'UNIVERSAL' : 'FDI'}
           </span>
@@ -873,30 +687,34 @@ export default function ClinicSetup() {
 
         <button
           type="button"
-          onClick={() => setActiveTab('doctors_services')}
+          onClick={() => setActiveTab('staff_services')}
+          style={activeTab === 'staff_services' || activeTab === 'doctors_services' ? { background: 'var(--primary-color)' } : {}}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-            activeTab === 'doctors_services'
-              ? 'bg-emerald-800 text-white shadow-sm'
+            activeTab === 'staff_services' || activeTab === 'doctors_services'
+              ? 'text-white shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
           }`}
         >
-          <Stethoscope size={14} />
-          Doctors & Services
+          <UserCog size={14} />
+          Staff & Services
           <span
-            className={`px-1.5 py-0.2 rounded-md text-[10px] font-mono ${
-              activeTab === 'doctors_services' ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-700'
-            }`}
+            className="px-1.5 py-0.2 rounded-md text-[10px] font-mono"
+            style={{
+              background: activeTab === 'staff_services' || activeTab === 'doctors_services' ? 'rgba(255,255,255,0.2)' : '#f3f4f6',
+              color: activeTab === 'staff_services' || activeTab === 'doctors_services' ? 'white' : '#374151',
+            }}
           >
-            {doctors.length} Drs · {currentProcedures.length} Services
+            Staff & {currentProcedures.length} Services
           </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('subscriptions')}
+          style={activeTab === 'subscriptions' ? { background: 'var(--primary-color)' } : {}}
           className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
             activeTab === 'subscriptions'
-              ? 'bg-emerald-800 text-white shadow-sm'
+              ? 'text-white shadow-sm'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 bg-white border border-gray-200'
           }`}
         >
@@ -904,9 +722,11 @@ export default function ClinicSetup() {
           Subscription Plans
           {activeClinic?.plan && (
             <span
-              className={`px-1.5 py-0.2 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                activeTab === 'subscriptions' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-              }`}
+              className="px-1.5 py-0.2 rounded-md text-[10px] font-bold uppercase tracking-wider"
+              style={{
+                background: activeTab === 'subscriptions' ? 'rgba(255,255,255,0.2)' : 'var(--badge-bg)',
+                color: activeTab === 'subscriptions' ? 'white' : 'var(--badge-text)',
+              }}
             >
               {activeClinic.plan}
             </span>
@@ -1087,9 +907,10 @@ export default function ClinicSetup() {
                       isDirtyRef.current = true;
                       setBrandingMode('badge');
                     }}
+                    style={brandingMode === 'badge' ? { background: 'var(--primary-color)' } : {}}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                       brandingMode === 'badge'
-                        ? 'bg-emerald-800 text-white shadow-xs'
+                        ? 'text-white shadow-xs'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
@@ -1102,9 +923,10 @@ export default function ClinicSetup() {
                       isDirtyRef.current = true;
                       setBrandingMode('logo');
                     }}
+                    style={brandingMode === 'logo' ? { background: 'var(--primary-color)' } : {}}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                       brandingMode === 'logo'
-                        ? 'bg-emerald-800 text-white shadow-xs'
+                        ? 'text-white shadow-xs'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
@@ -1117,7 +939,10 @@ export default function ClinicSetup() {
               {/* Active Preview & Controls */}
               <div className="flex items-start gap-4">
                 {/* Visual Avatar Preview */}
-                <div className="w-16 h-16 rounded-2xl bg-emerald-800 text-white flex items-center justify-center overflow-hidden border-2 border-emerald-700/60 shadow-md flex-shrink-0 transition-all">
+                <div
+                  className="w-16 h-16 rounded-2xl text-white flex items-center justify-center overflow-hidden border-2 shadow-md flex-shrink-0 transition-all"
+                  style={{ background: 'var(--primary-color)', borderColor: 'var(--primary-color)' }}
+                >
                   {brandingMode === 'logo' && form.logo_url ? (
                     <img
                       src={form.logo_url}
@@ -1904,532 +1729,55 @@ export default function ClinicSetup() {
       )}
 
       {/* ─────────────────────────────────────────────────────────────────── */}
-      {/* TAB: WHATSAPP NOTIFICATION ENGINE (HIDDEN FROM UI FOR NOW)           */}
+      {/* TAB 3: STAFF & SERVICES MANAGEMENT                                  */}
       {/* ─────────────────────────────────────────────────────────────────── */}
-      {false && (activeTab as any) === 'whatsapp' && (
-        <form onSubmit={handleSaveWhatsApp} className="space-y-6">
-          {/* Header & Overview */}
-          <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-5">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
-                    💬
-                  </span>
-                  <h3 className="text-base font-bold text-gray-900">
-                    WhatsApp Automated Notifications (Meta Cloud API & Twilio)
-                  </h3>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800">
-                    80%+ Confirmation Rate
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1 max-w-2xl">
-                  In Dubai, Riyadh, and Kuala Lumpur, clinics confirm 80%+ of appointments via WhatsApp. Integrate Meta WhatsApp Cloud API or Twilio to send automated confirmations, 24h & 2h reminder links, and digital invoice receipts.
-                </p>
-              </div>
-
-              {/* Master toggle */}
-              <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-50 border border-gray-200 text-xs font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.whatsapp_config?.enabled !== false}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      whatsapp_config: {
-                        ...(form.whatsapp_config || {
-                          provider: 'cloud_api',
-                          enabled: true,
-                        }),
-                        enabled: e.target.checked,
-                      },
-                    })
-                  }
-                  className="rounded text-emerald-600 focus:ring-emerald-500"
-                />
-                <span>WhatsApp Engine Enabled</span>
-              </label>
-            </div>
-
-            {/* Provider Switcher */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">
-                Select WhatsApp Integration Provider
-              </label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Meta Cloud API */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      whatsapp_config: {
-                        ...(form.whatsapp_config || { enabled: true }),
-                        provider: 'cloud_api',
-                      },
-                    })
-                  }
-                  className={`p-3.5 rounded-2xl border-2 text-left transition-all ${(form.whatsapp_config?.provider || 'cloud_api') === 'cloud_api'
-                    ? 'border-emerald-700 bg-emerald-50/50 ring-2 ring-emerald-700/20'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-xs text-gray-900 flex items-center gap-1.5">
-                      <Zap size={14} className="text-emerald-700" />
-                      Meta Cloud API (Official)
-                    </span>
-                    {(form.whatsapp_config?.provider || 'cloud_api') === 'cloud_api' && (
-                      <Check size={14} className="text-emerald-700" />
-                    )}
-                  </div>
-                  <p className="text-[11px] text-gray-500">
-                    Recommended for UAE & GCC clinics. Direct WhatsApp Business Graph API with verified green badge support.
-                  </p>
-                </button>
-
-                {/* Twilio */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      whatsapp_config: {
-                        ...(form.whatsapp_config || { enabled: true }),
-                        provider: 'twilio',
-                      },
-                    })
-                  }
-                  className={`p-3.5 rounded-2xl border-2 text-left transition-all ${form.whatsapp_config?.provider === 'twilio'
-                    ? 'border-emerald-700 bg-emerald-50/50 ring-2 ring-emerald-700/20'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-xs text-gray-900 flex items-center gap-1.5">
-                      <Smartphone size={14} className="text-blue-600" />
-                      Twilio WhatsApp
-                    </span>
-                    {form.whatsapp_config?.provider === 'twilio' && (
-                      <Check size={14} className="text-emerald-700" />
-                    )}
-                  </div>
-                  <p className="text-[11px] text-gray-500">
-                    Twilio programmable messaging pipeline with international fallback and worldwide carrier delivery.
-                  </p>
-                </button>
-
-                {/* Direct Web */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      whatsapp_config: {
-                        ...(form.whatsapp_config || { enabled: true }),
-                        provider: 'direct_web',
-                      },
-                    })
-                  }
-                  className={`p-3.5 rounded-2xl border-2 text-left transition-all ${form.whatsapp_config?.provider === 'direct_web'
-                    ? 'border-emerald-700 bg-emerald-50/50 ring-2 ring-emerald-700/20'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                    }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-bold text-xs text-gray-900 flex items-center gap-1.5">
-                      <Send size={14} className="text-gray-600" />
-                      Click-to-Chat Link (Web)
-                    </span>
-                    {form.whatsapp_config?.provider === 'direct_web' && (
-                      <Check size={14} className="text-emerald-700" />
-                    )}
-                  </div>
-                  <p className="text-[11px] text-gray-500">
-                    Zero-cost browser deep-link fallback. Opens patient's WhatsApp Web or mobile app directly.
-                  </p>
-                </button>
-              </div>
-            </div>
-
-            {/* Provider Configuration Fields */}
-            {(form.whatsapp_config?.provider || 'cloud_api') === 'cloud_api' ? (
-              <div className="p-4 rounded-2xl bg-emerald-50/30 border border-emerald-200/80 space-y-4">
-                <span className="text-xs font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
-                  <Lock size={13} className="text-emerald-700" />
-                  Meta WhatsApp Cloud API Credentials
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Phone Number ID *
-                    </label>
-                    <input
-                      type="text"
-                      value={form.whatsapp_config?.phone_number_id || ''}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          whatsapp_config: {
-                            ...(form.whatsapp_config || { enabled: true, provider: 'cloud_api' }),
-                            phone_number_id: e.target.value,
-                          },
-                        })
-                      }
-                      placeholder="e.g. 109283746501928"
-                      className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      WhatsApp Business Account ID (WABA ID) *
-                    </label>
-                    <input
-                      type="text"
-                      value={form.whatsapp_config?.waba_id || ''}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          whatsapp_config: {
-                            ...(form.whatsapp_config || { enabled: true, provider: 'cloud_api' }),
-                            waba_id: e.target.value,
-                          },
-                        })
-                      }
-                      placeholder="e.g. 778899001122334"
-                      className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white font-mono"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Permanent User Access Token (Bearer) *
-                    </label>
-                    <input
-                      type="password"
-                      value={form.whatsapp_config?.auth_token || ''}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          whatsapp_config: {
-                            ...(form.whatsapp_config || { enabled: true, provider: 'cloud_api' }),
-                            auth_token: e.target.value,
-                          },
-                        })
-                      }
-                      placeholder="EAABwz..."
-                      className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Webhook Callback URL (Read Only)
-                    </label>
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        readOnly
-                        value="https://api.clinsyst.com/v1/whatsapp/webhook"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-gray-100 font-mono text-gray-600 select-all"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Webhook Verify Token
-                    </label>
-                    <input
-                      type="text"
-                      value={form.whatsapp_config?.webhook_verify_token || ''}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          whatsapp_config: {
-                            ...(form.whatsapp_config || { enabled: true, provider: 'cloud_api' }),
-                            webhook_verify_token: e.target.value,
-                          },
-                        })
-                      }
-                      placeholder="clinsyst_verify_token_gcc"
-                      className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : form.whatsapp_config?.provider === 'twilio' ? (
-              <div className="p-4 rounded-2xl bg-blue-50/40 border border-blue-200/80 space-y-4">
-                <span className="text-xs font-bold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
-                  <Lock size={13} className="text-blue-700" />
-                  Twilio Programmable WhatsApp Credentials
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Account SID *
-                    </label>
-                    <input
-                      type="text"
-                      value={form.whatsapp_config?.account_sid || ''}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          whatsapp_config: {
-                            ...(form.whatsapp_config || { enabled: true, provider: 'twilio' }),
-                            account_sid: e.target.value,
-                          },
-                        })
-                      }
-                      placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Auth Token *
-                    </label>
-                    <input
-                      type="password"
-                      value={form.whatsapp_config?.auth_token || ''}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          whatsapp_config: {
-                            ...(form.whatsapp_config || { enabled: true, provider: 'twilio' }),
-                            auth_token: e.target.value,
-                          },
-                        })
-                      }
-                      placeholder="••••••••••••••••••••••••••••••••"
-                      className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white font-mono"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-700 mb-1">
-                      Twilio WhatsApp Number *
-                    </label>
-                    <input
-                      type="text"
-                      value={form.whatsapp_config?.twilio_phone_number || ''}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          whatsapp_config: {
-                            ...(form.whatsapp_config || { enabled: true, provider: 'twilio' }),
-                            twilio_phone_number: e.target.value,
-                          },
-                        })
-                      }
-                      placeholder="whatsapp:+14155238886"
-                      className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white font-mono"
-                    />
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            {/* Automated Triggers Checklist */}
-            <div className="space-y-3 pt-2">
-              <span className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
-                Automated Clinical WhatsApp Triggers
-              </span>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-gray-900 block">Instant Appointment Confirmation</span>
-                    <span className="text-gray-500 text-[11px]">
-                      Dispatched immediately when reception books an appointment with doctor name & time.
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-gray-900 block">24-Hour & 2-Hour Reminder Links</span>
-                    <span className="text-gray-500 text-[11px]">
-                      Interactive 1-click confirmation URL for patient to confirm or reschedule without calling.
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-gray-900 block">Invoice & Digital Receipt Dispatch</span>
-                    <span className="text-gray-500 text-[11px]">
-                      Sends itemized PDF invoice and treatment breakdown immediately following payment.
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-gray-50 border border-gray-200 flex items-start gap-2.5">
-                  <CheckCircle2 size={16} className="text-emerald-700 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold text-gray-900 block">FDI Tooth Notation Included</span>
-                    <span className="text-gray-500 text-[11px]">
-                      Appointment and treatment reminders mention specific teeth using FDI notation ({form.tooth_notation === 'universal' ? 'Universal' : 'FDI'}).
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Live Message Simulator & Test Tool */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-gray-200 space-y-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <span className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <MessageSquare size={13} className="text-emerald-700" />
-                  Live Message Simulator & Test Dispatch
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={testMobile}
-                    onChange={(e) => setTestMobile(e.target.value)}
-                    placeholder="+971 50 123 4567"
-                    className="px-2.5 py-1 text-xs rounded-lg border border-gray-300 bg-white w-40"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendTestWhatsApp}
-                    disabled={testSending}
-                    className="px-3 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1 disabled:opacity-50"
-                  >
-                    {testSending ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                    Send Test
-                  </button>
-                </div>
-              </div>
-
-              {testSent && (
-                <div className="p-2.5 rounded-xl bg-emerald-100/70 border border-emerald-300 text-emerald-900 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
-                  <CheckCheck size={16} className="text-emerald-700" />
-                  <span>Test WhatsApp appointment reminder dispatched to {testMobile}!</span>
-                </div>
-              )}
-
-              {/* Chat bubble simulation */}
-              <div className="max-w-md mx-auto p-4 rounded-2xl bg-[#e5ddd5] shadow-inner">
-                <div className="bg-white rounded-2xl p-3.5 shadow-sm text-xs text-gray-800 space-y-2 relative border border-gray-200">
-                  <p className="font-bold text-emerald-900">
-                    {form.clinic_name || activeClinic?.name || 'Clinic'} 🦷
-                  </p>
-                  <p>
-                    Hello <b>Sarah</b>! Your dental appointment is confirmed with{' '}
-                    <b>Dr. Usman Tariq</b>.
-                  </p>
-                  <div className="p-2 bg-slate-50 rounded-xl border border-gray-100 space-y-0.5 text-[11px]">
-                    <p>📅 <b>Date:</b> Tomorrow at 04:30 PM ({form.timezone || 'Asia/Dubai'})</p>
-                    <p>🩺 <b>Procedure:</b> Composite Restoration (#11 Upper Right Incisor)</p>
-                    <p>📍 <b>Location:</b> {form.address || 'Downtown Clinic'}</p>
-                  </div>
-                  <p className="text-[11px] text-emerald-700 font-semibold">
-                    👉 Click to confirm 1-touch: <span className="underline">clinsyst.com/c/apt-4819</span>
-                  </p>
-                  <span className="text-[10px] text-gray-400 block text-right mt-1">
-                    12:30 PM · Delivered ✓✓
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Submit Action */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="submit"
-              disabled={savingTab === 'whatsapp'}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-bold transition-all shadow-md ${
-                savedTab === 'whatsapp'
-                  ? 'bg-emerald-600 ring-2 ring-emerald-400 ring-offset-2 scale-[1.02]'
-                  : 'hover:opacity-90 active:scale-[0.98]'
-              }`}
-              style={savedTab === 'whatsapp' ? undefined : { background: 'var(--primary-color, #0284c7)' }}
-            >
-              {savingTab === 'whatsapp' ? (
-                <>
-                  <Loader2 size={15} className="animate-spin" /> Saving Triggers...
-                </>
-              ) : savedTab === 'whatsapp' ? (
-                <>
-                  <CheckCircle2 size={15} className="text-white animate-bounce" /> Saved & Applied!
-                </>
-              ) : (
-                <>
-                  <Save size={15} /> Save WhatsApp Configuration & Triggers
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* ─────────────────────────────────────────────────────────────────── */}
-      {/* TAB: SUBSCRIPTION PLANS & PAYMENT METHOD HUB */}
-      {/* ─────────────────────────────────────────────────────────────────── */}
-      {/* TAB 3: DOCTORS & SERVICES MANAGEMENT (MERGED)                      */}
-      {/* ─────────────────────────────────────────────────────────────────── */}
-      {activeTab === 'doctors_services' && (
+      {(activeTab === 'staff_services' || activeTab === 'doctors_services') && (
         <div className="space-y-6">
-          {/* Sub-tab Pill Switcher for Doctors & Clinical Services */}
+          {/* Sub-tab Pill Switcher for Staff & Clinical Services */}
           <div className="bg-white p-4 sm:p-5 rounded-3xl border border-gray-100 card-shadow flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Stethoscope className="text-emerald-700" size={20} />
-                Doctors & Clinical Services Management
+                <UserCog style={{ color: 'var(--primary-color)' }} size={20} />
+                Staff & Clinical Services Management
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Manage your attending doctors directory and clinical procedures catalog in a unified workspace.
+                Manage attending doctors, clinical staff members, license seats, and procedures catalog in a unified workspace.
               </p>
             </div>
 
             <div className="inline-flex items-center bg-gray-100 p-1.5 rounded-2xl border border-gray-200 text-xs">
               <button
                 type="button"
-                onClick={() => setDocServicesSubTab('doctors')}
+                onClick={() => setStaffServicesSubTab('staff')}
+                style={staffServicesSubTab === 'staff' ? { background: 'var(--primary-color)' } : {}}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
-                  docServicesSubTab === 'doctors'
-                    ? 'bg-emerald-800 text-white shadow-xs'
+                  staffServicesSubTab === 'staff'
+                    ? 'text-white shadow-xs'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                <Stethoscope size={15} />
-                <span>Attending Doctors</span>
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
-                    docServicesSubTab === 'doctors' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  {doctors.length}
-                </span>
+                <UserCog size={15} />
+                <span>Clinic Staff & Attending Doctors</span>
               </button>
 
               <button
                 type="button"
-                onClick={() => setDocServicesSubTab('services')}
+                onClick={() => setStaffServicesSubTab('services')}
+                style={staffServicesSubTab === 'services' ? { background: 'var(--primary-color)' } : {}}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold transition-all ${
-                  docServicesSubTab === 'services'
-                    ? 'bg-emerald-800 text-white shadow-xs'
+                  staffServicesSubTab === 'services'
+                    ? 'text-white shadow-xs'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
                 <Activity size={15} />
                 <span>Clinical Services / Procedures</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded-md text-[10px] font-mono ${
-                    docServicesSubTab === 'services' ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-700'
-                  }`}
+                  className="px-1.5 py-0.5 rounded-md text-[10px] font-mono"
+                  style={{
+                    background: staffServicesSubTab === 'services' ? 'rgba(255,255,255,0.2)' : '#e5e7eb',
+                    color: staffServicesSubTab === 'services' ? 'white' : '#374151',
+                  }}
                 >
                   {currentProcedures.length}
                 </span>
@@ -2437,401 +1785,19 @@ export default function ClinicSetup() {
             </div>
           </div>
 
-          {/* Sub-panel 1: Attending Doctors */}
-          {docServicesSubTab === 'doctors' && (
-        <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-6">
-          {/* Header & Reset Button */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
-            <div>
-              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Stethoscope className="text-emerald-700" size={18} />
-                Attending Doctors & Specialists Directory
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                Add, edit, or remove attending doctors in your clinic database. Doctors appear directly in appointment booking and clinical notes.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={fetchDoctors}
-                disabled={loadingDoctors}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 transition-colors"
-              >
-                <RefreshCw size={12} className={loadingDoctors ? 'animate-spin' : ''} /> Refresh
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowAddDoctorForm(!showAddDoctorForm)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-white text-xs font-bold transition-all shadow-xs"
-                style={{ background: 'var(--primary-color, #0284c7)' }}
-              >
-                <UserPlus size={13} /> {showAddDoctorForm ? 'Close Form' : 'Add New Doctor'}
-              </button>
-            </div>
-          </div>
-
-          {/* Add Doctor Quick Form */}
-          {showAddDoctorForm && (
-            <form
-              onSubmit={handleAddDoctor}
-              className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-200/80 space-y-4 animate-in fade-in duration-200"
-            >
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-900 flex items-center gap-1.5">
-                  <UserPlus size={14} className="text-emerald-700" />
-                  New Attending Doctor Details
-                </h4>
-                <button
-                  type="button"
-                  onClick={() => setShowAddDoctorForm(false)}
-                  className="text-xs text-gray-400 hover:text-gray-600"
-                >
-                  <X size={15} />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Doctor Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newDoctor.name}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, name: e.target.value })}
-                    placeholder="e.g. Dr. Usman Tariq"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white focus:ring-2 focus:ring-emerald-600/20 text-gray-900 font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Specialization / Title
-                  </label>
-                  <input
-                    type="text"
-                    value={newDoctor.specialization}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, specialization: e.target.value })}
-                    placeholder="e.g. Orthodontist / Dental Surgeon"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Phone / WhatsApp
-                  </label>
-                  <input
-                    type="text"
-                    value={newDoctor.phone}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, phone: e.target.value })}
-                    placeholder="e.g. +92 300 1234567"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={newDoctor.email}
-                    onChange={(e) => setNewDoctor({ ...newDoctor, email: e.target.value })}
-                    placeholder="doctor@dentivista.com"
-                    className="w-full px-3 py-2 rounded-xl border border-gray-300 text-xs bg-white focus:ring-2 focus:ring-emerald-600/20 text-gray-900"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowAddDoctorForm(false)}
-                  className="px-3.5 py-1.5 rounded-xl border border-gray-300 text-gray-700 text-xs font-medium hover:bg-gray-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingDoctor}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50"
-                  style={{ background: 'var(--primary-color, #0284c7)' }}
-                >
-                  {savingDoctor ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />} Save Doctor
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Search bar & count */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span className="text-xs text-gray-500 font-semibold self-start sm:self-center">
-              {filteredDoctors.length} Attending Doctors in Clinic Database
-            </span>
-
-            <div className="relative w-full sm:w-72">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={doctorSearch}
-                onChange={(e) => setDoctorSearch(e.target.value)}
-                placeholder="Search doctors by name or specialty..."
-                className="w-full pl-9 pr-3.5 py-2 rounded-xl border border-gray-200 text-xs bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-600/20"
-              />
-            </div>
-          </div>
-
-          {/* Doctors Grid */}
-          {loadingDoctors ? (
-            <div className="p-12 text-center text-gray-400 text-xs flex items-center justify-center gap-2">
-              <Loader2 size={16} className="animate-spin text-emerald-700" />
-              <span>Loading doctors from database...</span>
-            </div>
-          ) : filteredDoctors.length === 0 ? (
-            <div className="p-8 text-center bg-gray-50 rounded-2xl border border-gray-100 text-gray-400 text-xs space-y-2">
-              <AlertCircle size={24} className="mx-auto text-gray-300" />
-              <p className="font-semibold text-gray-600">No attending doctors found</p>
-              <p>Click "Add New Doctor" above to register doctors in your clinic database.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredDoctors.map((doc) => {
-                const isEditing = editingDoctorId === doc.id;
-
-                if (isEditing && editingDoctorForm) {
-                  return (
-                    <div
-                      key={doc.id}
-                      className="p-4 rounded-2xl bg-white border-2 border-emerald-600 shadow-md space-y-3"
-                    >
-                      <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-                        <span className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
-                          Edit Doctor
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingDoctorId(null);
-                            setEditingDoctorForm(null);
-                          }}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-
-                      <div className="space-y-2 text-xs">
-                        <div>
-                          <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">
-                            Doctor Name *
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={editingDoctorForm.name}
-                            onChange={(e) =>
-                              setEditingDoctorForm({ ...editingDoctorForm, name: e.target.value })
-                            }
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 font-semibold text-gray-900"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">
-                            Specialization
-                          </label>
-                          <input
-                            type="text"
-                            value={editingDoctorForm.specialization || ''}
-                            onChange={(e) =>
-                              setEditingDoctorForm({
-                                ...editingDoctorForm,
-                                specialization: e.target.value,
-                              })
-                            }
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-gray-800"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">
-                            Phone / WhatsApp
-                          </label>
-                          <input
-                            type="text"
-                            value={editingDoctorForm.phone || ''}
-                            onChange={(e) =>
-                              setEditingDoctorForm({ ...editingDoctorForm, phone: e.target.value })
-                            }
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-gray-800"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">
-                            Email Address
-                          </label>
-                          <input
-                            type="email"
-                            value={editingDoctorForm.email || ''}
-                            onChange={(e) =>
-                              setEditingDoctorForm({ ...editingDoctorForm, email: e.target.value })
-                            }
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 text-gray-800"
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-2 pt-1">
-                          <label className="flex items-center gap-2 text-xs font-medium text-gray-700 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={editingDoctorForm.active !== false}
-                              onChange={(e) =>
-                                setEditingDoctorForm({
-                                  ...editingDoctorForm,
-                                  active: e.target.checked,
-                                })
-                              }
-                              className="rounded text-emerald-600 focus:ring-emerald-500"
-                            />
-                            Active for scheduling
-                          </label>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingDoctorId(null);
-                            setEditingDoctorForm(null);
-                          }}
-                          className="px-3 py-1 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleSaveEditDoctor}
-                          disabled={savingDoctor}
-                          className="flex items-center gap-1 px-3 py-1 rounded-lg text-white text-xs font-bold shadow-xs disabled:opacity-50"
-                          style={{ background: 'var(--primary-color, #0284c7)' }}
-                        >
-                          {savingDoctor ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />} Save
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
-
-                const isActive = doc.active !== false;
-
-                return (
-                  <div
-                    key={doc.id}
-                    className={`p-4 rounded-2xl border transition-all ${isActive
-                      ? 'bg-white border-gray-200 hover:border-emerald-300 hover:shadow-xs'
-                      : 'bg-gray-50/80 border-gray-200/60 opacity-70'
-                      }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-xs"
-                          style={{ background: isActive ? 'var(--primary-color, #0284c7)' : '#6b7280' }}
-                        >
-                          {doc.name.replace(/^Dr\.?\s*/i, '').charAt(0).toUpperCase() || 'D'}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-sm text-gray-900 leading-tight">
-                            {doc.name}
-                          </h4>
-                          <p className="text-[11px] text-emerald-800 font-semibold mt-0.5">
-                            {doc.specialization || 'Attending Doctor'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => handleStartEditDoctor(doc)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
-                          title="Edit doctor details"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveDoctor(doc)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                          title="Remove doctor"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-2.5 border-t border-gray-100 space-y-1 text-[11px] text-gray-500">
-                      {doc.phone && (
-                        <div className="flex items-center gap-1.5">
-                          <Phone size={11} className="text-gray-400" />
-                          <span>{doc.phone}</span>
-                        </div>
-                      )}
-                      {doc.email && (
-                        <div className="flex items-center gap-1.5">
-                          <Mail size={11} className="text-gray-400" />
-                          <span className="truncate">{doc.email}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => handleToggleDoctorActive(doc)}
-                        className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold transition-colors ${isActive
-                          ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          }`}
-                      >
-                        {isActive ? (
-                          <>
-                            <UserCheck size={11} /> Active
-                          </>
-                        ) : (
-                          <>
-                            <UserX size={11} /> Inactive
-                          </>
-                        )}
-                      </button>
-
-                      <span className="text-[10px] text-gray-400 font-mono">
-                        {doc.id.slice(0, 8)}...
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          {/* Sub-panel 1: Clinic Staff & Attending Doctors (Powered by Staff Module) */}
+          {staffServicesSubTab === 'staff' && (
+            <StaffManagement embedded={true} />
           )}
 
           {/* Sub-panel 2: Clinical Services / Procedures */}
-          {docServicesSubTab === 'services' && (
+          {staffServicesSubTab === 'services' && (
         <div className="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 card-shadow space-y-6">
           {/* Header & Reset Button */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-4">
             <div>
               <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Activity className="text-emerald-700" size={18} />
+                <Activity style={{ color: 'var(--primary-color)' }} size={18} />
                 Clinical Procedures Catalog
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
@@ -2858,7 +1824,7 @@ export default function ClinicSetup() {
                   value={newProcedureName}
                   onChange={(e) => setNewProcedureName(e.target.value)}
                   placeholder="Enter new procedure name (e.g. Dental Veneers, Wisdom Tooth Extraction...)"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 text-gray-900 font-medium"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] text-gray-900 font-medium"
                 />
               </div>
               <button
@@ -2879,7 +1845,7 @@ export default function ClinicSetup() {
                 value={procedureSearch}
                 onChange={(e) => setProcedureSearch(e.target.value)}
                 placeholder="Search procedures..."
-                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-gray-200 text-xs bg-gray-50 focus:bg-white focus:ring-2 focus:ring-emerald-600/20"
+                className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-gray-200 text-xs bg-gray-50 focus:bg-white focus:ring-2 focus:ring-[var(--primary-color)]/20"
               />
             </div>
           </div>
@@ -2892,7 +1858,8 @@ export default function ClinicSetup() {
                 <button
                   type="button"
                   onClick={() => setProcedureSearch('')}
-                  className="text-emerald-700 hover:underline"
+                  style={{ color: 'var(--primary-color)' }}
+                  className="hover:underline"
                 >
                   Clear search
                 </button>
@@ -2933,12 +1900,14 @@ export default function ClinicSetup() {
                               if (e.key === 'Escape') setEditingProcedureIndex(null);
                             }}
                             autoFocus
-                            className="flex-1 px-3 py-1.5 rounded-lg border border-emerald-500 text-xs text-gray-900 font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600/30"
+                            className="flex-1 px-3 py-1.5 rounded-lg border text-xs text-gray-900 font-semibold bg-white focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)]/30"
+                            style={{ borderColor: 'var(--primary-color)' }}
                           />
                           <button
                             type="button"
                             onClick={() => handleSaveEditProcedure(idx)}
-                            className="p-1.5 rounded-lg bg-emerald-700 text-white hover:bg-emerald-800 transition-colors shadow-xs"
+                            style={{ background: 'var(--primary-color)' }}
+                            className="p-1.5 rounded-lg text-white hover:opacity-90 transition-colors shadow-xs"
                             title="Save procedure name"
                           >
                             <Check size={14} />
@@ -2955,7 +1924,10 @@ export default function ClinicSetup() {
                       ) : (
                         <>
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold flex items-center justify-center flex-shrink-0">
+                            <span
+                              className="w-6 h-6 rounded-lg text-[11px] font-bold flex items-center justify-center flex-shrink-0"
+                              style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+                            >
                               {idx + 1}
                             </span>
                             <span className="text-xs font-semibold text-gray-900 truncate">
@@ -2967,7 +1939,7 @@ export default function ClinicSetup() {
                             <button
                               type="button"
                               onClick={() => handleStartEditProcedure(idx, procName)}
-                              className="p-1.5 rounded-lg text-gray-500 hover:text-emerald-800 hover:bg-emerald-50 transition-colors"
+                              className="p-1.5 rounded-lg text-gray-500 hover:text-[var(--primary-color)] hover:bg-[var(--primary-50)] transition-colors"
                               title="Edit procedure name"
                             >
                               <Edit2 size={13} />
@@ -3004,13 +1976,19 @@ export default function ClinicSetup() {
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-gray-100 pb-5">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                  <span
+                    className="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm"
+                    style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+                  >
                     💳
                   </span>
                   <h3 className="text-base font-bold text-gray-900">
                     Subscription Plans & Payment Methods
                   </h3>
-                  <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800">
+                  <span
+                    className="text-xs px-2.5 py-0.5 rounded-full font-bold"
+                    style={{ background: 'var(--badge-bg)', color: 'var(--badge-text)' }}
+                  >
                     Active Plan: {PLAN_SPECS[activeClinic?.plan || selectedPlanTier].name}
                   </span>
                 </div>

@@ -310,7 +310,7 @@ export default function Reports() {
                       className="w-full rounded-t-md transition-all duration-300 hover:opacity-80"
                       style={{
                         height: `${Math.max((d.revenue / maxRevenue) * 160, d.revenue > 0 ? 4 : 2)}px`,
-                        background: d.revenue > 0 ? '#4a7530' : '#e5e7eb',
+                        background: d.revenue > 0 ? 'var(--primary-color)' : '#e5e7eb',
                       }}
                     />
                     {/* Tooltip */}
@@ -348,7 +348,7 @@ export default function Reports() {
                     <div className="flex items-center gap-2">
                       <div
                         className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                        style={{ background: '#4a7530' }}
+                        style={{ background: 'var(--avatar-bg, var(--primary-color))' }}
                       >
                         {d.doctor_name.charAt(0)}
                       </div>
@@ -361,7 +361,7 @@ export default function Reports() {
                       className="h-1.5 rounded-full transition-all"
                       style={{
                         width: `${(d.total / (doctorStats[0]?.total || 1)) * 100}%`,
-                        background: '#4a7530',
+                        background: 'var(--primary-color)',
                         opacity: 1 - i * 0.15,
                       }}
                     />

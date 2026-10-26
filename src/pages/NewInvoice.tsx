@@ -283,7 +283,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                   }}
                   onFocus={() => setShowPatientDropdown(true)}
                   placeholder="Search patient by name or phone..."
-                  className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                  className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                 />
                 {selectedPatient && (
                   <button
@@ -310,7 +310,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                       >
                         <div
                           className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                          style={{ background: '#4a7530' }}
+                          style={{ background: 'var(--avatar-bg, var(--primary-color))' }}
                         >
                           {p.name.charAt(0)}
                         </div>
@@ -345,7 +345,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                 <select
                   value={selectedDoctor}
                   onChange={(e) => setSelectedDoctor(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                 >
                   <option value="">No doctor assigned</option>
                   {doctors.map(d => (
@@ -359,7 +359,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   >
                     <option value="cash">Cash</option>
                     <option value="card">Card</option>
@@ -371,7 +371,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                   <select
                     value={paymentStatus}
                     onChange={(e) => handleStatusChange(e.target.value as PaymentStatus)}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   >
                     <option value="paid">Paid (Full)</option>
                     <option value="pending">Pending (Unpaid)</option>
@@ -415,7 +415,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                   <select
                     value={item.item_type}
                     onChange={(e) => updateItem(idx, 'item_type', e.target.value as ItemType)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   >
                     {(Object.keys(itemTypeLabels) as ItemType[]).map(t => (
                       <option key={t} value={t}>{itemTypeLabels[t]}</option>
@@ -429,7 +429,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                     value={item.description}
                     onChange={(e) => updateItem(idx, 'description', e.target.value)}
                     placeholder="Description..."
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -440,7 +440,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                     step="0.01"
                     value={item.quantity}
                     onChange={(e) => updateItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-right focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-right focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                 </div>
                 <div className="md:col-span-2">
@@ -451,7 +451,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                     step="1"
                     value={item.unit_price}
                     onChange={(e) => updateItem(idx, 'unit_price', parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-right focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-right focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                 </div>
                 <div className="md:col-span-1 flex items-center md:justify-end">
@@ -484,7 +484,7 @@ export default function NewInvoice({ onSuccess }: Props) {
               onChange={(e) => setNotes(e.target.value)}
               rows={4}
               placeholder="Additional notes for the invoice..."
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm resize-none focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm resize-none focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
             />
           </div>
 
@@ -501,7 +501,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                 <select
                   value={discountType}
                   onChange={(e) => setDiscountType(e.target.value as DiscountType)}
-                  className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-600/20 focus:border-green-700"
+                  className="text-xs px-2 py-1.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)]"
                 >
                   <option value="fixed">Fixed Discount ({settings.currency_symbol || 'Rs. '})</option>
                   <option value="percentage">% Discount</option>
@@ -512,7 +512,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                   step="1"
                   value={discountValue}
                   onChange={(e) => setDiscountValue(parseFloat(e.target.value) || 0)}
-                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-right focus:ring-2 focus:ring-green-600/20 focus:border-green-700"
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-right focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)]"
                   placeholder="0"
                 />
               </div>
@@ -535,7 +535,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                   step="0.5"
                   value={taxRate}
                   onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-right focus:ring-2 focus:ring-green-600/20 focus:border-green-700"
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-right focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)]"
                   placeholder="0"
                 />
               </div>
@@ -573,7 +573,7 @@ export default function NewInvoice({ onSuccess }: Props) {
                     value={paidAmount === 0 ? '' : paidAmount}
                     onChange={(e) => handlePaidAmountChange(parseFloat(e.target.value) || 0)}
                     placeholder="0"
-                    className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-base font-bold text-gray-900 text-right focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+                    className="w-full pl-12 pr-4 py-2.5 rounded-xl border border-gray-300 bg-white text-base font-bold text-gray-900 text-right focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
                   />
                 </div>
                 {/* Quick preset buttons */}

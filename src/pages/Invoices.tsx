@@ -215,7 +215,7 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
             placeholder="Search by patient or invoice #..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
           />
           {search && (
             <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -226,7 +226,7 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as PaymentStatus | '')}
-          className="px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-green-600/20 focus:border-green-700 transition-all"
+          className="px-4 py-2.5 bg-white rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-[var(--primary-color)]/20 focus:border-[var(--primary-color)] transition-all"
         >
           <option value="">All Status</option>
           <option value="paid">Paid</option>
@@ -262,7 +262,7 @@ export default function Invoices({ onNewInvoice, onViewInvoice }: Props) {
                       {search || statusFilter ? 'No invoices match your filters' : 'No invoices created yet'}
                     </p>
                     {!search && !statusFilter && (
-                      <button onClick={onNewInvoice} className="mt-3 text-sm font-medium hover:underline" style={{ color: '#4a7530' }}>
+                      <button onClick={onNewInvoice} className="mt-3 text-sm font-medium hover:underline" style={{ color: 'var(--primary-color)' }}>
                         Create first invoice
                       </button>
                     )}
