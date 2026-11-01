@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy & Security Policy | Clinsyst Dental Practice Cloud</title>
+  <meta name="description" content="Learn how Clinsyst and Buraq Dev protect patient health records, clinic identity, and financial transactions with multi-tenant data segregation, AES-256 encryption, and HIPAA/GDPR alignment." />
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='50%25' y='52%25' font-family='Arial,sans-serif' font-size='44' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3C/svg%3E"
+  />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+              950: '#082f49',
+            },
+            dental: {
+              navy: '#0c4a6e',
+              dark: '#082f49',
+              slate: '#1e293b',
+              sky: '#0284c7',
+              cyan: '#06b6d4',
+              softblue: '#f0f9ff',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Facebook Pixel Code -->
+  <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window,document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1777512360150958');
+    fbq('track', 'PageView');
+  </script>
+  <!-- End Facebook Pixel Code -->
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans selection:bg-brand-500 selection:text-white">
+  <!-- Facebook Pixel Noscript Fallback -->
+  <noscript>
+    <img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1777512360150958&ev=PageView&noscript=1"/>
+  </noscript>
+
+  <!-- Announcement Bar -->
+  <aside aria-label="Global Announcement" class="bg-dental-navy text-white text-xs sm:text-sm py-2 px-4 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2 mx-auto sm:mx-0">
+        <span class="bg-brand-500/20 text-brand-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-brand-500/30">SECURITY</span>
+        <span>Enterprise Data Protection & Multi-Tenant Clinical Isolation</span>
+      </div>
+      <div class="hidden md:flex items-center gap-4 text-slate-300 text-xs">
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> AES-256 & TLS 1.3 Encryption</span>
+        <span>•</span>
+        <span>Operated by Buraq Dev</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Navigation -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-xl bg-[#0284c7] flex items-center justify-center text-white font-bold text-xl font-sans shadow-md shadow-sky-600/25 border border-sky-400/30 group-hover:scale-105 transition-transform">
+          C
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xl font-bold tracking-tight text-dental-navy font-sans">Clinsyst<span class="text-brand-600">.</span></span>
+          <span class="text-[10px] tracking-wider uppercase font-semibold text-slate-400">Dental Practice Cloud</span>
+        </div>
+      </a>
+
+      <!-- Desktop Nav Links -->
+      <nav class="hidden lg:flex items-center gap-8 text-sm font-semibold text-slate-600">
+        <a href="/#features" class="hover:text-brand-600 transition-colors">Features</a>
+        <a href="/#odontogram" class="hover:text-brand-600 transition-colors">Dual Odontogram</a>
+        <a href="/#pricing" class="hover:text-brand-600 transition-colors">Pricing</a>
+        <a href="/privacy/" class="text-brand-600 font-bold border-b-2 border-brand-600 pb-0.5">Privacy & Security</a>
+        <a href="/terms/" class="hover:text-brand-600 transition-colors">Terms of Service</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <a href="/app/?mode=signin" id="nav-sign-in" class="inline-flex text-sm font-semibold text-slate-700 hover:text-brand-600 px-2 sm:px-3 py-2 transition-colors">
+          Sign In
+        </a>
+        <a href="/app/?mode=signup&plan=pro&billing=annual" id="nav-start-trial" class="inline-flex items-center justify-center px-4 sm:px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md shadow-brand-600/25 hover:shadow-lg hover:shadow-brand-600/30 transition-all duration-200">
+          Start Free Trial
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Header -->
+  <section class="relative pt-12 pb-16 bg-gradient-to-b from-sky-50/80 via-white to-slate-50 border-b border-slate-200/80">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-slate-200/90 shadow-sm text-xs font-semibold text-slate-600 mb-6">
+        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+        <span>Security, Privacy & Health Data Governance</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-dental-navy tracking-tight leading-tight">
+        Privacy & Security Policy
+      </h1>
+      <p class="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed max-w-2xl mx-auto">
+        Your clinic and patient records are confidential clinical assets. Discover how Clinsyst by Buraq Dev safeguards clinical data with strict tenant separation, end-to-end encryption, and full compliance.
+      </p>
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-slate-500">
+        <span>Effective Date: November 2026</span>
+        <span>•</span>
+        <span>Version 2.4</span>
+        <span>•</span>
+        <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">HIPAA & GDPR Ready</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Content Section -->
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <!-- Quick Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+      <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+        <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center mb-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        </div>
+        <h2 class="font-bold text-sm text-dental-navy">AES-256 & TLS 1.3</h2>
+        <p class="text-xs text-slate-500 mt-1">Bank-grade encryption in transit and at rest across all clinics and regional databases.</p>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+        <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        </div>
+        <h2 class="font-bold text-sm text-dental-navy">Zero Cross-Tenant Leakage</h2>
+        <p class="text-xs text-slate-500 mt-1">Row-level database scoping guarantees that only your authorized clinic staff can view your patient records.</p>
+      </div>
+
+      <div class="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
+        <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center mb-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+        </div>
+        <h2 class="font-bold text-sm text-dental-navy">100% Clinic Data Ownership</h2>
+        <p class="text-xs text-slate-500 mt-1">You own your patient records, dental charts, and invoices. Full data export available at any time.</p>
+      </div>
+    </div>
+
+    <!-- Policy Articles -->
+    <article class="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-10 space-y-10 text-slate-700 leading-relaxed text-sm">
+      
+      <!-- Section 1 -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-dental-navy flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">1</span>
+          Our Commitment to Healthcare Privacy
+        </h2>
+        <p>
+          Clinsyst, operated and maintained by <strong>Buraq Dev</strong> ("we", "us", or "our"), delivers enterprise-grade dental practice management software designed for private practitioners, group dental clinics, and specialized dental surgery hospitals worldwide.
+        </p>
+        <p>
+          We recognize that Protected Health Information (PHI), dental charts, radiographs, patient medical histories, and billing records require the highest echelon of security and confidential stewardship. We never monetize, sell, lease, or distribute patient health data or clinic records to advertisers, pharmaceutical aggregators, or third parties.
+        </p>
+      </section>
+
+      <!-- Section 2 -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-dental-navy flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">2</span>
+          Information We Collect & Process
+        </h2>
+        <p>
+          In delivering the Clinsyst Software-as-a-Service (SaaS) suite, we process the following categories of information on behalf of the subscriber clinic:
+        </p>
+        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
+          <li><strong>Clinic Administrator & Staff Credentials:</strong> Clinic legal name, registered tax identification / TRN, practice physical address, authorized staff names, email addresses, contact numbers, professional license designations, and cryptographic password hashes.</li>
+          <li><strong>Patient Electronic Dental Records (EDR):</strong> Patient full name, national ID / passport number (where applicable), date of birth, biological gender, contact telephone, email, emergency contact details, medical history, systemic drug allergies, and active clinical alerts.</li>
+          <li><strong>Dental Charting & Clinical Data:</strong> Interactive adult and pediatric odontogram status (FDI or Universal notations), restorative treatment plans, periodontal pockets, clinical examinations, surgical notes, digital prescription orders, and doctor notes.</li>
+          <li><strong>Financial & Invoice Records:</strong> Itemized procedure line items, custom fee schedules, discounts, VAT/sales tax rates, payment receipts, balance dues, and payment methods (Cash, Card, Online).</li>
+          <li><strong>Device & Session Telemetry:</strong> IP address, device fingerprints, browser client agent, and heartbeat timestamps used exclusively for concurrency security and active login quota enforcement.</li>
+        </ul>
+      </section>
+
+      <!-- Section 3 -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-dental-navy flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">3</span>
+          Multi-Tenant Architecture & Data Segregation
+        </h2>
+        <p>
+          Clinsyst operates on a secure multi-tenant infrastructure. Separation of concerns between independent dental clinics is absolute:
+        </p>
+        <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2">
+          <p><strong>Database-Enforced Tenant Isolation:</strong> Every patient, appointment, examination, treatment, and invoice record is bound to a unique, immutable <code class="px-1.5 py-0.5 rounded bg-slate-200 font-mono text-[11px] text-slate-800">clinic_id</code>. Queries are mathematically isolated; under no circumstances can an authorized user from Clinic A query, view, or modify records belonging to Clinic B.</p>
+          <p><strong>Session Termination on Sign-Out:</strong> When any staff member signs out, all local browser state, authentication tokens, and tenant workspace caches are comprehensively purged.</p>
+          <p><strong>Concurrent Session Management:</strong> Clinics have strict limits on concurrent device logins to protect against unauthorized credential sharing across unmanaged personal devices.</p>
+        </div>
+      </section>
+
+      <!-- Section 4 -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-dental-navy flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">4</span>
+          Cryptographic Standards & Technical Safeguards
+        </h2>
+        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
+          <li><strong>Data In Transit:</strong> All communications between clinic web browsers, tablets, and Clinsyst cloud servers are encrypted using Transport Layer Security (TLS 1.3) with HSTS enforcement.</li>
+          <li><strong>Data At Rest:</strong> Relational databases and media file assets are encrypted at rest with AES-256 bit military-grade cryptographic standards.</li>
+          <li><strong>Automated Disaster Recovery:</strong> Automated point-in-time database backups are executed continuously and stored in geographically redundant, fault-tolerant infrastructure with 99.9% availability SLA.</li>
+          <li><strong>Role-Based Access Control (RBAC):</strong> Administrative, dental practitioner, and receptionist roles enforce least-privilege access to clinical records, financial reports, and settings.</li>
+        </ul>
+      </section>
+
+      <!-- Section 5 -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-dental-navy flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">5</span>
+          Third-Party Processors & Integrations
+        </h2>
+        <p>
+          To deliver specific features, Clinsyst interfaces with select tier-1 technology partners under strict confidentiality agreements:
+        </p>
+        <ul class="list-disc pl-5 space-y-1.5 text-slate-600">
+          <li><strong>Meta WhatsApp Business Cloud API:</strong> Enables clinics to dispatch automated appointment confirmations, reminders, and prescription PDFs directly to patient WhatsApp numbers. Messages are sent securely via Meta's encrypted cloud API.</li>
+          <li><strong>Payment Gateways (Lemon Squeezy & Merchant Processors):</strong> For software subscriptions and international checkouts. All card transactions are processed in accordance with PCI-DSS Level 1 compliance; Clinsyst never stores raw credit card numbers.</li>
+        </ul>
+      </section>
+
+      <!-- Section 6 -->
+      <section class="space-y-3">
+        <h2 class="text-xl font-bold text-dental-navy flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">6</span>
+          Data Ownership, Retention & Deletion
+        </h2>
+        <p>
+          <strong>The subscriber clinic remains the sole proprietor of all patient and clinical data entered into Clinsyst.</strong>
+        </p>
+        <p>
+          You may export your patients, appointment rosters, inventory logs, and invoice reports in standard CSV and JSON formats at any time. Upon subscription termination or upon written request by the clinic owner, all clinic-associated records can be permanently expunged from primary databases within thirty (30) days in compliance with statutory medical record retention obligations.
+        </p>
+      </section>
+
+      <!-- Section 7 -->
+      <section class="space-y-4 pt-4 border-t border-slate-200">
+        <h2 class="text-xl font-bold text-dental-navy flex items-center gap-2">
+          <span class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-bold">7</span>
+          Contact Data Protection & Security Inquiries
+        </h2>
+        <p>
+          If you have questions regarding this Privacy and Security Policy, data processing agreements (DPA), or wish to exercise your data subject rights, please contact our Data Protection Team at <strong>Buraq Dev</strong>:
+        </p>
+
+        <!-- Official Contact Card -->
+        <div class="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-sky-950 text-white shadow-lg space-y-4">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <div>
+              <h3 class="font-bold text-base text-white">Buraq Dev — Clinsyst Security Office</h3>
+              <p class="text-xs text-sky-200/80">Global Data Protection & Customer Support</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold">Active Support</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div class="flex items-start gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[11px]">Official Email</span>
+                <a href="mailto:admin@buraqdev.com" class="font-semibold text-white hover:text-sky-300 transition text-sm">admin@buraqdev.com</a>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[11px]">Phone & WhatsApp Helpline</span>
+                <a href="tel:+447446957161" class="font-semibold text-white hover:text-emerald-300 transition text-sm">+44 7446 957161</a>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[11px]">Facebook Official</span>
+                <a href="https://www.facebook.com/profile.php?id=61593902396515" target="_blank" rel="noopener noreferrer" class="font-semibold text-white hover:text-blue-300 transition">Buraq Dev on Facebook</a>
+              </div>
+            </div>
+
+            <div class="flex items-start gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg class="w-4 h-4 text-pink-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              </div>
+              <div>
+                <span class="text-slate-400 block text-[11px]">Instagram Official</span>
+                <a href="https://www.instagram.com/buraq_dev/" target="_blank" rel="noopener noreferrer" class="font-semibold text-white hover:text-pink-300 transition">@buraq_dev on Instagram</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </article>
+
+    <!-- Return to Home CTA -->
+    <div class="mt-8 text-center flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="/" class="px-6 py-3 rounded-xl bg-white text-slate-700 hover:text-brand-600 border border-slate-300 font-semibold text-xs shadow-xs hover:shadow transition">
+        ← Return to Landing Page
+      </a>
+      <a href="/terms/" class="px-6 py-3 rounded-xl bg-brand-600 text-white hover:bg-brand-700 font-semibold text-xs shadow-md shadow-brand-600/25 transition">
+        View Terms of Service →
+      </a>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-[#082f49] text-slate-400 py-12 text-xs border-t border-sky-950/80 mt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-sky-900/60">
+        <!-- Logo & Brand -->
+        <div class="flex items-center gap-3">
+          <div class="w-7 h-7 rounded-lg bg-[#0284c7] text-white flex items-center justify-center font-bold text-xs shadow-sm border border-white/20">
+            C
+          </div>
+          <span class="font-bold text-white text-sm">Clinsyst Dental Cloud</span>
+          <span class="text-slate-600">|</span>
+          <span>Engineered by Buraq Dev</span>
+        </div>
+
+        <!-- Social Media & Contact Links -->
+        <div class="flex flex-wrap items-center justify-center md:justify-end gap-4">
+          <a href="https://www.facebook.com/profile.php?id=61593902396515" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition flex items-center gap-1.5" title="Facebook">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            <span>Facebook</span>
+          </a>
+          <span>•</span>
+          <a href="https://www.instagram.com/buraq_dev/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition flex items-center gap-1.5" title="Instagram">
+            <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            <span>Instagram</span>
+          </a>
+          <span>•</span>
+          <a href="mailto:admin@buraqdev.com" class="text-slate-400 hover:text-white transition flex items-center gap-1.5" title="Email Us">
+            <svg class="w-4 h-4 fill-none stroke-current" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+            <span>admin@buraqdev.com</span>
+          </a>
+          <span>•</span>
+          <a href="tel:+447446957161" class="text-slate-400 hover:text-white transition flex items-center gap-1.5" title="Phone / WhatsApp">
+            <svg class="w-4 h-4 fill-none stroke-current" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <span>+44 7446 957161</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+        <p>© 2026 Clinsyst Technologies & Buraq Dev. All rights reserved.</p>
+        <div class="flex items-center gap-6">
+          <a href="/" class="hover:text-white transition">Home</a>
+          <a href="/#features" class="hover:text-white transition">Features</a>
+          <a href="/#pricing" class="hover:text-white transition">Global Pricing</a>
+          <a href="/app/?mode=signin" class="hover:text-white transition">Sign In</a>
+          <a href="/privacy/" class="text-sky-400 font-bold">Privacy & Security</a>
+          <a href="/terms/" class="hover:text-white transition">Terms of Service</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+

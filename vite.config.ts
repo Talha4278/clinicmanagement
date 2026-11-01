@@ -15,6 +15,8 @@ export default defineConfig({
       input: {
         main: 'index.html',
         app: 'app/index.html',
+        privacy: 'privacy/index.html',
+        terms: 'terms/index.html',
       },
     },
   },
