@@ -3,16 +3,15 @@ import {
   Building2, Save, Upload, RefreshCw, CheckCircle2,
   Phone, Mail, MapPin, Globe, FileText, Image as ImageIcon,
   Stethoscope, Sparkles, Activity,
-  Plus, Trash2, Edit2, Check, X, Search, UserPlus, AlertCircle,
-  UserCheck, UserX, Loader2, Clock, Receipt, CreditCard,
-  MessageSquare, Send, Smartphone, Lock,
-  ShieldCheck, Zap,
-  CheckCheck, Landmark, Palette, UserCog
+  Plus, Trash2, Edit2, Check, X, Search, AlertCircle,
+  Loader2, Clock, Receipt, CreditCard,
+  MessageSquare,
+  ShieldCheck,
+  Landmark, Palette, UserCog
 } from 'lucide-react';
 import StaffManagement from './Staff';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
-import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQuery';
 import { useAuth } from '../contexts/AuthContext';
 import {
   useClinicSettings,
@@ -21,8 +20,6 @@ import {
 } from '../lib/clinicSettings';
 import {
   ClinicSettings,
-  Staff,
-  StaffRole,
   SubscriptionPlan,
 } from '../lib/types';
 import { detectVisitorCurrency, saveManualCurrency } from '../lib/geoPricing';
@@ -34,13 +31,6 @@ import {
   parseClinicBranding,
 } from '../components/ClinicBadgeIcon';
 import CreditCardCheckoutModal from '../components/CreditCardCheckoutModal';
-import {
-  isDemoMode,
-  getDemoStaff,
-  saveDemoStaff,
-  deleteDemoStaff,
-  toggleDemoStaff,
-} from '../lib/demoData';
 
 const TIMEZONE_OPTIONS = [
   { value: 'Asia/Dubai', label: 'Asia/Dubai (GST, GMT+4) — UAE, Oman', flag: '🇦🇪', region: 'UAE / GCC' },
@@ -173,10 +163,6 @@ export default function ClinicSetup({ initialTab = 'profile' }: ClinicSetupProps
   // Clock in clinic timezone
   const [currentTime, setCurrentTime] = useState('');
 
-  // WhatsApp test send simulator state
-  const [testMobile, setTestMobile] = useState('+971 50 123 4567');
-  const [testSending, setTestSending] = useState(false);
-  const [testSent, setTestSent] = useState(false);
   const [checkoutTestStatus, setCheckoutTestStatus] = useState<string | null>(null);
   const [showCardCheckoutModal, setShowCardCheckoutModal] = useState(false);
 
@@ -322,35 +308,6 @@ export default function ClinicSetup({ initialTab = 'profile' }: ClinicSetupProps
       setSavedTab((curr) => curr === 'localization' ? null : curr);
     }, 2500);
   }
-
-  function handleSaveWhatsApp(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    setSavingTab('whatsapp');
-    updateSettings(form);
-    setSavingTab(null);
-    setSavedTab('whatsapp');
-    notifySuccess('WhatsApp Cloud API & automated triggers saved and applied!');
-    setTimeout(() => {
-      setSavedTab((curr) => curr === 'whatsapp' ? null : curr);
-    }, 2500);
-  }
-
-
-
-  function handleSendTestWhatsApp() {
-    if (!testMobile.trim()) {
-      alert('Please enter a mobile phone number (e.g. +971 50 123 4567)');
-      return;
-    }
-    setTestSending(true);
-    setTimeout(() => {
-      setTestSending(false);
-      setTestSent(true);
-      setTimeout(() => setTestSent(false), 4500);
-    }, 1100);
-  }
-
-
 
   // High-performance canvas-based image downscaler & compressor (max 320x320)
   // Ensures uploaded logos never exceed browser localStorage quotas (~25KB typical)

@@ -14,7 +14,6 @@ import Invoices from './pages/Invoices';
 import NewInvoice from './pages/NewInvoice';
 import InvoiceView from './pages/InvoiceView';
 import Reports from './pages/Reports';
-import Staff from './pages/Staff';
 import ClinicSetup from './pages/ClinicSetup';
 import PatientDossierModal from './components/PatientDossierModal';
 import SuspendedClinicScreen from './components/SuspendedClinicScreen';

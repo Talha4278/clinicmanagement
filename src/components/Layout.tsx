@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Stethoscope, LayoutDashboard, Users, Calendar, FileText, BarChart3,
-  UserCog, LogOut, Menu, X, ChevronRight, Bell, Package, Pill, CheckCircle2,
+  LogOut, Menu, X, ChevronRight, Bell, Package, Pill, CheckCircle2,
   Settings, ShieldCheck, Laptop
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';

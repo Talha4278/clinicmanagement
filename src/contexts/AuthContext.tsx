@@ -5,6 +5,7 @@ import { Staff, ClinicTenant, ClinicSignUpData, ActiveSession } from '../lib/typ
 import {
   getActiveClinic,
   setActiveClinic,
+  getAllClinics,
   registerNewClinic,
   findTenantUser,
   syncClinicFromDatabase,
