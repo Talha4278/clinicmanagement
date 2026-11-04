@@ -4,7 +4,7 @@ import {
   Calendar, ChevronLeft, ChevronRight,
   BarChart3, PieChart, Download,
   CreditCard, Banknote, Building2, Stethoscope,
-  X, AlertCircle, RefreshCw, Layers
+  X, AlertCircle, RefreshCw, Layers, CheckCircle2
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { isDemoMode, getDemoInvoices } from '../lib/demoData';
@@ -13,6 +13,86 @@ import { applyClinicFilter, isMissingClinicIdColumnError } from '../lib/tenancyQ
 import { InvoiceItem } from '../lib/types';
 
 export type ReportGranularity = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+/**
+ * Standardized financial resolution helper for any invoice record.
+ * Guarantees that paid invoices NEVER contribute to pending balance.
+ */
+export function getInvoiceFinancials(inv: any): {
+  total: number;
+  paid: number;
+  pending: number;
+  isPaid: boolean;
+  isPendingOrPartial: boolean;
+} {
+  const total = Math.max(Number(inv?.total) || 0, 0);
+  const status = String(inv?.payment_status || '').toLowerCase().trim();
+
+  // Cancelled or void invoices have zero active financial claim
+  if (status === 'cancelled' || status === 'void' || status === 'refunded') {
+    return {
+      total,
+      paid: 0,
+      pending: 0,
+      isPaid: false,
+      isPendingOrPartial: false,
+    };
+  }
+
+  // Explicitly PAID invoices: 100% collected, 0 pending balance
+  if (status === 'paid') {
+    const rawPaid = Number(inv?.paid_amount);
+    const paid = !isNaN(rawPaid) && rawPaid > 0 ? Math.max(rawPaid, total) : total;
+    return {
+      total,
+      paid,
+      pending: 0,
+      isPaid: true,
+      isPendingOrPartial: false,
+    };
+  }
+
+  // Explicitly PENDING invoices: 0 or deposit paid, remainder is pending
+  if (status === 'pending' || status === 'unpaid') {
+    const rawPaid = Number(inv?.paid_amount);
+    const paid = !isNaN(rawPaid) && rawPaid > 0 ? Math.min(rawPaid, total) : 0;
+    const pending = Math.max(total - paid, 0);
+    return {
+      total,
+      paid,
+      pending: pending > 0 ? pending : total,
+      isPaid: false,
+      isPendingOrPartial: true,
+    };
+  }
+
+  // Explicitly PARTIAL invoices: paid amount settled, balance due pending
+  if (status === 'partial') {
+    const rawPaid = Number(inv?.paid_amount);
+    const paid = !isNaN(rawPaid) && rawPaid > 0 ? Math.min(rawPaid, total) : 0;
+    const pending = Math.max(total - paid, 0);
+    return {
+      total,
+      paid,
+      pending,
+      isPaid: false,
+      isPendingOrPartial: true,
+    };
+  }
+
+  // Fallback for unclassified status
+  const rawPaid = Number(inv?.paid_amount);
+  const paid = !isNaN(rawPaid) && rawPaid > 0 ? Math.min(rawPaid, total) : 0;
+  const pending = Math.max(total - paid, 0);
+  const isPaid = paid >= total && total > 0;
+  return {
+    total,
+    paid: isPaid ? total : paid,
+    pending: isPaid ? 0 : pending,
+    isPaid,
+    isPendingOrPartial: !isPaid && pending > 0,
+  };
+}
 
 interface BucketItem {
   id: string;
@@ -31,6 +111,7 @@ interface DoctorStat {
   doctorName: string;
   totalBilled: number;
   totalCollected: number;
+  pending: number;
   count: number;
   collectionRate: number;
   sharePercent: number;
@@ -75,7 +156,8 @@ export default function Reports() {
   // Interactive selection & drill-down state
   const [selectedBucketId, setSelectedBucketId] = useState<string | null>(null);
   const [drillDown, setDrillDown] = useState<DrillDownFilter | null>(null);
-  const [drillDownTab, setDrillDownTab] = useState<'invoices' | 'procedures' | 'doctors' | 'payments'>('invoices');
+  const [drillDownTab, setDrillDownTab] = useState<'invoices' | 'procedures'>('invoices');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [viewInvoice, setViewInvoice] = useState<any | null>(null);
 
@@ -141,12 +223,14 @@ export default function Reports() {
     setRefDate(d);
     setSelectedBucketId(null);
     setDrillDown(null);
+    setStatusFilter('all');
   }
 
   function resetToCurrent() {
     setRefDate(new Date());
     setSelectedBucketId(null);
     setDrillDown(null);
+    setStatusFilter('all');
   }
 
   // Load Invoices
@@ -158,6 +242,7 @@ export default function Reports() {
     setLoading(true);
     setSelectedBucketId(null);
     setDrillDown(null);
+    setStatusFilter('all');
 
     const startIso = dateRange.start.toISOString();
     const endIso = dateRange.end.toISOString();
@@ -225,7 +310,6 @@ export default function Reports() {
       }
 
       if (res.data) {
-        // Normalize items and patient data
         const normalized = res.data.map((inv: any) => ({
           ...inv,
           items: inv.invoice_items || inv.items || [],
@@ -242,7 +326,7 @@ export default function Reports() {
     }
   }
 
-  // Summary Metrics
+  // Summary Metrics: Exact financial calculation
   const summary = useMemo(() => {
     let grossBilled = 0;
     let totalCollected = 0;
@@ -250,17 +334,10 @@ export default function Reports() {
     const patientSet = new Set<string>();
 
     periodInvoices.forEach(inv => {
-      const tot = Number(inv.total) || 0;
-      const paid = Number(
-        inv.paid_amount !== undefined && inv.paid_amount !== null
-          ? inv.paid_amount
-          : inv.payment_status === 'paid'
-          ? tot
-          : 0
-      );
-      grossBilled += tot;
-      totalCollected += paid;
-      totalPending += Math.max(tot - paid, 0);
+      const fin = getInvoiceFinancials(inv);
+      grossBilled += fin.total;
+      totalCollected += fin.paid;
+      totalPending += fin.pending;
 
       const patId = inv.patient_id || inv.patient?.id || inv.patient?.name;
       if (patId) patientSet.add(patId);
@@ -284,7 +361,6 @@ export default function Reports() {
   // Generate granular buckets for charts
   const buckets: BucketItem[] = useMemo(() => {
     if (granularity === 'daily') {
-      // 2-hour interval slots: 08:00 to 20:00
       const slots = [
         { id: 'h08', label: '08:00 – 10:00', shortLabel: '8–10 AM', startH: 8, endH: 10 },
         { id: 'h10', label: '10:00 – 12:00', shortLabel: '10–12 PM', startH: 10, endH: 12 },
@@ -302,17 +378,16 @@ export default function Reports() {
           return h >= slot.startH && h < slot.endH;
         });
 
-        const invoiced = slotInvoices.reduce((s, i) => s + (Number(i.total) || 0), 0);
-        const revenue = slotInvoices.reduce((s, i) => {
-          const paid = Number(
-            i.paid_amount !== undefined && i.paid_amount !== null
-              ? i.paid_amount
-              : i.payment_status === 'paid'
-              ? i.total
-              : 0
-          );
-          return s + paid;
-        }, 0);
+        let invoiced = 0;
+        let revenue = 0;
+        let pending = 0;
+
+        slotInvoices.forEach(inv => {
+          const fin = getInvoiceFinancials(inv);
+          invoiced += fin.total;
+          revenue += fin.paid;
+          pending += fin.pending;
+        });
 
         return {
           id: slot.id,
@@ -320,13 +395,12 @@ export default function Reports() {
           shortLabel: slot.shortLabel,
           invoiced,
           revenue,
-          pending: Math.max(invoiced - revenue, 0),
+          pending,
           count: slotInvoices.length,
           invoices: slotInvoices,
         };
       });
     } else if (granularity === 'weekly') {
-      // 7 days of the week (Monday to Sunday)
       const list: BucketItem[] = [];
       const cur = new Date(dateRange.start);
 
@@ -341,17 +415,16 @@ export default function Reports() {
           return dStr === dateStr;
         });
 
-        const invoiced = dayInvoices.reduce((s, inv) => s + (Number(inv.total) || 0), 0);
-        const revenue = dayInvoices.reduce((s, inv) => {
-          const paid = Number(
-            inv.paid_amount !== undefined && inv.paid_amount !== null
-              ? inv.paid_amount
-              : inv.payment_status === 'paid'
-              ? inv.total
-              : 0
-          );
-          return s + paid;
-        }, 0);
+        let invoiced = 0;
+        let revenue = 0;
+        let pending = 0;
+
+        dayInvoices.forEach(inv => {
+          const fin = getInvoiceFinancials(inv);
+          invoiced += fin.total;
+          revenue += fin.paid;
+          pending += fin.pending;
+        });
 
         list.push({
           id: dateStr,
@@ -360,14 +433,13 @@ export default function Reports() {
           subLabel: dayName,
           invoiced,
           revenue,
-          pending: Math.max(invoiced - revenue, 0),
+          pending,
           count: dayInvoices.length,
           invoices: dayInvoices,
         });
       }
       return list;
     } else if (granularity === 'monthly') {
-      // All calendar days of current month
       const list: BucketItem[] = [];
       const totalDays = dateRange.end.getDate();
 
@@ -381,17 +453,16 @@ export default function Reports() {
           return dStr === dateStr;
         });
 
-        const invoiced = dayInvoices.reduce((s, inv) => s + (Number(inv.total) || 0), 0);
-        const revenue = dayInvoices.reduce((s, inv) => {
-          const paid = Number(
-            inv.paid_amount !== undefined && inv.paid_amount !== null
-              ? inv.paid_amount
-              : inv.payment_status === 'paid'
-              ? inv.total
-              : 0
-          );
-          return s + paid;
-        }, 0);
+        let invoiced = 0;
+        let revenue = 0;
+        let pending = 0;
+
+        dayInvoices.forEach(inv => {
+          const fin = getInvoiceFinancials(inv);
+          invoiced += fin.total;
+          revenue += fin.paid;
+          pending += fin.pending;
+        });
 
         list.push({
           id: dateStr,
@@ -400,7 +471,7 @@ export default function Reports() {
           subLabel: dayName,
           invoiced,
           revenue,
-          pending: Math.max(invoiced - revenue, 0),
+          pending,
           count: dayInvoices.length,
           invoices: dayInvoices,
         });
@@ -421,17 +492,16 @@ export default function Reports() {
           return d.getFullYear() === year && d.getMonth() === m;
         });
 
-        const invoiced = monthInvoices.reduce((s, inv) => s + (Number(inv.total) || 0), 0);
-        const revenue = monthInvoices.reduce((s, inv) => {
-          const paid = Number(
-            inv.paid_amount !== undefined && inv.paid_amount !== null
-              ? inv.paid_amount
-              : inv.payment_status === 'paid'
-              ? inv.total
-              : 0
-          );
-          return s + paid;
-        }, 0);
+        let invoiced = 0;
+        let revenue = 0;
+        let pending = 0;
+
+        monthInvoices.forEach(inv => {
+          const fin = getInvoiceFinancials(inv);
+          invoiced += fin.total;
+          revenue += fin.paid;
+          pending += fin.pending;
+        });
 
         list.push({
           id: `m-${m}`,
@@ -440,7 +510,7 @@ export default function Reports() {
           subLabel: `Q${Math.floor(m / 3) + 1}`,
           invoiced,
           revenue,
-          pending: Math.max(invoiced - revenue, 0),
+          pending,
           count: monthInvoices.length,
           invoices: monthInvoices,
         });
@@ -453,26 +523,19 @@ export default function Reports() {
     return Math.max(...buckets.map(b => Math.max(b.revenue, b.invoiced)), 1);
   }, [buckets]);
 
-  // Doctor Performance
+  // Doctor Performance Matrix
   const doctorStats: DoctorStat[] = useMemo(() => {
-    const map = new Map<string, { name: string; billed: number; collected: number; count: number; invoices: any[] }>();
+    const map = new Map<string, { name: string; billed: number; collected: number; pending: number; count: number; invoices: any[] }>();
 
     periodInvoices.forEach(inv => {
       const docName = inv.doctor?.name || 'Attending Surgeon';
       const key = docName;
+      const fin = getInvoiceFinancials(inv);
 
-      const existing = map.get(key) || { name: docName, billed: 0, collected: 0, count: 0, invoices: [] as any[] };
-      const tot = Number(inv.total) || 0;
-      const paid = Number(
-        inv.paid_amount !== undefined && inv.paid_amount !== null
-          ? inv.paid_amount
-          : inv.payment_status === 'paid'
-          ? tot
-          : 0
-      );
-
-      existing.billed += tot;
-      existing.collected += paid;
+      const existing = map.get(key) || { name: docName, billed: 0, collected: 0, pending: 0, count: 0, invoices: [] as any[] };
+      existing.billed += fin.total;
+      existing.collected += fin.paid;
+      existing.pending += fin.pending;
       existing.count += 1;
       existing.invoices.push(inv);
       map.set(key, existing);
@@ -485,6 +548,7 @@ export default function Reports() {
         doctorName: doc.name,
         totalBilled: doc.billed,
         totalCollected: doc.collected,
+        pending: doc.pending,
         count: doc.count,
         collectionRate: doc.billed > 0 ? (doc.collected / doc.billed) * 100 : 0,
         sharePercent: (doc.collected / totalCollected) * 100,
@@ -553,18 +617,14 @@ export default function Reports() {
 
     periodInvoices.forEach(inv => {
       const method = (inv.payment_method || 'cash').toLowerCase();
-      const paid = Number(
-        inv.paid_amount !== undefined && inv.paid_amount !== null
-          ? inv.paid_amount
-          : inv.payment_status === 'paid'
-          ? inv.total
-          : 0
-      );
+      const fin = getInvoiceFinancials(inv);
 
-      const cur = map.get(method) || { amount: 0, count: 0 };
-      cur.amount += paid;
-      cur.count += 1;
-      map.set(method, cur);
+      if (fin.paid > 0) {
+        const cur = map.get(method) || { amount: 0, count: 0 };
+        cur.amount += fin.paid;
+        cur.count += 1;
+        map.set(method, cur);
+      }
     });
 
     const labels: Record<string, string> = {
@@ -585,8 +645,8 @@ export default function Reports() {
     })).sort((a, b) => b.amount - a.amount);
   }, [periodInvoices, summary.totalCollected]);
 
-  // Active Invoices to show in drill-down inspector
-  const filteredDrillDownInvoices = useMemo(() => {
+  // Base invoices matching drill-down context (before search or status filter)
+  const baseDrillDownInvoices = useMemo(() => {
     let list = periodInvoices;
 
     if (drillDown) {
@@ -605,6 +665,43 @@ export default function Reports() {
       }
     }
 
+    return list;
+  }, [periodInvoices, drillDown, buckets]);
+
+  // Counts of pending vs paid in the current inspector scope
+  const inspectorCounts = useMemo(() => {
+    let pendingCount = 0;
+    let paidCount = 0;
+    baseDrillDownInvoices.forEach(inv => {
+      const fin = getInvoiceFinancials(inv);
+      if (fin.isPaid) paidCount++;
+      if (fin.pending > 0 && fin.isPendingOrPartial) pendingCount++;
+    });
+    return {
+      all: baseDrillDownInvoices.length,
+      pending: pendingCount,
+      paid: paidCount,
+    };
+  }, [baseDrillDownInvoices]);
+
+  // Filtered invoices to display in the table
+  const filteredDrillDownInvoices = useMemo(() => {
+    let list = baseDrillDownInvoices;
+
+    // Apply status filter
+    if (statusFilter === 'pending') {
+      list = list.filter(inv => {
+        const fin = getInvoiceFinancials(inv);
+        return fin.isPendingOrPartial && fin.pending > 0;
+      });
+    } else if (statusFilter === 'paid') {
+      list = list.filter(inv => {
+        const fin = getInvoiceFinancials(inv);
+        return fin.isPaid;
+      });
+    }
+
+    // Apply text search
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       list = list.filter(inv =>
@@ -616,28 +713,25 @@ export default function Reports() {
     }
 
     return list;
-  }, [periodInvoices, drillDown, buckets, searchTerm]);
+  }, [baseDrillDownInvoices, statusFilter, searchTerm]);
 
-  // Drilldown sub-summary
+  // Accurate drilldown sub-summary
   const drillDownSummary = useMemo(() => {
     let collected = 0;
     let billed = 0;
+    let pending = 0;
+
     filteredDrillDownInvoices.forEach(inv => {
-      const tot = Number(inv.total) || 0;
-      const paid = Number(
-        inv.paid_amount !== undefined && inv.paid_amount !== null
-          ? inv.paid_amount
-          : inv.payment_status === 'paid'
-          ? tot
-          : 0
-      );
-      billed += tot;
-      collected += paid;
+      const fin = getInvoiceFinancials(inv);
+      billed += fin.total;
+      collected += fin.paid;
+      pending += fin.pending;
     });
+
     return {
       billed,
       collected,
-      pending: Math.max(billed - collected, 0),
+      pending,
       count: filteredDrillDownInvoices.length,
     };
   }, [filteredDrillDownInvoices]);
@@ -647,15 +741,17 @@ export default function Reports() {
     if (selectedBucketId === bucket.id && drillDown?.key === bucket.id) {
       setSelectedBucketId(null);
       setDrillDown(null);
+      setStatusFilter('all');
     } else {
       setSelectedBucketId(bucket.id);
       setDrillDown({
         type: 'bucket',
         key: bucket.id,
         title: `${bucket.label} (${granularity.toUpperCase()} VIEW)`,
-        subtitle: `${bucket.count} invoice(s) • Total Collected: ${currency} ${bucket.revenue.toLocaleString()}`,
+        subtitle: `${bucket.count} invoice(s) • Collected: ${currency} ${bucket.revenue.toLocaleString()} • Pending: ${currency} ${bucket.pending.toLocaleString()}`,
       });
       setDrillDownTab('invoices');
+      setStatusFilter('all');
     }
   }
 
@@ -665,10 +761,11 @@ export default function Reports() {
       type: 'doctor',
       key: doctor.doctorName,
       title: `${doctor.doctorName} — Clinical Ledger`,
-      subtitle: `${doctor.count} invoice(s) • ${doctor.collectionRate.toFixed(1)}% Collection Rate`,
+      subtitle: `${doctor.count} invoice(s) • ${doctor.collectionRate.toFixed(1)}% Collection Rate • Pending: ${currency} ${doctor.pending.toLocaleString()}`,
     });
     setSelectedBucketId(null);
     setDrillDownTab('invoices');
+    setStatusFilter('all');
   }
 
   // Tap on a procedure
@@ -681,6 +778,7 @@ export default function Reports() {
     });
     setSelectedBucketId(null);
     setDrillDownTab('invoices');
+    setStatusFilter('all');
   }
 
   // Tap on a payment method
@@ -689,28 +787,21 @@ export default function Reports() {
       type: 'payment_method',
       key: pm.method,
       title: `${pm.label} Reconciliation`,
-      subtitle: `${pm.count} transactions • ${currency} ${pm.amount.toLocaleString()}`,
+      subtitle: `${pm.count} transactions • ${currency} ${pm.amount.toLocaleString()} settled`,
     });
     setSelectedBucketId(null);
     setDrillDownTab('invoices');
+    setStatusFilter('all');
   }
 
   // Export current view to CSV
   function exportToCsv() {
-    const invoicesToExport = drillDown ? filteredDrillDownInvoices : periodInvoices;
+    const invoicesToExport = filteredDrillDownInvoices;
     if (invoicesToExport.length === 0) return;
 
     const headers = ['Invoice #', 'Date', 'Patient Name', 'Phone', 'Doctor', 'Payment Method', 'Payment Status', 'Total Billed', 'Paid Amount', 'Balance Due'];
     const rows = invoicesToExport.map(inv => {
-      const tot = Number(inv.total) || 0;
-      const paid = Number(
-        inv.paid_amount !== undefined && inv.paid_amount !== null
-          ? inv.paid_amount
-          : inv.payment_status === 'paid'
-          ? tot
-          : 0
-      );
-      const balance = Math.max(tot - paid, 0);
+      const fin = getInvoiceFinancials(inv);
       return [
         `"${inv.invoice_number}"`,
         `"${(inv.created_at || inv.issue_date || '').split('T')[0]}"`,
@@ -719,9 +810,9 @@ export default function Reports() {
         `"${inv.doctor?.name || '—'}"`,
         `"${inv.payment_method || '—'}"`,
         `"${inv.payment_status || '—'}"`,
-        tot,
-        paid,
-        balance,
+        fin.total,
+        fin.paid,
+        fin.pending,
       ].join(',');
     });
 
@@ -755,7 +846,7 @@ export default function Reports() {
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Real-time multi-dimensional practice revenue, doctor productivity, and itemized clinical throughput.
+            Real-time practice revenue, verified pending receivables, and itemized clinical ledger.
           </p>
         </div>
 
@@ -770,6 +861,7 @@ export default function Reports() {
                   setGranularity(g);
                   setSelectedBucketId(null);
                   setDrillDown(null);
+                  setStatusFilter('all');
                 }}
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
                   granularity === g
@@ -832,13 +924,16 @@ export default function Reports() {
             setDrillDown({
               type: 'all',
               key: 'paid',
-              title: 'Collected Revenue Invoices',
-              subtitle: `All settled invoices during ${dateRange.label}`,
+              title: `Settled Paid Invoices (${dateRange.label})`,
+              subtitle: `Showing only 100% paid invoices (Pending balance = 0)`,
             });
             setSelectedBucketId(null);
+            setStatusFilter('paid');
             setDrillDownTab('invoices');
           }}
-          className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer group"
+          className={`bg-white rounded-2xl p-5 border shadow-xs hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer group ${
+            statusFilter === 'paid' && !selectedBucketId ? 'ring-2 ring-emerald-500 border-emerald-500' : 'border-slate-200/80'
+          }`}
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Collected Revenue</span>
@@ -867,9 +962,12 @@ export default function Reports() {
               subtitle: `${summary.totalInvoices} total bills generated`,
             });
             setSelectedBucketId(null);
+            setStatusFilter('all');
             setDrillDownTab('invoices');
           }}
-          className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-sky-300 hover:shadow-md transition-all cursor-pointer group"
+          className={`bg-white rounded-2xl p-5 border shadow-xs hover:border-sky-300 hover:shadow-md transition-all cursor-pointer group ${
+            statusFilter === 'all' && !selectedBucketId && drillDown ? 'ring-2 ring-sky-500 border-sky-500' : 'border-slate-200/80'
+          }`}
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Gross Invoiced</span>
@@ -892,13 +990,16 @@ export default function Reports() {
             setDrillDown({
               type: 'all',
               key: 'pending',
-              title: 'Outstanding Accounts Receivable',
-              subtitle: `Uncollected balance across pending and partial invoices`,
+              title: `Outstanding Accounts Receivable (${dateRange.label})`,
+              subtitle: `Showing only pending and partial invoices with active balances due`,
             });
             setSelectedBucketId(null);
+            setStatusFilter('pending');
             setDrillDownTab('invoices');
           }}
-          className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-amber-300 hover:shadow-md transition-all cursor-pointer group"
+          className={`bg-white rounded-2xl p-5 border shadow-xs hover:border-amber-300 hover:shadow-md transition-all cursor-pointer group ${
+            statusFilter === 'pending' && !selectedBucketId ? 'ring-2 ring-amber-500 border-amber-500' : 'border-slate-200/80'
+          }`}
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Outstanding Due</span>
@@ -911,7 +1012,7 @@ export default function Reports() {
           </div>
           <div className="mt-2 text-xs text-amber-700 flex items-center gap-1">
             <AlertCircle size={13} />
-            <span>Pending collection</span>
+            <span>Uncollected balance</span>
           </div>
         </div>
 
@@ -920,11 +1021,12 @@ export default function Reports() {
           onClick={() => {
             setDrillDown({
               type: 'all',
-              key: 'patients',
-              title: 'Patient Attendance & Throughput',
+              key: 'all',
+              title: `Patient Attendance & Throughput (${dateRange.label})`,
               subtitle: `${summary.uniquePatients} unique patients seen in this period`,
             });
             setSelectedBucketId(null);
+            setStatusFilter('all');
             setDrillDownTab('invoices');
           }}
           className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group"
@@ -962,7 +1064,7 @@ export default function Reports() {
               </h3>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Tap any column or bar to filter the ledger and inspect itemized procedures and invoices.
+              Tap any column to inspect its exact invoices and see paid vs pending collections.
             </p>
           </div>
 
@@ -974,7 +1076,7 @@ export default function Reports() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded bg-amber-400" />
-              <span className="text-slate-600 font-medium">Pending Balance</span>
+              <span className="text-slate-600 font-medium">Actual Pending Due</span>
             </div>
           </div>
         </div>
@@ -1016,7 +1118,7 @@ export default function Reports() {
                           <p className="font-bold">{bucket.label}</p>
                           <p className="text-emerald-400 font-semibold">{currency} {bucket.revenue.toLocaleString()} collected</p>
                           {bucket.pending > 0 && (
-                            <p className="text-amber-300">{currency} {bucket.pending.toLocaleString()} pending</p>
+                            <p className="text-amber-300">{currency} {bucket.pending.toLocaleString()} pending due</p>
                           )}
                           <p className="text-slate-400 text-[10px]">{bucket.count} invoice(s)</p>
                         </div>
@@ -1030,7 +1132,7 @@ export default function Reports() {
                           <div
                             style={{ height: `${pendingHeight}px` }}
                             className="w-full bg-amber-400 rounded-t-sm transition-all"
-                            title={`Pending: ${currency} ${bucket.pending}`}
+                            title={`Pending: ${currency} ${bucket.pending.toLocaleString()}`}
                           />
                         )}
                         <div
@@ -1075,6 +1177,7 @@ export default function Reports() {
                 onClick={() => {
                   setSelectedBucketId(null);
                   setDrillDown(null);
+                  setStatusFilter('all');
                 }}
                 className="px-2.5 py-1 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg shadow-2xs hover:bg-slate-50 transition"
               >
@@ -1124,7 +1227,14 @@ export default function Reports() {
                         <p className="text-xs font-bold text-slate-900 truncate group-hover:text-sky-600 transition-colors">
                           {doc.doctorName}
                         </p>
-                        <p className="text-[10px] text-slate-400">{doc.count} invoices • {doc.collectionRate.toFixed(0)}% paid</p>
+                        <p className="text-[10px] text-slate-400">
+                          {doc.count} invoices • {doc.collectionRate.toFixed(0)}% paid
+                          {doc.pending > 0 && (
+                            <span className="text-amber-600 font-semibold ml-1">
+                              • Due: {currency} {doc.pending.toLocaleString()}
+                            </span>
+                          )}
+                        </p>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -1249,7 +1359,7 @@ export default function Reports() {
               </h3>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              {drillDown?.subtitle || `Viewing all ${periodInvoices.length} invoices generated in ${dateRange.label}`}
+              {drillDown?.subtitle || `Viewing records for ${dateRange.label}`}
             </p>
           </div>
 
@@ -1265,31 +1375,81 @@ export default function Reports() {
             </div>
             {drillDownSummary.pending > 0 && (
               <div className="bg-white px-3 py-1.5 rounded-xl border border-slate-200 text-right shadow-2xs">
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Pending</span>
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">Pending Due</span>
                 <span className="text-xs font-bold text-amber-600">{currency} {drillDownSummary.pending.toLocaleString()}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Search bar & Tab navigation */}
+        {/* Filter Navigation Tabs & Live Search */}
         <div className="px-5 sm:px-6 py-3 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {/* Tab: All Invoices */}
             <button
-              onClick={() => setDrillDownTab('invoices')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                drillDownTab === 'invoices'
-                  ? 'bg-sky-600 text-white'
+              onClick={() => { setDrillDownTab('invoices'); setStatusFilter('all'); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                drillDownTab === 'invoices' && statusFilter === 'all'
+                  ? 'bg-sky-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              Invoices ({filteredDrillDownInvoices.length})
+              <span>All Invoices</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                drillDownTab === 'invoices' && statusFilter === 'all'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-slate-100 text-slate-700'
+              }`}>
+                {inspectorCounts.all}
+              </span>
             </button>
+
+            {/* Tab: Pending / Unpaid Due */}
+            <button
+              onClick={() => { setDrillDownTab('invoices'); setStatusFilter('pending'); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                drillDownTab === 'invoices' && statusFilter === 'pending'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'text-amber-800 hover:bg-amber-50'
+              }`}
+            >
+              <AlertCircle size={12} />
+              <span>Pending / Due</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                drillDownTab === 'invoices' && statusFilter === 'pending'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-amber-100 text-amber-800'
+              }`}>
+                {inspectorCounts.pending}
+              </span>
+            </button>
+
+            {/* Tab: Settled Paid */}
+            <button
+              onClick={() => { setDrillDownTab('invoices'); setStatusFilter('paid'); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${
+                drillDownTab === 'invoices' && statusFilter === 'paid'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-emerald-800 hover:bg-emerald-50'
+              }`}
+            >
+              <CheckCircle2 size={12} />
+              <span>Settled Paid</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                drillDownTab === 'invoices' && statusFilter === 'paid'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-emerald-100 text-emerald-800'
+              }`}>
+                {inspectorCounts.paid}
+              </span>
+            </button>
+
+            {/* Tab: Procedures */}
             <button
               onClick={() => setDrillDownTab('procedures')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 drillDownTab === 'procedures'
-                  ? 'bg-sky-600 text-white'
+                  ? 'bg-purple-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
@@ -1300,7 +1460,7 @@ export default function Reports() {
           <div className="w-full sm:w-64">
             <input
               type="text"
-              placeholder="Search patient, invoice #..."
+              placeholder="Search patient, phone, invoice #..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-sky-500 focus:bg-white transition"
@@ -1313,7 +1473,11 @@ export default function Reports() {
           <div className="overflow-x-auto">
             {filteredDrillDownInvoices.length === 0 ? (
               <div className="py-12 text-center text-slate-400 text-xs">
-                No matching invoices found in this drill-down selection.
+                {statusFilter === 'pending'
+                  ? 'All caught up! Zero pending invoices in this selection.'
+                  : statusFilter === 'paid'
+                  ? 'No settled paid invoices found in this selection.'
+                  : 'No matching invoices found in this drill-down selection.'}
               </div>
             ) : (
               <table className="w-full text-left">
@@ -1324,7 +1488,9 @@ export default function Reports() {
                     <th className="px-5 py-3">Patient</th>
                     <th className="px-5 py-3">Attending Doctor</th>
                     <th className="px-5 py-3">Procedures / Items</th>
-                    <th className="px-5 py-3 text-right">Amount</th>
+                    <th className="px-5 py-3 text-right">Billed</th>
+                    <th className="px-5 py-3 text-right">Collected</th>
+                    <th className="px-5 py-3 text-right">Balance Due</th>
                     <th className="px-5 py-3 text-center">Status</th>
                     <th className="px-5 py-3 text-right">Action</th>
                   </tr>
@@ -1335,6 +1501,7 @@ export default function Reports() {
                     const dateDisplay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     const timeDisplay = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                     const items: InvoiceItem[] = inv.items || inv.invoice_items || [];
+                    const fin = getInvoiceFinancials(inv);
 
                     return (
                       <tr key={inv.id || inv.invoice_number} className="hover:bg-slate-50/80 transition-colors">
@@ -1366,8 +1533,18 @@ export default function Reports() {
                             <span className="text-slate-400">Clinical consultation</span>
                           )}
                         </td>
-                        <td className="px-5 py-3 text-right font-bold text-slate-900 whitespace-nowrap">
-                          {currency} {(Number(inv.total) || 0).toLocaleString()}
+                        <td className="px-5 py-3 text-right font-medium text-slate-700 whitespace-nowrap">
+                          {currency} {fin.total.toLocaleString()}
+                        </td>
+                        <td className="px-5 py-3 text-right font-semibold text-emerald-600 whitespace-nowrap">
+                          {currency} {fin.paid.toLocaleString()}
+                        </td>
+                        <td className="px-5 py-3 text-right font-bold whitespace-nowrap">
+                          {fin.pending > 0 ? (
+                            <span className="text-amber-600">{currency} {fin.pending.toLocaleString()}</span>
+                          ) : (
+                            <span className="text-slate-400 font-normal">0</span>
+                          )}
                         </td>
                         <td className="px-5 py-3 text-center">
                           <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
@@ -1416,126 +1593,127 @@ export default function Reports() {
       </div>
 
       {/* ── INVOICE SLIP PREVIEW MODAL ────────────────────────────────────── */}
-      {viewInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 relative max-h-[90vh] overflow-y-auto">
-            {/* Close Button */}
-            <button
-              onClick={() => setViewInvoice(null)}
-              className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
-            >
-              <X size={18} />
-            </button>
-
-            {/* Slip Header */}
-            <div className="border-b border-slate-100 pb-4 mb-4">
-              <div className="flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-sky-600 text-white font-bold text-sm flex items-center justify-center">
-                  C
-                </span>
-                <div>
-                  <h3 className="font-display font-bold text-base text-slate-900">{activeClinic?.name || 'Clinsyst Dental Cloud'}</h3>
-                  <p className="text-[11px] text-slate-400">Official Clinical Invoice Voucher</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Invoice Meta */}
-            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-100 mb-4">
-              <div>
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Invoice Number</span>
-                <span className="font-mono font-bold text-slate-800">{viewInvoice.invoice_number}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Date & Time</span>
-                <span className="font-medium text-slate-800">
-                  {new Date(viewInvoice.created_at || viewInvoice.issue_date || '').toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Patient</span>
-                <span className="font-bold text-slate-800">{viewInvoice.patient?.name || 'Walk-in'}</span>
-                {viewInvoice.patient?.phone && (
-                  <span className="text-[11px] text-slate-500 block">{viewInvoice.patient.phone}</span>
-                )}
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">Attending Doctor</span>
-                <span className="font-bold text-slate-800">{viewInvoice.doctor?.name || 'Clinic Surgeon'}</span>
-              </div>
-            </div>
-
-            {/* Line items */}
-            <div className="mb-4">
-              <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Itemized Services</h4>
-              <div className="border border-slate-100 rounded-xl overflow-hidden divide-y divide-slate-100 text-xs">
-                {(viewInvoice.items || viewInvoice.invoice_items || []).map((it: any, i: number) => (
-                  <div key={i} className="p-2.5 flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-slate-800">{it.description}</p>
-                      <p className="text-[10px] text-slate-400">Qty: {it.quantity || 1} × {currency} {Number(it.unit_price || it.total || 0).toLocaleString()}</p>
-                    </div>
-                    <span className="font-bold text-slate-900">{currency} {Number(it.total || it.unit_price || 0).toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Totals */}
-            <div className="border-t border-slate-100 pt-3 space-y-1.5 text-xs text-slate-600 mb-5">
-              <div className="flex justify-between">
-                <span>Total Amount:</span>
-                <span className="font-bold text-slate-900">{currency} {Number(viewInvoice.total || 0).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Paid Amount:</span>
-                <span className="font-bold text-emerald-600">
-                  {currency} {Number(
-                    viewInvoice.paid_amount !== undefined && viewInvoice.paid_amount !== null
-                      ? viewInvoice.paid_amount
-                      : viewInvoice.payment_status === 'paid'
-                      ? viewInvoice.total
-                      : 0
-                  ).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span>Payment Mode:</span>
-                <span className="font-semibold text-slate-800 capitalize">{viewInvoice.payment_method || 'Cash'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Payment Status:</span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
-                  statusBadgeStyle[viewInvoice.payment_status] || 'bg-slate-100'
-                }`}>
-                  {viewInvoice.payment_status}
-                </span>
-              </div>
-            </div>
-
-            {viewInvoice.notes && (
-              <p className="text-xs text-slate-500 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100 mb-4">
-                <strong>Notes:</strong> {viewInvoice.notes}
-              </p>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => window.print()}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
-              >
-                Print Voucher
-              </button>
+      {viewInvoice && (() => {
+        const fin = getInvoiceFinancials(viewInvoice);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 relative max-h-[90vh] overflow-y-auto">
+              {/* Close Button */}
               <button
                 onClick={() => setViewInvoice(null)}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold transition"
+                className="absolute top-4 right-4 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
               >
-                Done
+                <X size={18} />
               </button>
+
+              {/* Slip Header */}
+              <div className="border-b border-slate-100 pb-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-sky-600 text-white font-bold text-sm flex items-center justify-center">
+                    C
+                  </span>
+                  <div>
+                    <h3 className="font-display font-bold text-base text-slate-900">{activeClinic?.name || 'Clinsyst Dental Cloud'}</h3>
+                    <p className="text-[11px] text-slate-400">Official Clinical Invoice Voucher</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Invoice Meta */}
+              <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-100 mb-4">
+                <div>
+                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Invoice Number</span>
+                  <span className="font-mono font-bold text-slate-800">{viewInvoice.invoice_number}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Date & Time</span>
+                  <span className="font-medium text-slate-800">
+                    {new Date(viewInvoice.created_at || viewInvoice.issue_date || '').toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Patient</span>
+                  <span className="font-bold text-slate-800">{viewInvoice.patient?.name || 'Walk-in'}</span>
+                  {viewInvoice.patient?.phone && (
+                    <span className="text-[11px] text-slate-500 block">{viewInvoice.patient.phone}</span>
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-400 block uppercase font-bold">Attending Doctor</span>
+                  <span className="font-bold text-slate-800">{viewInvoice.doctor?.name || 'Clinic Surgeon'}</span>
+                </div>
+              </div>
+
+              {/* Line items */}
+              <div className="mb-4">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Itemized Services</h4>
+                <div className="border border-slate-100 rounded-xl overflow-hidden divide-y divide-slate-100 text-xs">
+                  {(viewInvoice.items || viewInvoice.invoice_items || []).map((it: any, i: number) => (
+                    <div key={i} className="p-2.5 flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-slate-800">{it.description}</p>
+                        <p className="text-[10px] text-slate-400">Qty: {it.quantity || 1} × {currency} {Number(it.unit_price || it.total || 0).toLocaleString()}</p>
+                      </div>
+                      <span className="font-bold text-slate-900">{currency} {Number(it.total || it.unit_price || 0).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Totals */}
+              <div className="border-t border-slate-100 pt-3 space-y-1.5 text-xs text-slate-600 mb-5">
+                <div className="flex justify-between">
+                  <span>Gross Billed:</span>
+                  <span className="font-bold text-slate-900">{currency} {fin.total.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Collected (Paid):</span>
+                  <span className="font-bold text-emerald-600">{currency} {fin.paid.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Balance Due (Pending):</span>
+                  <span className={`font-bold ${fin.pending > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                    {currency} {fin.pending.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Payment Mode:</span>
+                  <span className="font-semibold text-slate-800 capitalize">{viewInvoice.payment_method || 'Cash'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Payment Status:</span>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase border ${
+                    statusBadgeStyle[viewInvoice.payment_status] || 'bg-slate-100'
+                  }`}>
+                    {viewInvoice.payment_status}
+                  </span>
+                </div>
+              </div>
+
+              {viewInvoice.notes && (
+                <p className="text-xs text-slate-500 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100 mb-4">
+                  <strong>Notes:</strong> {viewInvoice.notes}
+                </p>
+              )}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition"
+                >
+                  Print Voucher
+                </button>
+                <button
+                  onClick={() => setViewInvoice(null)}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-semibold transition"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
