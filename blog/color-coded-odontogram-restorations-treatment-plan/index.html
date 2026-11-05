@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Visualizing Existing Restorations vs. Planned Treatments on a Color-Coded Odontogram | Clinsyst</title>
+  <meta name="description" content="Boost dental treatment plan acceptance by showing patients a color-coded visual odontogram that distinguishes active caries, existing fillings, root canals, crowns, and implants." />
+  <link rel="canonical" href="https://clinsyst.com/blog/color-coded-odontogram-restorations-treatment-plan/" />
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='50%25' y='52%25' font-family='Arial,sans-serif' font-size='44' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3C/svg%3E"
+  />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
+            dental: { navy: '#0c4a6e', dark: '#082f49' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans">
+
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-[#0284c7] flex items-center justify-center text-white font-bold text-xl">C</div>
+        <div class="flex flex-col">
+          <span class="text-xl font-bold text-dental-navy">Clinsyst<span class="text-brand-600">.</span></span>
+          <span class="text-[10px] tracking-wider uppercase font-semibold text-slate-400">Dental Practice Cloud</span>
+        </div>
+      </a>
+      <nav class="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600">
+        <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-bold">← Back to Pillar 1 Hub</a>
+        <a href="/#odontogram" class="hover:text-brand-600">Live Odontogram</a>
+        <a href="/#pricing" class="hover:text-brand-600">Pricing</a>
+      </nav>
+      <a href="/app/?mode=signup&plan=pro&billing=annual" class="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs sm:text-sm">Start Free Trial</a>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+    <!-- Upward Pillar Link -->
+    <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <span class="font-semibold text-slate-700">Part of Pillar 1: <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-bold underline">The Complete Guide to Digital Dental Charting, Interactive Odontograms & Cloud Dental EMR</a></span>
+      <span class="bg-brand-600 text-white px-2.5 py-0.5 rounded-full font-bold">Cluster 1.7</span>
+    </div>
+
+    <article class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-8">
+      <header class="space-y-4 border-b border-slate-200 pb-6">
+        <span class="text-xs font-bold uppercase tracking-wider text-brand-600">Patient Case Acceptance • Visual Odontogram UX</span>
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-dental-navy leading-tight">
+          Visualizing Existing Restorations vs. Planned Treatments on a Color-Coded Odontogram
+        </h1>
+        <p class="text-slate-600 text-base leading-relaxed">
+          <strong>Direct Answer:</strong> Patients reject dental treatment plans when they cannot visualize what is wrong in their mouth. A color-coded <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-semibold underline">digital dental charting odontogram</a> turns abstract tooth numbers into an intuitive visual map—contrasting active pathology (`Red: Caries`, `Orange: Extraction`) against completed or restorative states (`Blue: Filling`, `Purple: RCT`, `Amber: Crown`, `Teal: Implant`).
+        </p>
+      </header>
+
+      <section class="space-y-4">
+        <h2 class="text-2xl font-extrabold text-dental-navy">1. The 8-Color Clinical Semantic Palette in Clinsyst</h2>
+        <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700">
+          <strong>Answer-First Summary:</strong> Clinsyst assigns each clinical finding a distinct semantic color and SVG tooth visual state so clinicians and patients can scan all 32 adult or 20 pediatric teeth in under 3 seconds.
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 font-bold">● Red (`#ef4444`)<span class="block font-normal text-red-600 mt-0.5">Active Caries</span></div>
+          <div class="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 font-bold">● Blue (`#3b82f6`)<span class="block font-normal text-blue-600 mt-0.5">Composite / Filling</span></div>
+          <div class="p-3.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 font-bold">● Purple (`#8b5cf6`)<span class="block font-normal text-purple-600 mt-0.5">Root Canal (RCT)</span></div>
+          <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-bold">● Amber (`#f59e0b`)<span class="block font-normal text-amber-600 mt-0.5">Crown / Bridge</span></div>
+          <div class="p-3.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-800 font-bold">● Orange (`#f97316`)<span class="block font-normal text-orange-600 mt-0.5">Extraction Needed</span></div>
+          <div class="p-3.5 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 font-bold">● Teal (`#14b8a6`)<span class="block font-normal text-teal-600 mt-0.5">Dental Implant</span></div>
+          <div class="p-3.5 rounded-xl bg-slate-100 border border-slate-300 text-slate-700 font-bold">● Slate (`#94a3b8`)<span class="block font-normal text-slate-500 mt-0.5">Missing Tooth</span></div>
+          <div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold">● Green (`#22c55e`)<span class="block font-normal text-emerald-600 mt-0.5">Sound / Healthy</span></div>
+        </div>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-2xl font-extrabold text-dental-navy">2. Turning Chairside Visuals into Scheduled Procedures</h2>
+        <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700">
+          <strong>Answer-First Summary:</strong> Showing the patient their color-coded arch on a chairside tablet increases multi-tooth treatment plan acceptance by making asymptomatic caries and uncrowded endodontically treated teeth visible and urgent.
+        </div>
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
+          Once the patient agrees to proceed, converting each red or purple tooth into a tracked procedure prevents revenue loss. See how to eliminate missed billing in <a href="/blog/prevent-unbilled-unlinked-dental-procedures/" class="text-brand-600 font-semibold underline">Troubleshooting Missing Clinical Notes & Unlinked Procedures in Dental Practices</a>.
+        </p>
+      </section>
+
+      <footer class="pt-6 border-t border-slate-200 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-500">Related Clinical Guides in This Cluster</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <a href="/blog/dental-examination-soap-note-templates/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
+            <span class="text-[11px] font-bold text-brand-600">← Previous in Cluster (1.6)</span>
+            <p class="font-bold text-dental-navy text-sm mt-1">Standardized Dental Examination SOAP Note Templates</p>
+          </a>
+          <a href="/blog/prevent-unbilled-unlinked-dental-procedures/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
+            <span class="text-[11px] font-bold text-brand-600">Next in Cluster (1.8) →</span>
+            <p class="font-bold text-dental-navy text-sm mt-1">Preventing Unbilled & Unlinked Dental Procedures</p>
+          </a>
+        </div>
+      </footer>
+    </article>
+  </main>
+</body>
+</html>
+

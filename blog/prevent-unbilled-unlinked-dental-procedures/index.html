@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Troubleshooting Missing Clinical Notes & Unlinked Procedures in Dental Practices | Clinsyst</title>
+  <meta name="description" content="Stop losing 11-14% of dental clinic revenue to unbilled chairside procedures and unlinked odontogram findings. Learn the 3-step examination-to-treatment-to-invoice audit workflow." />
+  <link rel="canonical" href="https://clinsyst.com/blog/prevent-unbilled-unlinked-dental-procedures/" />
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='50%25' y='52%25' font-family='Arial,sans-serif' font-size='44' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3C/svg%3E"
+  />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
+            dental: { navy: '#0c4a6e', dark: '#082f49' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans">
+
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-[#0284c7] flex items-center justify-center text-white font-bold text-xl">C</div>
+        <div class="flex flex-col">
+          <span class="text-xl font-bold text-dental-navy">Clinsyst<span class="text-brand-600">.</span></span>
+          <span class="text-[10px] tracking-wider uppercase font-semibold text-slate-400">Dental Practice Cloud</span>
+        </div>
+      </a>
+      <nav class="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600">
+        <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-bold">← Back to Pillar 1 Hub</a>
+        <a href="/#odontogram" class="hover:text-brand-600">Live Odontogram</a>
+        <a href="/#pricing" class="hover:text-brand-600">Pricing</a>
+      </nav>
+      <a href="/app/?mode=signup&plan=pro&billing=annual" class="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs sm:text-sm">Start Free Trial</a>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+    <!-- Upward Pillar Link -->
+    <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <span class="font-semibold text-slate-700">Part of Pillar 1: <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-bold underline">The Complete Guide to Digital Dental Charting, Interactive Odontograms & Cloud Dental EMR</a></span>
+      <span class="bg-brand-600 text-white px-2.5 py-0.5 rounded-full font-bold">Cluster 1.8</span>
+    </div>
+
+    <article class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-8">
+      <header class="space-y-4 border-b border-slate-200 pb-6">
+        <span class="text-xs font-bold uppercase tracking-wider text-brand-600">Clinical Revenue Integrity • Audit Workflow</span>
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-dental-navy leading-tight">
+          Troubleshooting Missing Clinical Notes & Unlinked Procedures in Dental Practices
+        </h1>
+        <p class="text-slate-600 text-base leading-relaxed">
+          <strong>Direct Answer:</strong> Unbilled dental procedures happen when a clinician performs an add-on restoration, periapical radiograph, or emergency pulpotomy chairside without linking the finding on the <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-semibold underline">digital dental charting odontogram</a> to the front-desk treatment and invoice queue. Enforcing a closed-loop `Odontogram Finding → Scheduled Treatment → Invoice Line Item` pipeline eliminates this revenue leakage.
+        </p>
+      </header>
+
+      <section class="space-y-4">
+        <h2 class="text-2xl font-extrabold text-dental-navy">1. Why 11–14% of Chairside Add-On Procedures Go Unbilled</h2>
+        <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700">
+          <strong>Answer-First Summary:</strong> During busy clinic hours, a patient booked for scaling and polishing often asks the dentist to "also fix a chipped filling on tooth 16." If the doctor completes the composite restoration but verbally tells the patient to pay at reception without logging the tooth action, the front desk frequently bills only the originally booked hygiene visit.
+        </div>
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
+          In Clinsyst, clicking any tooth on the <a href="/blog/color-coded-odontogram-restorations-treatment-plan/" class="text-brand-600 font-semibold underline">color-coded odontogram</a> triggers the <strong>"Schedule Treatment for Tooth"</strong> action, which immediately logs the tooth number, doctor ID, and procedure cost in the shared clinic database.
+        </p>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-2xl font-extrabold text-dental-navy">2. End-of-Day Clinical-to-Financial Reconciliation Checklist</h2>
+        <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700">
+          <strong>Answer-First Summary:</strong> Every evening before closing the clinic register, compare three numbers in Clinsyst: (1) Appointments marked `Completed`, (2) Treatments marked `Completed`, and (3) Invoices generated for the day.
+        </div>
+        <ul class="space-y-2 text-sm text-slate-600 list-disc pl-5">
+          <li><strong>Step 1:</strong> Verify every completed appointment has a saved <a href="/blog/dental-examination-soap-note-templates/" class="text-brand-600 font-semibold underline">SOAP examination note</a> or treatment entry.</li>
+          <li><strong>Step 2:</strong> Check multi-stage procedures (<a href="/blog/tracking-multi-visit-rct-implant-workflows/" class="text-brand-600 font-semibold underline">RCTs and dental implants</a>) to confirm partial installment invoices match the clinical stage completed today.</li>
+          <li><strong>Step 3:</strong> Review the <a href="/blog/digital-dental-patient-dossier-emr/" class="text-brand-600 font-semibold underline">digital patient dossier</a> for any pending balance flags before booking the patient's next recall slot.</li>
+        </ul>
+      </section>
+
+      <footer class="pt-6 border-t border-slate-200 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-500">Related Clinical Guides in This Cluster</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <a href="/blog/color-coded-odontogram-restorations-treatment-plan/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
+            <span class="text-[11px] font-bold text-brand-600">← Previous in Cluster (1.7)</span>
+            <p class="font-bold text-dental-navy text-sm mt-1">Visualizing Restorations vs. Planned Treatments on a Color-Coded Odontogram</p>
+          </a>
+          <a href="/guides/digital-dental-charting-odontogram-emr/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
+            <span class="text-[11px] font-bold text-brand-600">↑ Return to Parent Pillar Hub</span>
+            <p class="font-bold text-dental-navy text-sm mt-1">Complete Guide to Digital Dental Charting, Odontograms & Cloud EMR</p>
+          </a>
+        </div>
+      </footer>
+    </article>
+  </main>
+</body>
+</html>
+

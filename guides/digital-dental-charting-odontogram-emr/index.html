@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Complete Guide to Digital Dental Charting, Interactive Odontograms & Cloud Dental EMR (2026) | Clinsyst</title>
+  <meta name="description" content="Master digital dental charting and interactive odontograms. Compare FDI (ISO 3950) vs. Universal tooth numbering, 32-tooth adult vs. 20-tooth pediatric charting, 5-surface restoration mapping, and cloud dental EMR workflows." />
+  <link rel="canonical" href="https://clinsyst.com/guides/digital-dental-charting-odontogram-emr/" />
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='50%25' y='52%25' font-family='Arial,sans-serif' font-size='44' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3C/svg%3E"
+  />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              200: '#bae6fd',
+              300: '#7dd3fc',
+              400: '#38bdf8',
+              500: '#0ea5e9',
+              600: '#0284c7',
+              700: '#0369a1',
+              800: '#075985',
+              900: '#0c4a6e',
+              950: '#082f49',
+            },
+            dental: {
+              navy: '#0c4a6e',
+              dark: '#082f49',
+              slate: '#1e293b',
+              sky: '#0284c7',
+              cyan: '#06b6d4',
+              softblue: '#f0f9ff',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Structured Data: Article + FAQPage + BreadcrumbList for AI Citations & Rich Results -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "TechArticle",
+        "headline": "The Complete Guide to Digital Dental Charting, Interactive Odontograms & Cloud Dental EMR",
+        "description": "Comprehensive clinical engineering and practice management guide to digital dental charting, interactive adult (32-tooth) and pediatric (20-tooth) odontograms, FDI vs. Universal notation, and automated treatment-to-invoice EMR workflows.",
+        "author": {
+          "@type": "Organization",
+          "name": "Clinsyst Dental Cloud Clinical Architecture Team"
+        },
+        "publisher": {
+          "@type": "Organization",
+          "name": "Clinsyst Technologies & Buraq Dev"
+        },
+        "datePublished": "2026-11-05",
+        "dateModified": "2026-11-05",
+        "mainEntityOfPage": "https://clinsyst.com/guides/digital-dental-charting-odontogram-emr/"
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://clinsyst.com/" },
+          { "@type": "ListItem", "position": 2, "name": "Clinical Guides", "item": "https://clinsyst.com/guides/digital-dental-charting-odontogram-emr/" },
+          { "@type": "ListItem", "position": 3, "name": "Digital Dental Charting & Odontogram EMR Guide", "item": "https://clinsyst.com/guides/digital-dental-charting-odontogram-emr/" }
+        ]
+      },
+      {
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is a digital odontogram in dental practice management software?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "A digital odontogram is an interactive anatomical map of the human dentition inside a dental EMR that records tooth-level and surface-level pathologies, restorations, endodontic treatments, crowns, implants, and extractions. Unlike static paper diagrams, a cloud odontogram dynamically toggles between 32 permanent adult teeth and 20 primary pediatric teeth while supporting both FDI (ISO 3950) and Universal numbering."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Should a dental clinic use FDI or Universal tooth numbering?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Clinics in the United States primarily use the ADA Universal Numbering System (1–32 for adults, A–T for children), whereas clinics in Europe, the Middle East (UAE, Saudi Arabia), South Asia (Pakistan), Canada, and Australia use the ISO 3950 FDI Two-Digit Notation (quadrants 1–4 for adults, 5–8 for children). Modern cloud dental software like Clinsyst stores findings canonically and lets clinicians switch between FDI and Universal notation in one click."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How do 5-surface dental charting codes work?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Every tooth crown is divided into five clinical surfaces: Mesial (M, toward the midline), Distal (D, away from the midline), Occlusal or Incisal (O/I, biting edge), Buccal or Labial (B/La, cheek or lip side), and Lingual or Palatal (L/P, tongue or palate side). Multi-surface restorations combine these abbreviations, such as an MOD composite restoration spanning the Mesial-Occlusal-Distal surfaces."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans selection:bg-brand-500 selection:text-white">
+
+  <!-- Announcement Bar -->
+  <aside aria-label="Pillar Guide Header" class="bg-dental-navy text-white text-xs sm:text-sm py-2 px-4 border-b border-slate-800">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2 mx-auto sm:mx-0">
+        <span class="bg-brand-500/20 text-brand-300 text-[11px] font-bold px-2 py-0.5 rounded-full border border-brand-500/30">PILLAR 1 HUB</span>
+        <span>Enterprise Clinical Guide: Digital Dental Charting, Odontograms & Cloud EMR</span>
+      </div>
+      <div class="hidden md:flex items-center gap-4 text-slate-300 text-xs">
+        <a href="/#odontogram" class="hover:text-white underline">Try Live Dual Odontogram</a>
+        <span>•</span>
+        <a href="/app/?mode=signup&plan=pro&billing=annual" class="text-sky-300 font-semibold hover:text-white">14-Day Free Clinic Trial →</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Navigation -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-xl bg-[#0284c7] flex items-center justify-center text-white font-bold text-xl font-sans shadow-md shadow-sky-600/25 border border-sky-400/30 group-hover:scale-105 transition-transform">
+          C
+        </div>
+        <div class="flex flex-col">
+          <span class="text-xl font-bold tracking-tight text-dental-navy font-sans">Clinsyst<span class="text-brand-600">.</span></span>
+          <span class="text-[10px] tracking-wider uppercase font-semibold text-slate-400">Dental Practice Cloud</span>
+        </div>
+      </a>
+
+      <nav class="hidden lg:flex items-center gap-7 text-sm font-semibold text-slate-600">
+        <a href="/#features" class="hover:text-brand-600 transition-colors">Features</a>
+        <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-bold border-b-2 border-brand-600 pb-0.5">Dental Charting Guide</a>
+        <a href="/#pricing" class="hover:text-brand-600 transition-colors">Pricing</a>
+        <a href="/privacy/" class="hover:text-brand-600 transition-colors">Privacy & Security</a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <a href="/app/?mode=signin" class="inline-flex text-sm font-semibold text-slate-700 hover:text-brand-600 px-2 sm:px-3 py-2 transition-colors">
+          Sign In
+        </a>
+        <a href="/app/?mode=signup&plan=pro&billing=annual" class="inline-flex items-center justify-center px-4 sm:px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md shadow-brand-600/25 transition-all">
+          Start Free Trial
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
+    <!-- Breadcrumbs -->
+    <nav aria-label="Breadcrumb" class="mb-6 text-xs font-medium text-slate-500 flex items-center gap-2">
+      <a href="/" class="hover:text-brand-600">Home</a>
+      <span>/</span>
+      <span class="text-slate-700 font-semibold">Pillar 1: Digital Dental Charting, Odontograms & Cloud EMR</span>
+    </nav>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <!-- Left Sticky Table of Contents & Cluster Navigation -->
+      <aside class="lg:col-span-4 xl:col-span-3 order-2 lg:order-1">
+        <div class="sticky top-28 space-y-6">
+          <!-- On-Page Navigation -->
+          <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+            <h2 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-3">In This Pillar Guide</h2>
+            <ul class="space-y-2.5 text-xs font-semibold text-slate-600">
+              <li><a href="#what-is-digital-odontogram" class="hover:text-brand-600 block">1. What Is a Digital Odontogram?</a></li>
+              <li><a href="#fdi-vs-universal" class="hover:text-brand-600 block">2. FDI vs. Universal Tooth Notation</a></li>
+              <li><a href="#adult-vs-pediatric" class="hover:text-brand-600 block">3. Adult (32) vs. Pediatric (20) Arch</a></li>
+              <li><a href="#five-surface-taxonomy" class="hover:text-brand-600 block">4. 5-Surface & 8-State Clinical Taxonomy</a></li>
+              <li><a href="#interactive-sandbox" class="hover:text-brand-600 block">5. Interactive Odontogram Sandbox</a></li>
+              <li><a href="#patient-dossier-emr" class="hover:text-brand-600 block">6. Unified Patient Dossier & SOAP Notes</a></li>
+              <li><a href="#treatment-to-invoice" class="hover:text-brand-600 block">7. One-Click Exam-to-Treatment Pipeline</a></li>
+              <li><a href="#cluster-articles" class="hover:text-brand-600 block">8. Deep-Dive Cluster Articles</a></li>
+            </ul>
+          </div>
+
+          <!-- Spoke / Cluster Hub Links (Pillar -> Cluster Architecture) -->
+          <div class="bg-sky-950 text-white rounded-2xl p-5 shadow-md border border-sky-800">
+            <span class="inline-block text-[10px] font-bold uppercase tracking-widest text-sky-300 bg-sky-900/80 px-2.5 py-1 rounded-md mb-2">Pillar 1 Topic Cluster</span>
+            <h3 class="text-sm font-bold text-white mb-3">Supporting Clinical Deep-Dives</h3>
+            <ul class="space-y-2.5 text-xs text-sky-100">
+              <li>
+                <a href="/blog/fdi-vs-universal-tooth-numbering-system/" class="hover:text-sky-300 flex items-start gap-2">
+                  <span class="text-sky-400 font-bold">1.1</span>
+                  <span>FDI Two-Digit vs. Universal vs. Palmer Tooth Numbering Systems</span>
+                </a>
+              </li>
+              <li>
+                <a href="/blog/interactive-adult-pediatric-digital-odontogram/" class="hover:text-sky-300 flex items-start gap-2">
+                  <span class="text-sky-400 font-bold">1.2</span>
+                  <span>Interactive Adult (32-Tooth) vs. Pediatric (20-Tooth) Odontograms</span>
+                </a>
+              </li>
+              <li>
+                <a href="/blog/digital-dental-patient-dossier-emr/" class="hover:text-sky-300 flex items-start gap-2">
+                  <span class="text-sky-400 font-bold">1.3</span>
+                  <span>Building a Unified Digital Patient Dossier: History & Alerts</span>
+                </a>
+              </li>
+              <li>
+                <a href="/blog/tracking-multi-visit-rct-implant-workflows/" class="hover:text-sky-300 flex items-start gap-2">
+                  <span class="text-sky-400 font-bold">1.4</span>
+                  <span>Tracking Multi-Visit Root Canal (RCT) & Dental Implant Workflows</span>
+                </a>
+              </li>
+              <li>
+                <a href="/blog/paper-to-digital-chairside-dental-charting/" class="hover:text-sky-300 flex items-start gap-2">
+                  <span class="text-sky-400 font-bold">1.5</span>
+                  <span>Transitioning from Paper Charts to Chairside Tablet Charting</span>
+                </a>
+              </li>
+              <li>
+                <a href="/blog/dental-examination-soap-note-templates/" class="hover:text-sky-300 flex items-start gap-2">
+                  <span class="text-sky-400 font-bold">1.6</span>
+                  <span>Standardized Dental Examination SOAP Note Templates</span>
+                </a>
+              </li>
+              <li>
+                <a href="/blog/color-coded-odontogram-restorations-treatment-plan/" class="hover:text-sky-300 flex items-start gap-2">
+                  <span class="text-sky-400 font-bold">1.7</span>
+                  <span>Visualizing Restorations vs. Planned Treatments on Odontograms</span>
+                </a>
+              </li>
+              <li>
+                <a href="/blog/prevent-unbilled-unlinked-dental-procedures/" class="hover:text-sky-300 flex items-start gap-2">
+                  <span class="text-sky-400 font-bold">1.8</span>
+                  <span>Preventing Unbilled & Unlinked Dental Procedures</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Pillar Article Content -->
+      <article class="lg:col-span-8 xl:col-span-9 order-1 lg:order-2 space-y-12">
+        <!-- Hero Banner -->
+        <header class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs">
+          <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-brand-700 mb-4">
+            <span class="bg-brand-50 border border-brand-200 px-3 py-1 rounded-full">PILLAR 1: CLINICAL EMR ARCHITECTURE</span>
+            <span class="text-slate-400">•</span>
+            <span class="text-slate-500">Updated November 2026</span>
+            <span class="text-slate-400">•</span>
+            <span class="text-slate-500">12 Min Read</span>
+          </div>
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-dental-navy tracking-tight leading-tight">
+            The Complete Guide to Digital Dental Charting, Interactive Odontograms & Cloud Dental EMR
+          </h1>
+          <p class="mt-5 text-base sm:text-lg text-slate-600 leading-relaxed">
+            <strong>Direct Answer:</strong> Digital dental charting replaces fragmented paper tooth diagrams with an interactive, surface-aware <strong>digital odontogram</strong> synchronized directly with a patient's longitudinal Electronic Medical Record (EMR), treatment plan, prescriptions, and billing ledger. Modern cloud platforms like <a href="/" class="text-brand-600 font-semibold underline">Clinsyst</a> support instant switching between <strong>32-tooth adult</strong> and <strong>20-tooth pediatric</strong> arches, real-time <strong>FDI (ISO 3950)</strong> and <strong>Universal</strong> tooth notation, 5-surface pathology mapping, and one-click procedure scheduling.
+          </p>
+        </header>
+
+        <!-- Section 1 -->
+        <section id="what-is-digital-odontogram" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-5">
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-dental-navy">1. What Is a Digital Odontogram and Why Paper Charts Cost Clinics 14% in Unbilled Procedures</h2>
+          
+          <!-- Answer-First Block -->
+          <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700 leading-relaxed">
+            <strong>Key Takeaway:</strong> A digital odontogram is a structured clinical data model that maps every tooth (`11–48` in FDI or `1–32` in Universal) to its five anatomical crown surfaces, periodontal status, and historical interventions. Clinics relying on paper charts or free-text notes lose an average of <strong>11% to 14% of billable chairside production</strong> due to unlinked findings, illegible surface codes, and forgotten multi-visit follow-ups.
+          </div>
+
+          <p class="text-slate-600 leading-relaxed">
+            In a traditional dental practice, an examination happens in three disconnected steps: an assistant scribbles shorthand on a paper odontogram, the dentist dictates notes into a separate folder, and the front-desk receptionist manually re-types completed procedures into a billing register. Every handoff introduces clinical risk and revenue leakage.
+          </p>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm mt-2">
+              <thead>
+                <tr class="bg-slate-100 text-slate-800 border-b border-slate-200">
+                  <th class="p-3.5 font-bold">Clinical Dimension</th>
+                  <th class="p-3.5 font-bold">Paper Dental Chart / Legacy Desktop</th>
+                  <th class="p-3.5 font-bold text-brand-700">Clinsyst Cloud Dual Odontogram</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 text-slate-600">
+                <tr>
+                  <td class="p-3.5 font-semibold text-slate-800">Dentition Switching</td>
+                  <td class="p-3.5">Separate physical sheets for adult vs. child patients</td>
+                  <td class="p-3.5 text-slate-800 font-medium">Instant toggle between Adult (32 teeth) & Pediatric (20 primary teeth)</td>
+                </tr>
+                <tr>
+                  <td class="p-3.5 font-semibold text-slate-800">Tooth Numbering Standard</td>
+                  <td class="p-3.5">Hardcoded to one regional format</td>
+                  <td class="p-3.5 text-slate-800 font-medium">Live toggle between FDI Two-Digit (`18–48`) & Universal (`1–32` / `A–T`)</td>
+                </tr>
+                <tr>
+                  <td class="p-3.5 font-semibold text-slate-800">Surface-Level Precision</td>
+                  <td class="p-3.5">Hand-drawn shading prone to ambiguity</td>
+                  <td class="p-3.5 text-slate-800 font-medium">Structured 5-surface tags (`M`, `D`, `O`, `B`, `L`) + severity (`Mild`, `Moderate`, `Severe`)</td>
+                </tr>
+                <tr>
+                  <td class="p-3.5 font-semibold text-slate-800">Treatment & Billing Sync</td>
+                  <td class="p-3.5">Manual re-entry at front desk</td>
+                  <td class="p-3.5 text-slate-800 font-medium">One-click <em>"Schedule Treatment for Tooth"</em> directly from the odontogram inspector</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 2 -->
+        <section id="fdi-vs-universal" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-5">
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-dental-navy">2. FDI Two-Digit (ISO 3950) vs. Universal Tooth Numbering Systems</h2>
+
+          <!-- Answer-First Block -->
+          <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700 leading-relaxed">
+            <strong>Key Takeaway:</strong> The <strong>FDI Two-Digit Notation (ISO 3950)</strong> uses the first digit to identify the dental quadrant (`1–4` permanent, `5–8` deciduous) and the second digit for the tooth's position from the midline (`1–8`). The <strong>Universal Numbering System</strong> numbers permanent teeth sequentially from `1` to `32` clockwise starting at the maxillary right third molar, and primary teeth from `A` to `T`.
+          </div>
+
+          <p class="text-slate-600 leading-relaxed">
+            Multi-doctor clinics frequently employ associate dentists trained in different jurisdictions (for example, UK/UAE/Pakistan clinicians trained on FDI working alongside US-trained specialists using Universal notation). In Clinsyst's multi-tenant architecture, each clinic configures its default `tooth_notation` (`fdi` or `universal`), while individual clinicians can switch notation on the fly during an examination without altering the underlying tooth record.
+          </p>
+
+          <p class="text-sm text-slate-700 bg-slate-100 p-4 rounded-xl border border-slate-200">
+            📖 <strong>Deep-Dive Cluster Guide:</strong> Read our full conversion reference in <a href="/blog/fdi-vs-universal-tooth-numbering-system/" class="text-brand-600 font-bold underline hover:text-brand-800">FDI Two-Digit vs. Universal vs. Palmer Tooth Numbering Systems Explained</a>.
+          </p>
+        </section>
+
+        <!-- Section 3 -->
+        <section id="adult-vs-pediatric" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-5">
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-dental-navy">3. Adult (32-Tooth Permanent) vs. Pediatric (20-Tooth Primary) Odontogram Architecture</h2>
+
+          <!-- Answer-First Block -->
+          <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700 leading-relaxed">
+            <strong>Key Takeaway:</strong> Adult permanent dentition comprises 32 teeth across 4 quadrants (central & lateral incisors, canines, first & second premolars, and first, second, & third molars). Pediatric primary dentition comprises 20 teeth (no premolars or third molars), mapped as Quadrants `5–8` (`55–85`) in FDI or letters `A–T` in Universal notation.
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200">
+              <span class="text-xs font-bold uppercase text-brand-700">Permanent Dentition (Adult)</span>
+              <h3 class="text-lg font-bold text-dental-navy mt-1">32 Teeth • Quadrants 1 to 4</h3>
+              <ul class="mt-3 space-y-2 text-xs sm:text-sm text-slate-600">
+                <li>• <strong>Upper Right (Q1):</strong> FDI `18–11` | Universal `1–8`</li>
+                <li>• <strong>Upper Left (Q2):</strong> FDI `21–28` | Universal `9–16`</li>
+                <li>• <strong>Lower Left (Q3):</strong> FDI `31–38` | Universal `17–24`</li>
+                <li>• <strong>Lower Right (Q4):</strong> FDI `48–41` | Universal `25–32`</li>
+              </ul>
+            </div>
+            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200">
+              <span class="text-xs font-bold uppercase text-cyan-700">Deciduous Dentition (Pediatric)</span>
+              <h3 class="text-lg font-bold text-dental-navy mt-1">20 Teeth • Quadrants 5 to 8</h3>
+              <ul class="mt-3 space-y-2 text-xs sm:text-sm text-slate-600">
+                <li>• <strong>Upper Right (Q5):</strong> FDI `55–51` | Universal `A–E`</li>
+                <li>• <strong>Upper Left (Q6):</strong> FDI `61–65` | Universal `F–J`</li>
+                <li>• <strong>Lower Left (Q7):</strong> FDI `71–75` | Universal `K–O`</li>
+                <li>• <strong>Lower Right (Q8):</strong> FDI `85–81` | Universal `P–T`</li>
+              </ul>
+            </div>
+          </div>
+
+          <p class="text-sm text-slate-700 bg-slate-100 p-4 rounded-xl border border-slate-200">
+            📖 <strong>Deep-Dive Cluster Guide:</strong> Explore pediatric pulpotomy, stainless steel crown (SSC), and mixed-dentition charting in <a href="/blog/interactive-adult-pediatric-digital-odontogram/" class="text-brand-600 font-bold underline hover:text-brand-800">Interactive Adult (32-Tooth) vs. Pediatric (20-Tooth) Digital Odontograms</a>.
+          </p>
+        </section>
+
+        <!-- Section 4 -->
+        <section id="five-surface-taxonomy" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-5">
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-dental-navy">4. The 5-Surface & 8-State Clinical Condition Taxonomy</h2>
+
+          <!-- Answer-First Block -->
+          <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700 leading-relaxed">
+            <strong>Key Takeaway:</strong> Accurate restorative and endodontic charting requires recording both <strong>which anatomical surface</strong> is affected (`M`, `D`, `O`, `B`, `L`) and the <strong>clinical condition state</strong> (`Sound`, `Caries`, `Filling`, `RCT`, `Crown`, `Extraction`, `Implant`, `Missing`). Clinsyst color-codes each condition visually on the dental arch and auto-suggests the matching procedure when scheduling treatment.
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr class="bg-slate-100 text-slate-800 border-b border-slate-200">
+                  <th class="p-3 font-bold">Condition Code</th>
+                  <th class="p-3 font-bold">Visual Color Badge</th>
+                  <th class="p-3 font-bold">Clinical Meaning</th>
+                  <th class="p-3 font-bold">Auto-Suggested Procedure in Clinsyst</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 text-slate-600">
+                <tr>
+                  <td class="p-3 font-bold text-red-700">Caries (`caries`)</td>
+                  <td class="p-3"><span class="px-2 py-0.5 rounded bg-red-100 text-red-700 font-bold">Red Alert</span></td>
+                  <td class="p-3">Active enamel or dentinal carious lesion</td>
+                  <td class="p-3 font-medium text-slate-800">Composite Filling</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-bold text-blue-700">Filling (`filling`)</td>
+                  <td class="p-3"><span class="px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-bold">Blue Restored</span></td>
+                  <td class="p-3">Existing composite, amalgam, or GIC restoration</td>
+                  <td class="p-3 font-medium text-slate-800">Filling Replacement / Polishing</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-bold text-purple-700">Root Canal (`rct`)</td>
+                  <td class="p-3"><span class="px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-bold">Purple Endo</span></td>
+                  <td class="p-3">Irreversible pulpitis, necrotic pulp, or completed obturation</td>
+                  <td class="p-3 font-medium text-slate-800">Root Canal Treatment (RCT)</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-bold text-amber-700">Crown (`crown`)</td>
+                  <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-100 text-amber-700 font-bold">Amber Prostho</span></td>
+                  <td class="p-3">Zirconia, PFM, E-Max, or pediatric SSC crown</td>
+                  <td class="p-3 font-medium text-slate-800">Crown / Bridge Work</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-bold text-orange-700">Extraction (`extraction`)</td>
+                  <td class="p-3"><span class="px-2 py-0.5 rounded bg-orange-100 text-orange-700 font-bold">Orange Surgical</span></td>
+                  <td class="p-3">Non-restorable root stump, mobile or impacted tooth</td>
+                  <td class="p-3 font-medium text-slate-800">Tooth Extraction</td>
+                </tr>
+                <tr>
+                  <td class="p-3 font-bold text-teal-700">Implant (`implant`)</td>
+                  <td class="p-3"><span class="px-2 py-0.5 rounded bg-teal-100 text-teal-700 font-bold">Teal Fixture</span></td>
+                  <td class="p-3">Endosseous titanium implant fixture placed or planned</td>
+                  <td class="p-3 font-medium text-slate-800">Dental Implant Placement</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Section 5: Interactive Odontogram Sandbox (Proprietary Information Gain / E-E-A-T) -->
+        <section id="interactive-sandbox" class="bg-dental-navy text-white rounded-3xl p-6 sm:p-10 shadow-xl space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-sky-900 pb-5">
+            <div>
+              <span class="text-[11px] font-bold uppercase tracking-widest text-sky-300">Live Interactive Component</span>
+              <h2 class="text-2xl sm:text-3xl font-extrabold mt-1">5. Test the Interactive Dual Odontogram Engine</h2>
+              <p class="text-xs sm:text-sm text-sky-200 mt-1">Toggle between Adult (32) and Pediatric (20) arches or switch FDI / Universal numbering to inspect tooth pathology.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="bg-sky-950 p-1 rounded-xl border border-sky-800 flex text-xs font-bold">
+                <button type="button" id="guide-btn-adult" onclick="setGuideDentition('adult')" class="px-3 py-1.5 rounded-lg bg-brand-600 text-white">Adult (32)</button>
+                <button type="button" id="guide-btn-pediatric" onclick="setGuideDentition('pediatric')" class="px-3 py-1.5 rounded-lg text-sky-200 hover:text-white">Pediatric (20)</button>
+              </div>
+              <div class="bg-sky-950 p-1 rounded-xl border border-sky-800 flex text-xs font-bold">
+                <button type="button" id="guide-btn-fdi" onclick="setGuideNotation('FDI')" class="px-3 py-1.5 rounded-lg bg-white text-dental-navy">FDI</button>
+                <button type="button" id="guide-btn-univ" onclick="setGuideNotation('UNIV')" class="px-3 py-1.5 rounded-lg text-sky-200 hover:text-white">Universal</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="guide-arch-label" class="text-center text-xs font-bold uppercase tracking-wider text-sky-300">
+            Permanent Dentition (32 Teeth) • FDI Two-Digit Notation
+          </div>
+
+          <div class="space-y-4 bg-white/5 p-4 sm:p-6 rounded-2xl border border-white/10">
+            <div id="guide-upper-teeth" class="flex flex-wrap justify-center gap-1.5"></div>
+            <div class="border-t border-dashed border-sky-700/60 my-2"></div>
+            <div id="guide-lower-teeth" class="flex flex-wrap justify-center gap-1.5"></div>
+          </div>
+
+          <div class="bg-sky-950/90 border border-sky-800 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3.5">
+              <div id="guide-insp-num" class="w-12 h-12 rounded-xl bg-brand-600 flex items-center justify-center font-mono font-extrabold text-lg text-white">16</div>
+              <div>
+                <h3 id="guide-insp-title" class="font-bold text-white text-sm sm:text-base">Maxillary Right First Molar</h3>
+                <p id="guide-insp-desc" class="text-xs text-sky-300 mt-0.5">Condition: Restored (MO Composite) • Surfaces: Mesial, Occlusal</p>
+              </div>
+            </div>
+            <a href="/app/?mode=signup&plan=pro&billing=annual" class="px-4 py-2.5 rounded-xl bg-white text-dental-navy font-bold text-xs hover:bg-sky-50 transition shrink-0">
+              Open Full 5-Surface Chart in Clinsyst →
+            </a>
+          </div>
+        </section>
+
+        <!-- Section 6 -->
+        <section id="patient-dossier-emr" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-5">
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-dental-navy">6. Integrating Periodontal Indices, Medical Alerts & SOAP Notes in the Patient Dossier</h2>
+
+          <!-- Answer-First Block -->
+          <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700 leading-relaxed">
+            <strong>Key Takeaway:</strong> A tooth chart alone is insufficient for safe clinical care. Every examination record must combine the odontogram with gingival health scoring (`Healthy`, `Mild Gingivitis`, `Moderate Gingivitis`, `Severe Periodontitis`), plaque indices (`Low`, `Moderate`, `High`), systemic medical alerts, and structured SOAP notes.
+          </div>
+
+          <p class="text-slate-600 leading-relaxed">
+            Before administering local anesthesia with adrenaline or prescribing postoperative NSAIDs/antibiotics, the clinician needs immediate visibility into the patient's medical history and drug allergies. Clinsyst's unified <strong>Patient Dossier Modal</strong> aggregates longitudinal examinations, odontogram snapshots, active prescriptions, and invoice balances on a single screen.
+          </p>
+
+          <p class="text-sm text-slate-700 bg-slate-100 p-4 rounded-xl border border-slate-200">
+            📖 <strong>Deep-Dive Cluster Guide:</strong> Learn how to structure medical alerts and longitudinal histories in <a href="/blog/digital-dental-patient-dossier-emr/" class="text-brand-600 font-bold underline hover:text-brand-800">Building a Unified Digital Patient Dossier: Medical History, Allergies & Alerts</a>.
+          </p>
+        </section>
+
+        <!-- Section 7 -->
+        <section id="treatment-to-invoice" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-5">
+          <h2 class="text-2xl sm:text-3xl font-extrabold text-dental-navy">7. Multi-Visit Endodontic & Implant Tracking: From Odontogram to Invoice</h2>
+
+          <!-- Answer-First Block -->
+          <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700 leading-relaxed">
+            <strong>Key Takeaway:</strong> Complex dental procedures—such as multi-visit root canal therapy (RCT), zirconia crown prosthodontics, and two-stage dental implants—span multiple appointments. Linking each clinical stage (`Planned` → `In Progress` → `Completed`) directly to the tooth number prevents missed billing installments and unscheduled recall visits.
+          </div>
+
+          <p class="text-slate-600 leading-relaxed">
+            When a clinician marks Tooth `36` with `Deep Caries (Needs RCT)` during an examination in Clinsyst, clicking <strong>"Schedule Treatment for Tooth #36"</strong> pre-fills the patient, tooth number, and suggested procedure in the Treatments module, which then flows directly into the tax-compliant Invoice generator.
+          </p>
+
+          <p class="text-sm text-slate-700 bg-slate-100 p-4 rounded-xl border border-slate-200">
+            📖 <strong>Deep-Dive Cluster Guide:</strong> See step-by-step clinical protocols in <a href="/blog/tracking-multi-visit-rct-implant-workflows/" class="text-brand-600 font-bold underline hover:text-brand-800">How to Track Multi-Visit Endodontic (RCT) and Dental Implant Workflows in an EMR</a>.
+          </p>
+        </section>
+
+        <!-- Section 8: Complete Pillar 1 Cluster Hub Directory -->
+        <section id="cluster-articles" class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-6">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-brand-600">Hub-and-Spoke Knowledge Architecture</span>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-dental-navy mt-1">8. Explore All Pillar 1 Supporting Cluster Guides</h2>
+            <p class="text-sm text-slate-600 mt-1">Dive deeper into specific clinical charting standards, tooth notation systems, and EMR workflows.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <a href="/blog/fdi-vs-universal-tooth-numbering-system/" class="group p-5 rounded-2xl border border-slate-200 hover:border-brand-500 hover:shadow-md transition bg-slate-50/60">
+              <span class="text-[11px] font-bold text-brand-600 uppercase">Cluster 1.1 • Notation Standards</span>
+              <h3 class="text-base font-bold text-dental-navy group-hover:text-brand-600 mt-1">FDI Two-Digit vs. Universal vs. Palmer Tooth Numbering Systems Explained</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">Complete conversion tables for ISO 3950 FDI (`11–48`, `51–85`) and ADA Universal (`1–32`, `A–T`) numbering across adult and pediatric arches.</p>
+              <span class="inline-block mt-3 text-xs font-bold text-brand-600">Read Guide →</span>
+            </a>
+
+            <a href="/blog/interactive-adult-pediatric-digital-odontogram/" class="group p-5 rounded-2xl border border-slate-200 hover:border-brand-500 hover:shadow-md transition bg-slate-50/60">
+              <span class="text-[11px] font-bold text-brand-600 uppercase">Cluster 1.2 • Dual Dentition UX</span>
+              <h3 class="text-base font-bold text-dental-navy group-hover:text-brand-600 mt-1">Interactive Adult (32-Tooth) vs. Pediatric (20-Tooth) Digital Odontograms</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">How modern dental software handles deciduous molars, pulpotomies, stainless steel crowns, and 5-surface adult charting.</p>
+              <span class="inline-block mt-3 text-xs font-bold text-brand-600">Read Guide →</span>
+            </a>
+
+            <a href="/blog/digital-dental-patient-dossier-emr/" class="group p-5 rounded-2xl border border-slate-200 hover:border-brand-500 hover:shadow-md transition bg-slate-50/60">
+              <span class="text-[11px] font-bold text-brand-600 uppercase">Cluster 1.3 • Clinical Dossier</span>
+              <h3 class="text-base font-bold text-dental-navy group-hover:text-brand-600 mt-1">Building a Unified Digital Patient Dossier: Medical History, Allergies & Alerts</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">Preventing adverse drug events and chairside emergencies with longitudinal medical alerts, BPE gingival tracking, and E-Prescriptions.</p>
+              <span class="inline-block mt-3 text-xs font-bold text-brand-600">Read Guide →</span>
+            </a>
+
+            <a href="/blog/tracking-multi-visit-rct-implant-workflows/" class="group p-5 rounded-2xl border border-slate-200 hover:border-brand-500 hover:shadow-md transition bg-slate-50/60">
+              <span class="text-[11px] font-bold text-brand-600 uppercase">Cluster 1.4 • Endo & Implant Workflows</span>
+              <h3 class="text-base font-bold text-dental-navy group-hover:text-brand-600 mt-1">How to Track Multi-Visit Endodontic (RCT) and Dental Implant Workflows in an EMR</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">Step-by-step workflow for tracking root canal obturation stages, implant osseointegration checks, and phased treatment billing.</p>
+              <span class="inline-block mt-3 text-xs font-bold text-brand-600">Read Guide →</span>
+            </a>
+
+            <a href="/blog/paper-to-digital-chairside-dental-charting/" class="group p-5 rounded-2xl border border-slate-200 hover:border-brand-500 hover:shadow-md transition bg-slate-50/60">
+              <span class="text-[11px] font-bold text-brand-600 uppercase">Cluster 1.5 • Paperless Transition</span>
+              <h3 class="text-base font-bold text-dental-navy group-hover:text-brand-600 mt-1">Transitioning from Paper Dental Charts to Chairside Tablet Charting</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">How to digitize active recall patients on iPad and Android tablets with four-handed ergonomics and strict cross-infection control.</p>
+              <span class="inline-block mt-3 text-xs font-bold text-brand-600">Read Guide →</span>
+            </a>
+
+            <a href="/blog/dental-examination-soap-note-templates/" class="group p-5 rounded-2xl border border-slate-200 hover:border-brand-500 hover:shadow-md transition bg-slate-50/60">
+              <span class="text-[11px] font-bold text-brand-600 uppercase">Cluster 1.6 • SOAP Documentation</span>
+              <h3 class="text-base font-bold text-dental-navy group-hover:text-brand-600 mt-1">Standardized Dental Examination SOAP Note Templates for Faster Documentation</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">Copy-ready Subjective, Objective, Assessment, and Plan templates linked directly to odontogram findings and gingival indices.</p>
+              <span class="inline-block mt-3 text-xs font-bold text-brand-600">Read Guide →</span>
+            </a>
+
+            <a href="/blog/color-coded-odontogram-restorations-treatment-plan/" class="group p-5 rounded-2xl border border-slate-200 hover:border-brand-500 hover:shadow-md transition bg-slate-50/60">
+              <span class="text-[11px] font-bold text-brand-600 uppercase">Cluster 1.7 • Visual Case Acceptance</span>
+              <h3 class="text-base font-bold text-dental-navy group-hover:text-brand-600 mt-1">Visualizing Existing Restorations vs. Planned Treatments on a Color-Coded Odontogram</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">Using Clinsyst's 8-color semantic tooth palette to present clear chairside treatment plans that patients understand and accept.</p>
+              <span class="inline-block mt-3 text-xs font-bold text-brand-600">Read Guide →</span>
+            </a>
+
+            <a href="/blog/prevent-unbilled-unlinked-dental-procedures/" class="group p-5 rounded-2xl border border-slate-200 hover:border-brand-500 hover:shadow-md transition bg-slate-50/60">
+              <span class="text-[11px] font-bold text-brand-600 uppercase">Cluster 1.8 • Revenue Integrity</span>
+              <h3 class="text-base font-bold text-dental-navy group-hover:text-brand-600 mt-1">Troubleshooting Missing Clinical Notes & Unlinked Procedures in Dental Practices</h3>
+              <p class="text-xs text-slate-600 mt-2 leading-relaxed">Eliminate the 11–14% revenue loss from unbilled chairside add-ons with closed-loop odontogram-to-invoice reconciliation.</p>
+              <span class="inline-block mt-3 text-xs font-bold text-brand-600">Read Guide →</span>
+            </a>
+          </div>
+        </section>
+      </article>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-[#082f49] text-slate-400 py-12 text-xs border-t border-sky-950/80 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-7 h-7 rounded-lg bg-[#0284c7] text-white flex items-center justify-center font-bold text-xs">C</div>
+        <span class="font-bold text-white text-sm">Clinsyst Dental Cloud</span>
+        <span>•</span>
+        <span>© 2026 Clinsyst Technologies & Buraq Dev</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-5">
+        <a href="/" class="hover:text-white">Home</a>
+        <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-sky-400 font-bold">Dental Charting Guide</a>
+        <a href="/#pricing" class="hover:text-white">Pricing</a>
+        <a href="/privacy/" class="hover:text-white">Privacy</a>
+        <a href="/terms/" class="hover:text-white">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const guideState = { dentition: 'adult', notation: 'FDI' };
+    const guideTeeth = {
+      adult: {
+        upper: [
+          { fdi: '18', univ: '1', name: 'Maxillary Right Third Molar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '17', univ: '2', name: 'Maxillary Right Second Molar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '16', univ: '3', name: 'Maxillary Right First Molar', desc: 'Condition: Restored (MO Composite) • Surfaces: Mesial, Occlusal', cls: 'border-2 border-sky-400 bg-sky-500/30 text-white font-extrabold' },
+          { fdi: '15', univ: '4', name: 'Maxillary Right Second Premolar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '14', univ: '5', name: 'Maxillary Right First Premolar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '13', univ: '6', name: 'Maxillary Right Canine', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '12', univ: '7', name: 'Maxillary Right Lateral Incisor', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '11', univ: '8', name: 'Maxillary Right Central Incisor', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '21', univ: '9', name: 'Maxillary Left Central Incisor', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '22', univ: '10', name: 'Maxillary Left Lateral Incisor', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '23', univ: '11', name: 'Maxillary Left Canine', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '24', univ: '12', name: 'Maxillary Left First Premolar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '25', univ: '13', name: 'Maxillary Left Second Premolar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '26', univ: '14', name: 'Maxillary Left First Molar', desc: 'Condition: Zirconia Crown Indicated • Full Coverage', cls: 'border-2 border-amber-400 bg-amber-500/30 text-white font-extrabold' },
+          { fdi: '27', univ: '15', name: 'Maxillary Left Second Molar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '28', univ: '16', name: 'Maxillary Left Third Molar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' }
+        ],
+        lower: [
+          { fdi: '48', univ: '32', name: 'Mandibular Right Third Molar', desc: 'Condition: Impacted (Surgical Extraction Planned)', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '47', univ: '31', name: 'Mandibular Right Second Molar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '46', univ: '30', name: 'Mandibular Right First Molar', desc: 'Condition: Endosseous Implant Placed', cls: 'border-2 border-teal-400 bg-teal-500/30 text-white font-extrabold' },
+          { fdi: '45', univ: '29', name: 'Mandibular Right Second Premolar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '44', univ: '28', name: 'Mandibular Right First Premolar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '43', univ: '27', name: 'Mandibular Right Canine', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '42', univ: '26', name: 'Mandibular Right Lateral Incisor', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '41', univ: '25', name: 'Mandibular Right Central Incisor', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '31', univ: '24', name: 'Mandibular Left Central Incisor', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '32', univ: '23', name: 'Mandibular Left Lateral Incisor', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '33', univ: '22', name: 'Mandibular Left Canine', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '34', univ: '21', name: 'Mandibular Left First Premolar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '35', univ: '20', name: 'Mandibular Left Second Premolar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '36', univ: '19', name: 'Mandibular Left First Molar', desc: 'Condition: Deep Caries (RCT Indicated) • Surfaces: Distal, Occlusal', cls: 'border-2 border-rose-400 bg-rose-500/30 text-white font-extrabold' },
+          { fdi: '37', univ: '18', name: 'Mandibular Left Second Molar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '38', univ: '17', name: 'Mandibular Left Third Molar', desc: 'Condition: Sound • Surfaces: Intact', cls: 'border-white/20 bg-white/10 text-white' }
+        ]
+      },
+      pediatric: {
+        upper: [
+          { fdi: '55', univ: 'A', name: 'Primary Maxillary Right Second Molar', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '54', univ: 'B', name: 'Primary Maxillary Right First Molar', desc: 'Condition: Restored (Pulpotomy + SSC)', cls: 'border-2 border-sky-400 bg-sky-500/30 text-white font-extrabold' },
+          { fdi: '53', univ: 'C', name: 'Primary Maxillary Right Canine', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '52', univ: 'D', name: 'Primary Maxillary Right Lateral Incisor', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '51', univ: 'E', name: 'Primary Maxillary Right Central Incisor', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '61', univ: 'F', name: 'Primary Maxillary Left Central Incisor', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '62', univ: 'G', name: 'Primary Maxillary Left Lateral Incisor', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '63', univ: 'H', name: 'Primary Maxillary Left Canine', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '64', univ: 'I', name: 'Primary Maxillary Left First Molar', desc: 'Condition: Occlusal Caries (GIC Filling Planned)', cls: 'border-2 border-rose-400 bg-rose-500/30 text-white font-extrabold' },
+          { fdi: '65', univ: 'J', name: 'Primary Maxillary Left Second Molar', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' }
+        ],
+        lower: [
+          { fdi: '85', univ: 'T', name: 'Primary Mandibular Right Second Molar', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '84', univ: 'S', name: 'Primary Mandibular Right First Molar', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '83', univ: 'R', name: 'Primary Mandibular Right Canine', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '82', univ: 'Q', name: 'Primary Mandibular Right Lateral Incisor', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '81', univ: 'P', name: 'Primary Mandibular Right Central Incisor', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '71', univ: 'O', name: 'Primary Mandibular Left Central Incisor', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '72', univ: 'N', name: 'Primary Mandibular Left Lateral Incisor', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '73', univ: 'M', name: 'Primary Mandibular Left Canine', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '74', univ: 'L', name: 'Primary Mandibular Left First Molar', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' },
+          { fdi: '75', univ: 'K', name: 'Primary Mandibular Left Second Molar', desc: 'Condition: Sound', cls: 'border-white/20 bg-white/10 text-white' }
+        ]
+      }
+    };
+
+    function renderGuideOdontogram() {
+      const arch = guideTeeth[guideState.dentition];
+      const u = document.getElementById('guide-upper-teeth');
+      const l = document.getElementById('guide-lower-teeth');
+      document.getElementById('guide-arch-label').textContent =
+        (guideState.dentition === 'adult' ? 'Permanent Dentition (32 Teeth)' : 'Primary Dentition (20 Teeth)') +
+        ' • ' + (guideState.notation === 'FDI' ? 'FDI Two-Digit Notation' : 'Universal Numbering');
+      u.innerHTML = '';
+      l.innerHTML = '';
+      const createBtn = (t) => {
+        const label = guideState.notation === 'FDI' ? t.fdi : t.univ;
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'w-9 h-11 rounded-lg border flex items-center justify-center font-mono text-xs transition hover:-translate-y-0.5 ' + t.cls;
+        b.textContent = label;
+        b.onclick = () => {
+          document.getElementById('guide-insp-num').textContent = label;
+          document.getElementById('guide-insp-title').textContent = t.name;
+          document.getElementById('guide-insp-desc').textContent = t.desc;
+        };
+        return b;
+      };
+      arch.upper.forEach(t => u.appendChild(createBtn(t)));
+      arch.lower.forEach(t => l.appendChild(createBtn(t)));
+    }
+
+    function setGuideDentition(d) {
+      guideState.dentition = d;
+      document.getElementById('guide-btn-adult').className = d === 'adult' ? 'px-3 py-1.5 rounded-lg bg-brand-600 text-white' : 'px-3 py-1.5 rounded-lg text-sky-200 hover:text-white';
+      document.getElementById('guide-btn-pediatric').className = d === 'pediatric' ? 'px-3 py-1.5 rounded-lg bg-brand-600 text-white' : 'px-3 py-1.5 rounded-lg text-sky-200 hover:text-white';
+      renderGuideOdontogram();
+    }
+
+    function setGuideNotation(n) {
+      guideState.notation = n;
+      document.getElementById('guide-btn-fdi').className = n === 'FDI' ? 'px-3 py-1.5 rounded-lg bg-white text-dental-navy' : 'px-3 py-1.5 rounded-lg text-sky-200 hover:text-white';
+      document.getElementById('guide-btn-univ').className = n === 'UNIV' ? 'px-3 py-1.5 rounded-lg bg-white text-dental-navy' : 'px-3 py-1.5 rounded-lg text-sky-200 hover:text-white';
+      renderGuideOdontogram();
+    }
+
+    window.addEventListener('DOMContentLoaded', renderGuideOdontogram);
+  </script>
+</body>
+</html>
+

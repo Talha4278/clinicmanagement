@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FDI Two-Digit (ISO 3950) vs. Universal vs. Palmer Tooth Numbering Systems Explained | Clinsyst</title>
+  <meta name="description" content="Complete clinical conversion tables and guide comparing FDI Two-Digit Notation (11-48, 51-85), ADA Universal Numbering (1-32, A-T), and Palmer Notation for adult and pediatric dentistry." />
+  <link rel="canonical" href="https://clinsyst.com/blog/fdi-vs-universal-tooth-numbering-system/" />
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230284c7'/%3E%3Ctext x='50%25' y='52%25' font-family='Arial,sans-serif' font-size='44' font-weight='bold' fill='white' text-anchor='middle' dominant-baseline='central'%3EC%3C/text%3E%3C/svg%3E"
+  />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 900: '#0c4a6e' },
+            dental: { navy: '#0c4a6e', dark: '#082f49' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased font-sans">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <a href="/" class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-[#0284c7] flex items-center justify-center text-white font-bold text-xl">C</div>
+        <div class="flex flex-col">
+          <span class="text-xl font-bold text-dental-navy">Clinsyst<span class="text-brand-600">.</span></span>
+          <span class="text-[10px] tracking-wider uppercase font-semibold text-slate-400">Dental Practice Cloud</span>
+        </div>
+      </a>
+      <nav class="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600">
+        <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-bold">← Back to Pillar 1 Hub</a>
+        <a href="/#odontogram" class="hover:text-brand-600">Live Odontogram</a>
+        <a href="/#pricing" class="hover:text-brand-600">Pricing</a>
+      </nav>
+      <a href="/app/?mode=signup&plan=pro&billing=annual" class="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs sm:text-sm">Start Free Trial</a>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+    <!-- Upward Pillar Link Banner (Cluster -> Pillar Rule) -->
+    <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <span class="font-semibold text-slate-700">Part of Pillar 1: <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-bold underline">The Complete Guide to Digital Dental Charting, Interactive Odontograms & Cloud Dental EMR</a></span>
+      <span class="bg-brand-600 text-white px-2.5 py-0.5 rounded-full font-bold">Cluster 1.1</span>
+    </div>
+
+    <article class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-8">
+      <header class="space-y-4 border-b border-slate-200 pb-6">
+        <span class="text-xs font-bold uppercase tracking-wider text-brand-600">Clinical Charting Standards • ISO 3950 vs. ADA</span>
+        <h1 class="text-3xl sm:text-4xl font-extrabold text-dental-navy leading-tight">
+          FDI Two-Digit vs. Universal vs. Palmer Tooth Numbering Systems Explained (With Full Conversion Tables)
+        </h1>
+        <p class="text-slate-600 text-base leading-relaxed">
+          <strong>Direct Answer:</strong> Dental practices worldwide rely on three primary tooth notation systems: the <strong>FDI World Dental Federation Two-Digit System (ISO 3950)</strong>, the <strong>ADA Universal Numbering System</strong>, and the <strong>Palmer Quadrant Notation</strong>. As part of our <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-semibold underline">complete guide to digital dental charting and interactive odontograms</a>, this reference maps every adult (`11–48` / `1–32`) and pediatric (`51–85` / `A–T`) tooth code across all three standards.
+        </p>
+      </header>
+
+      <!-- H2 #1 -->
+      <section class="space-y-4">
+        <h2 class="text-2xl font-extrabold text-dental-navy">1. How the FDI Two-Digit System (ISO 3950) Works</h2>
+        <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700">
+          <strong>Answer-First Summary:</strong> In the FDI system, every tooth is identified by a two-digit code (`[Quadrant][Tooth]`). The first digit indicates the quadrant (`1–4` for permanent teeth clockwise from upper right; `5–8` for primary pediatric teeth), and the second digit indicates the tooth position from the central midline (`1` central incisor to `8` third molar).
+        </div>
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
+          To prevent clinical confusion between spoken numbers like "sixteen" and "sixty", FDI numbers are always pronounced as two separate digits—for example, tooth `16` (Maxillary Right First Molar) is spoken as <strong>"one-six"</strong>, and pediatric tooth `54` is spoken as <strong>"five-four"</strong>.
+        </p>
+      </section>
+
+      <!-- H2 #2: Adult Conversion Table -->
+      <section class="space-y-4">
+        <h2 class="text-2xl font-extrabold text-dental-navy">2. Adult Permanent Dentition Conversion Table (32 Teeth: FDI vs. Universal)</h2>
+        <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700">
+          <strong>Answer-First Summary:</strong> The ADA Universal system numbers adult teeth sequentially from `1` (Upper Right Third Molar, FDI `18`) across the maxillary arch to `16` (Upper Left Third Molar, FDI `28`), drops down to `17` (Lower Left Third Molar, FDI `38`), and finishes at `32` (Lower Right Third Molar, FDI `48`).
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr class="bg-slate-100 text-slate-800 border-b border-slate-200">
+                <th class="p-3 font-bold">Anatomical Tooth Name</th>
+                <th class="p-3 font-bold text-brand-700">FDI Right (Q1 / Q4)</th>
+                <th class="p-3 font-bold">Universal Right</th>
+                <th class="p-3 font-bold text-brand-700">FDI Left (Q2 / Q3)</th>
+                <th class="p-3 font-bold">Universal Left</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-slate-600 font-mono">
+              <tr>
+                <td class="p-3 font-sans font-semibold text-slate-800">Maxillary Central Incisor</td>
+                <td class="p-3 font-bold text-brand-700">11</td>
+                <td class="p-3">8</td>
+                <td class="p-3 font-bold text-brand-700">21</td>
+                <td class="p-3">9</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-sans font-semibold text-slate-800">Maxillary First Premolar</td>
+                <td class="p-3 font-bold text-brand-700">14</td>
+                <td class="p-3">5</td>
+                <td class="p-3 font-bold text-brand-700">24</td>
+                <td class="p-3">12</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-sans font-semibold text-slate-800">Maxillary First Molar</td>
+                <td class="p-3 font-bold text-brand-700">16</td>
+                <td class="p-3">3</td>
+                <td class="p-3 font-bold text-brand-700">26</td>
+                <td class="p-3">14</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-sans font-semibold text-slate-800">Maxillary Third Molar (Wisdom)</td>
+                <td class="p-3 font-bold text-brand-700">18</td>
+                <td class="p-3">1</td>
+                <td class="p-3 font-bold text-brand-700">28</td>
+                <td class="p-3">16</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-sans font-semibold text-slate-800">Mandibular Central Incisor</td>
+                <td class="p-3 font-bold text-brand-700">41</td>
+                <td class="p-3">25</td>
+                <td class="p-3 font-bold text-brand-700">31</td>
+                <td class="p-3">24</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-sans font-semibold text-slate-800">Mandibular First Molar</td>
+                <td class="p-3 font-bold text-brand-700">46</td>
+                <td class="p-3">30</td>
+                <td class="p-3 font-bold text-brand-700">36</td>
+                <td class="p-3">19</td>
+              </tr>
+              <tr>
+                <td class="p-3 font-sans font-semibold text-slate-800">Mandibular Third Molar (Wisdom)</td>
+                <td class="p-3 font-bold text-brand-700">48</td>
+                <td class="p-3">32</td>
+                <td class="p-3 font-bold text-brand-700">38</td>
+                <td class="p-3">17</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- H2 #3: Pediatric Conversion Table -->
+      <section class="space-y-4">
+        <h2 class="text-2xl font-extrabold text-dental-navy">3. Pediatric Primary Dentition Conversion Table (20 Teeth: FDI 51–85 vs. Universal A–T)</h2>
+        <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700">
+          <strong>Answer-First Summary:</strong> Primary (deciduous) teeth use Quadrants `5` (Upper Right), `6` (Upper Left), `7` (Lower Left), and `8` (Lower Right) in FDI (`51–85`), which map to uppercase letters `A` through `T` in Universal numbering (`55 = A`, `51 = E`, `61 = F`, `65 = J`, `75 = K`, `85 = T`).
+        </div>
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
+          When treating children in mixed dentition, toggling seamlessly between the 20-tooth pediatric chart and 32-tooth adult chart prevents charting a primary molar (`54` / `B`) on a permanent premolar slot (`14` / `5`). Read more in our sibling guide: <a href="/blog/interactive-adult-pediatric-digital-odontogram/" class="text-brand-600 font-semibold underline">Interactive Adult (32-Tooth) vs. Pediatric (20-Tooth) Digital Odontograms</a>.
+        </p>
+      </section>
+
+      <!-- Lateral Sibling Links Block (Step 3 Lateral Linking Rule) -->
+      <footer class="pt-6 border-t border-slate-200 space-y-4">
+        <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-500">Related Clinical Guides in This Cluster</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <a href="/blog/interactive-adult-pediatric-digital-odontogram/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
+            <span class="text-[11px] font-bold text-brand-600">Next in Cluster (1.2) →</span>
+            <p class="font-bold text-dental-navy text-sm mt-1">Interactive Adult (32-Tooth) vs. Pediatric (20-Tooth) Digital Odontograms</p>
+          </a>
+          <a href="/guides/digital-dental-charting-odontogram-emr/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
+            <span class="text-[11px] font-bold text-brand-600">↑ Parent Pillar Hub</span>
+            <p class="font-bold text-dental-navy text-sm mt-1">Complete Guide to Digital Dental Charting, Odontograms & Cloud EMR</p>
+          </a>
+        </div>
+      </footer>
+    </article>
+  </main>
+</body>
+</html>
+
