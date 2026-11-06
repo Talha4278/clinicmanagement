@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Core Commercial Homepage -->
+  <url>
+    <loc>https://www.clinsyst.com/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Pillar 1 Hub: Digital Dental Charting & Interactive Odontograms -->
+  <url>
+    <loc>https://www.clinsyst.com/guides/digital-dental-charting-odontogram-emr/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Pillar 1 Supporting Cluster Pages (1.1 - 1.8) -->
+  <url>
+    <loc>https://www.clinsyst.com/blog/fdi-vs-universal-tooth-numbering-system/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.clinsyst.com/blog/interactive-adult-pediatric-digital-odontogram/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.clinsyst.com/blog/digital-dental-patient-dossier-emr/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.clinsyst.com/blog/tracking-multi-visit-rct-implant-workflows/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.clinsyst.com/blog/paper-to-digital-chairside-dental-charting/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.clinsyst.com/blog/dental-examination-soap-note-templates/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.clinsyst.com/blog/color-coded-odontogram-restorations-treatment-plan/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.clinsyst.com/blog/prevent-unbilled-unlinked-dental-procedures/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Trust & Legal Pages -->
+  <url>
+    <loc>https://www.clinsyst.com/privacy/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://www.clinsyst.com/terms/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+  </url>
+</urlset>
+
