@@ -21,14 +21,17 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
   }
 
   function handlePrint() {
+    const prevTitle = document.title;
+    document.title = ' ';
     window.print();
+    document.title = prevTitle;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:static print:p-0 print:block">
       <div className="fixed inset-0 bg-black/50 backdrop-blur-xs no-print" onClick={onClose} />
 
-      <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-auto border border-gray-200 z-10 flex flex-col max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2.5rem)]">
+      <div className="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden my-auto border border-gray-200 z-10 flex flex-col max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2.5rem)] print:max-w-none print:max-h-none print:shadow-none print:border-none print:rounded-none print:overflow-visible">
         {/* Top Action Toolbar (fixed/sticky at top, hidden during print) */}
         <div className="sticky top-0 z-20 flex items-center justify-between px-4 sm:px-6 py-3 bg-gray-900 text-white no-print flex-shrink-0 border-b border-gray-800">
           <div className="flex items-center gap-2">
@@ -96,12 +99,14 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
             <div className="text-right">
               <p className="text-sm font-bold text-gray-900">{doctor?.name || 'Dr. Attending Dentist'}</p>
               <p className="text-xs font-medium" style={{ color: 'var(--primary-color)' }}>{doctor?.specialization || 'Dental Surgeon & Aesthetician'}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">PMDC / License Reg. #8921-D</p>
+              {(clinic.tax_number || doctor?.phone) && (
+                <p className="text-[11px] text-gray-400 mt-0.5">{clinic.tax_number || doctor?.phone}</p>
+              )}
             </div>
           </div>
 
           {/* Patient Info Strip */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-gray-50/80 rounded-xl p-3.5 border border-gray-100 text-xs">
+          <div className="grid grid-cols-2 sm:grid-cols-4 print:grid-cols-4 gap-3 bg-gray-50/80 rounded-xl p-3.5 border border-gray-100 text-xs">
             <div>
               <span className="text-gray-400 block text-[10px] uppercase font-semibold">Patient Name</span>
               <span className="font-bold text-gray-900 text-sm">{patient?.name || 'Patient'}</span>
@@ -132,26 +137,17 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
             </div>
           </div>
 
-          {/* Allergies Alert if present */}
-          {patient?.allergies && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 text-xs text-red-700 font-medium">
-              <span className="font-bold uppercase tracking-wider text-[10px]">Known Allergies:</span>{' '}
-              {patient.allergies}
-            </div>
-          )}
-
-          {/* Diagnosis & Clinical Findings */}
+          {/* Diagnosis & Clinical Findings (hidden on print to match clean slip layout) */}
           {prescription.diagnosis && (
-            <div className="border-b border-gray-100 pb-3">
+            <div className="no-print border-b border-gray-100 pb-3">
               <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Diagnosis:</span>
               <p className="text-sm font-semibold text-gray-900 mt-0.5">{prescription.diagnosis}</p>
             </div>
           )}
 
-          {/* Rx Section */}
+          {/* Prescribed Medications Section */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <span className="font-display text-2xl font-bold italic" style={{ color: 'var(--primary-color)' }}>℞</span>
               <span className="text-xs uppercase font-bold text-gray-400 tracking-wider">
                 Prescribed Medications
               </span>
@@ -194,9 +190,9 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
             </div>
           </div>
 
-          {/* Advice & Special Instructions */}
+          {/* Advice & Special Instructions (hidden on print to match clean slip layout) */}
           {prescription.advice && (
-            <div className="bg-amber-50/60 rounded-xl p-4 border border-amber-200/70 text-xs">
+            <div className="no-print bg-amber-50/60 rounded-xl p-4 border border-amber-200/70 text-xs">
               <p className="font-bold text-amber-900 uppercase tracking-wider text-[10px] mb-1">
                 Clinical Advice & Special Precautions:
               </p>
@@ -228,8 +224,14 @@ export default function PrescriptionSlip({ prescription, onClose }: Prescription
             <div className="text-center min-w-[140px]">
               <div className="h-12 border-b border-gray-400 border-dashed mb-1" />
               <p className="text-xs font-bold text-gray-800">Doctor's Signature</p>
-              <p className="text-[10px] text-gray-400">{clinic.clinic_name}</p>
+              <p className="text-[10px] text-gray-400">{activeClinic?.name || clinic.clinic_name}</p>
             </div>
+          </div>
+
+          {/* Clinsyst Software Copyright & Contact Footer */}
+          <div className="pt-3 border-t border-gray-100 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-1 text-[10px] text-gray-400">
+            <span>© {new Date().getFullYear()} Clinsyst Dental Cloud — Practice Management Software</span>
+            <span>www.clinsyst.com • +44 7446 957161 • admin@buraqdev.com</span>
           </div>
         </div>
       </div>

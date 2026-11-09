@@ -150,10 +150,10 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
   }
 
   return (
-    <div className="flex h-screen overflow-hidden transition-colors duration-200" style={{ background: themeConfig.appBg }}>
+    <div className="flex h-screen overflow-hidden transition-colors duration-200 print:h-auto print:overflow-visible print:block" style={{ background: themeConfig.appBg }}>
       {/* Desktop sidebar */}
       <aside
-        className="hidden lg:flex flex-col w-56 flex-shrink-0 h-full transition-colors duration-200"
+        className="no-print hidden lg:flex flex-col w-56 flex-shrink-0 h-full transition-colors duration-200"
         style={{ background: themeConfig.sidebarBg }}
       >
         <SidebarContent />
@@ -161,7 +161,7 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-40">
+        <div className="no-print lg:hidden fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <aside
             className="relative flex flex-col w-64 h-full z-50 transition-colors duration-200"
@@ -179,9 +179,9 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
       )}
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible print:block">
         {/* Top bar */}
-        <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100 card-shadow flex-shrink-0">
+        <header className="no-print flex items-center justify-between px-6 py-4 bg-white border-b border-gray-100 card-shadow flex-shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -242,7 +242,7 @@ export default function Layout({ currentPage, onNavigate, children }: LayoutProp
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 print:p-0 print:overflow-visible">
           {children}
         </main>
       </div>

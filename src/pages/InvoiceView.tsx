@@ -184,7 +184,10 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
   }
 
   function handlePrint() {
+    const prevTitle = document.title;
+    document.title = ' ';
     window.print();
+    document.title = prevTitle;
   }
 
   if (loading) {
@@ -330,7 +333,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-white/70 text-xs mt-1">
                   {(activeClinic?.phone || clinic.phone) && <span>Ph: {activeClinic?.phone || clinic.phone}</span>}
                   {(activeClinic?.owner_email || clinic.email) && <span>• {activeClinic?.owner_email || clinic.email}</span>}
-                  {clinic.tax_number && <span>• {clinic.tax_number}</span>}
+                  {clinic.tax_number && <span className="no-print">• {clinic.tax_number}</span>}
                 </div>
               </div>
             </div>
@@ -347,20 +350,20 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
         </div>
 
         {/* Patient & Doctor info */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 p-8 border-b border-gray-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 p-8 border-b border-gray-100">
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Bill To</p>
             <p className="font-semibold text-gray-900 text-lg">{patient?.name}</p>
             <p className="text-sm text-gray-500 mt-1">{patient?.phone}</p>
-            {patient?.email && <p className="text-sm text-gray-500">{patient.email}</p>}
-            {patient?.address && <p className="text-sm text-gray-400 mt-1">{patient.address}</p>}
+            {patient?.email && <p className="text-sm text-gray-500 no-print">{patient.email}</p>}
+            {patient?.address && <p className="text-sm text-gray-400 mt-1 no-print">{patient.address}</p>}
           </div>
-          <div className="sm:text-right">
+          <div className="sm:text-right print:text-right">
             {doctor && (
               <>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Attending Doctor</p>
                 <p className="font-semibold text-gray-900">{doctor.name}</p>
-                {doctor.specialization && <p className="text-sm text-gray-500">{doctor.specialization}</p>}
+                {doctor.specialization && <p className="text-sm text-gray-500 no-print">{doctor.specialization}</p>}
                 {doctor.phone && <p className="text-sm text-gray-400">{doctor.phone}</p>}
               </>
             )}
@@ -373,7 +376,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
             <thead>
               <tr className="border-b-2 border-gray-100">
                 <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-3">Description</th>
-                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-3 hidden sm:table-cell">Type</th>
+                <th className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide pb-3 hidden sm:table-cell print:table-cell">Type</th>
                 <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide pb-3">Qty</th>
                 <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide pb-3">Unit Price</th>
                 <th className="text-right text-xs font-semibold text-gray-500 uppercase tracking-wide pb-3">Total</th>
@@ -385,7 +388,7 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
                   <td className="py-3.5">
                     <p className="text-sm font-medium text-gray-900">{item.description}</p>
                   </td>
-                  <td className="py-3.5 hidden sm:table-cell">
+                  <td className="py-3.5 hidden sm:table-cell print:table-cell">
                     <span className="text-xs px-2 py-0.5 rounded-md bg-gray-100 text-gray-600">
                       {(item.item_type && itemTypeLabels[item.item_type]) ? itemTypeLabels[item.item_type] : (item.item_type ?? 'Service')}
                     </span>
@@ -479,9 +482,9 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
           </div>
         </div>
 
-        {/* Notes */}
+        {/* Notes (hidden on print to match clean invoice template) */}
         {invoice.notes && (
-          <div className="px-8 pb-6 border-t border-gray-100 pt-5">
+          <div className="no-print px-8 pb-6 border-t border-gray-100 pt-5">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Notes</p>
             <p className="text-sm text-gray-600">{invoice.notes}</p>
           </div>
@@ -499,6 +502,12 @@ export default function InvoiceView({ invoiceId, onBack }: Props) {
             <p className="text-xs font-semibold text-gray-700">{activeClinic?.name || clinic.clinic_name} {(activeClinic?.tagline || clinic.tagline) ? `— ${activeClinic?.tagline || clinic.tagline}` : ''}</p>
             <p className="text-xs text-gray-500 mt-0.5">{activeClinic?.phone || clinic.phone} {(activeClinic?.owner_email || clinic.email) ? `• ${activeClinic?.owner_email || clinic.email}` : ''}</p>
           </div>
+        </div>
+
+        {/* Clinsyst Software Copyright & Contact Footer */}
+        <div className="px-8 py-2.5 border-t border-gray-200/70 bg-slate-50 flex flex-col sm:flex-row print:flex-row items-center justify-between gap-1 text-[10px] text-gray-400">
+          <span>© {new Date().getFullYear()} Clinsyst Dental Cloud — Practice Management Software</span>
+          <span>www.clinsyst.com • +44 7446 957161 • admin@buraqdev.com</span>
         </div>
       </div>
 

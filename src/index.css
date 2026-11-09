@@ -124,17 +124,54 @@ body {
 
 /* Print styles */
 @media print {
+  /* Setting @page margin to 0 suppresses browser-generated URL footers (localhost:5173/...) and date/title headers */
+  @page {
+    size: auto;
+    margin: 0mm !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
   .no-print {
     display: none !important;
   }
+
   .print-only {
     display: block !important;
   }
-  body {
+
+  html,
+  #root {
     background: white !important;
     padding: 0 !important;
     margin: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
+
+  body {
+    background: white !important;
+    padding: 10mm !important;
+    margin: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Isolate ONLY the Prescription Slip or Billing Invoice during print */
+  body:has(#printable-prescription) *:not(:has(#printable-prescription)):not(#printable-prescription):not(#printable-prescription *) {
+    display: none !important;
+  }
+
+  body:has(#invoice-print) *:not(:has(#invoice-print)):not(#invoice-print):not(#invoice-print *) {
+    display: none !important;
+  }
+
   /* Ensure print document fits page height without overflow scrollbars or clipping */
   .fixed {
     position: static !important;
@@ -143,17 +180,32 @@ body {
     margin: 0 !important;
     background: transparent !important;
     overflow: visible !important;
+    max-height: none !important;
   }
-  #printable-prescription,
-  #invoice-print {
+
+  #printable-prescription {
     box-shadow: none !important;
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 16px !important;
+    padding: 2rem !important;
+    margin: 0 auto !important;
     width: 100% !important;
     max-width: 100% !important;
     overflow: visible !important;
     max-height: none !important;
+    background: white !important;
+  }
+
+  #invoice-print {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 16px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    max-height: none !important;
+    background: white !important;
   }
 }
 

@@ -98,10 +98,10 @@ export default function PatientDossierModal({
     .reduce((s, i) => s + Number(i.total), 0);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto print:static print:p-0 print:block">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs no-print" onClick={onClose} />
 
-      <div className="relative bg-white w-full max-w-6xl max-h-[92vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 z-10 animate-in fade-in zoom-in-95 duration-200">
+      <div className="no-print relative bg-white w-full max-w-6xl max-h-[92vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 z-10 animate-in fade-in zoom-in-95 duration-200">
         {/* Top Header & Patient Details */}
         <div className="p-6 text-white flex-shrink-0" style={{ background: 'var(--dossier-gradient)' }}>
           <div className="flex items-start justify-between gap-4">
