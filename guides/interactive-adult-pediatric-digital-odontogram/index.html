@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Troubleshooting Missing Clinical Notes & Unlinked Procedures in Dental Practices | Clinsyst</title>
-  <meta name="description" content="Stop losing 11-14% of dental clinic revenue to unbilled chairside procedures and unlinked odontogram findings. Learn the 3-step examination-to-treatment-to-invoice audit workflow." />
-  <link rel="canonical" href="https://www.clinsyst.com/blog/prevent-unbilled-unlinked-dental-procedures/" />
+  <title>Interactive Adult (32-Tooth) vs. Pediatric (20-Tooth) Digital Odontograms | Clinsyst</title>
+  <meta name="description" content="Learn how dual-arch digital odontograms handle 32 permanent adult teeth and 20 deciduous pediatric teeth, including 5-surface caries charting, pulpotomies, and stainless steel crowns." />
+  <link rel="canonical" href="https://www.clinsyst.com/guides/interactive-adult-pediatric-digital-odontogram/" />
   <link
     rel="icon"
     type="image/svg+xml"
@@ -58,47 +58,45 @@
 
     <article class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-10 shadow-xs space-y-8">
       <header class="space-y-4 border-b border-slate-200 pb-6">
-        <span class="text-xs font-bold uppercase tracking-wider text-brand-600">Clinical Revenue Integrity • Audit Workflow</span>
+        <span class="text-xs font-bold uppercase tracking-wider text-brand-600">Dual Dentition Architecture • Adult & Pedo EMR</span>
         <h1 class="text-3xl sm:text-4xl font-extrabold text-dental-navy leading-tight">
-          Troubleshooting Missing Clinical Notes & Unlinked Procedures in Dental Practices
+          Interactive Adult (32-Tooth) vs. Pediatric (20-Tooth) Digital Odontograms: Clinical Design & Workflows
         </h1>
         <p class="text-slate-600 text-base leading-relaxed">
-          <strong>Direct Answer:</strong> Unbilled dental procedures happen when a clinician performs an add-on restoration, periapical radiograph, or emergency pulpotomy chairside without linking the finding on the <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-semibold underline">digital dental charting odontogram</a> to the front-desk treatment and invoice queue. Enforcing a closed-loop `Odontogram Finding → Scheduled Treatment → Invoice Line Item` pipeline eliminates this revenue leakage.
+          <strong>Direct Answer:</strong> Many general dental practices treat both adults and children, yet legacy dental software forces clinicians onto a static 32-tooth adult diagram. As detailed in our <a href="/guides/digital-dental-charting-odontogram-emr/" class="text-brand-600 font-semibold underline">complete digital dental charting and odontogram guide</a>, a true dual-dentition odontogram separates the 32-tooth permanent arch (`18–48`) from the 20-tooth deciduous arch (`55–85` / `A–T`) while preserving 5-surface clinical accuracy.
         </p>
       </header>
 
       <section class="space-y-4">
-        <h2 class="text-2xl font-extrabold text-dental-navy">1. Why 11–14% of Chairside Add-On Procedures Go Unbilled</h2>
+        <h2 class="text-2xl font-extrabold text-dental-navy">1. Why Pediatric Dentistry Requires a Dedicated 20-Tooth Primary Odontogram</h2>
         <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700">
-          <strong>Answer-First Summary:</strong> During busy clinic hours, a patient booked for scaling and polishing often asks the dentist to "also fix a chipped filling on tooth 16." If the doctor completes the composite restoration but verbally tells the patient to pay at reception without logging the tooth action, the front desk frequently bills only the originally booked hygiene visit.
+          <strong>Answer-First Summary:</strong> Primary dentition lacks premolars and third molars, consisting of 5 teeth per quadrant: central incisor, lateral incisor, canine, first primary molar, and second primary molar. Charting pediatric procedures—such as pulpotomies, glass ionomer cement (GIC) restorations, and preformed stainless steel crowns (SSCs)—on an adult chart corrupts insurance coding and clinical history.
         </div>
         <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
-          In Clinsyst, clicking any tooth on the <a href="/blog/color-coded-odontogram-restorations-treatment-plan/" class="text-brand-600 font-semibold underline">color-coded odontogram</a> triggers the <strong>"Schedule Treatment for Tooth"</strong> action, which immediately logs the tooth number, doctor ID, and procedure cost in the shared clinic database.
+          In Clinsyst, selecting <strong>Pediatric (20 Teeth)</strong> during an examination dynamically renders Quadrants `5–8` (`55–51`, `61–65`, `85–81`, `71–75`) or Universal `A–T` (see our <a href="/guides/fdi-vs-universal-tooth-numbering-system/" class="text-brand-600 font-semibold underline">FDI vs. Universal Tooth Numbering Guide</a>) with custom pediatric tooth anatomy.
         </p>
       </section>
 
       <section class="space-y-4">
-        <h2 class="text-2xl font-extrabold text-dental-navy">2. End-of-Day Clinical-to-Financial Reconciliation Checklist</h2>
+        <h2 class="text-2xl font-extrabold text-dental-navy">2. 5-Surface Crown Mapping: M, D, O/I, B/La, and L/P</h2>
         <div class="bg-sky-50/80 border-l-4 border-brand-600 p-4 rounded-r-xl text-sm text-slate-700">
-          <strong>Answer-First Summary:</strong> Every evening before closing the clinic register, compare three numbers in Clinsyst: (1) Appointments marked `Completed`, (2) Treatments marked `Completed`, and (3) Invoices generated for the day.
+          <strong>Answer-First Summary:</strong> Both adult and pediatric odontograms in Clinsyst allow multi-select surface tagging across all five anatomical crown zones: <strong>Mesial (`M`)</strong>, <strong>Distal (`D`)</strong>, <strong>Occlusal/Incisal (`O`)</strong>, <strong>Buccal/Labial (`B`)</strong>, and <strong>Lingual/Palatal (`L`)</strong>, paired with severity grading (`Mild`, `Moderate`, `Severe`).
         </div>
-        <ul class="space-y-2 text-sm text-slate-600 list-disc pl-5">
-          <li><strong>Step 1:</strong> Verify every completed appointment has a saved <a href="/blog/dental-examination-soap-note-templates/" class="text-brand-600 font-semibold underline">SOAP examination note</a> or treatment entry.</li>
-          <li><strong>Step 2:</strong> Check multi-stage procedures (<a href="/blog/tracking-multi-visit-rct-implant-workflows/" class="text-brand-600 font-semibold underline">RCTs and dental implants</a>) to confirm partial installment invoices match the clinical stage completed today.</li>
-          <li><strong>Step 3:</strong> Review the <a href="/blog/digital-dental-patient-dossier-emr/" class="text-brand-600 font-semibold underline">digital patient dossier</a> for any pending balance flags before booking the patient's next recall slot.</li>
-        </ul>
+        <p class="text-slate-600 text-sm sm:text-base leading-relaxed">
+          All surface findings feed directly into the patient's longitudinal medical record. Learn how these findings combine with allergy and periodontal alerts in <a href="/guides/digital-dental-patient-dossier-emr/" class="text-brand-600 font-semibold underline">Building a Unified Digital Patient Dossier: Medical History, Allergies & Alerts</a>.
+        </p>
       </section>
 
       <footer class="pt-6 border-t border-slate-200 space-y-4">
         <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-500">Continue Reading: Related Clinical Guides</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <a href="/blog/color-coded-odontogram-restorations-treatment-plan/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
+          <a href="/guides/fdi-vs-universal-tooth-numbering-system/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
             <span class="text-[11px] font-bold text-brand-600">← Previous Article</span>
-            <p class="font-bold text-dental-navy text-sm mt-1">Visualizing Restorations vs. Planned Treatments on a Color-Coded Odontogram</p>
+            <p class="font-bold text-dental-navy text-sm mt-1">FDI Two-Digit vs. Universal Tooth Numbering Systems Explained</p>
           </a>
-          <a href="/guides/digital-dental-charting-odontogram-emr/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
-            <span class="text-[11px] font-bold text-brand-600">↑ Complete Charting Guide</span>
-            <p class="font-bold text-dental-navy text-sm mt-1">Complete Guide to Digital Dental Charting, Odontograms & Cloud EMR</p>
+          <a href="/guides/digital-dental-patient-dossier-emr/" class="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-brand-500 transition">
+            <span class="text-[11px] font-bold text-brand-600">Next Article →</span>
+            <p class="font-bold text-dental-navy text-sm mt-1">Building a Unified Digital Patient Dossier: History & Alerts</p>
           </a>
         </div>
       </footer>
